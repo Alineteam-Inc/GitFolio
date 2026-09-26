@@ -1,4 +1,4 @@
-# WhatsYourDevType
+# GitFolio
 Is a application that makes and analyze your development type with just a git commit, diff filenames and counts.
 It gathers git infos only, neither file content and the whole code.
 It will make your profile or resume fully automated.
