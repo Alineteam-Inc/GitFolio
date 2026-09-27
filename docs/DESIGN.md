@@ -46,7 +46,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 
 | # | 원칙 | 의미 |
 |---|---|---|
-| 1 | **최소 수집** | 커밋 메시지, 시점, 파일명(basename), 추가·삭제 줄 수만 수집. 파일 내용·전체 경로·원격 URL은 수집하지 않음 |
+| 1 | **최소 수집** | 커밋 해시, 작성자 이메일, 커밋 메시지, 시점, 파일명(basename), 추가·삭제 줄 수, AI 기여 여부, 저장소 namespace(`소유자/저장소`)만 수집. 파일 내용·전체 경로·원격 URL(호스트·인증 정보)은 수집하지 않음 |
 | 2 | **파일 읽기는 승인 후에만** | 저장소 파일 내용을 읽는 것은 사용자가 **파일별로 승인한 패키지 매니저 파일**에 한하며, **의존성 파악 용도로만** 사용 |
 | 3 | **저장·전송 전 마스킹** | 원문은 로컬에도 서버에도 저장하지 않음. 수집 즉시 이 컴퓨터에서 마스킹 |
 | 4 | **push 시 자동 전송** | push에 성공한 커밋은 push 직후 백그라운드로 전송(기본값). 기기가 꺼져 있으면 실행되지 않는 예약 동기화에만 의존하지 않기 위함. 예약·수동 동기화는 누락·실패분 보완. 커밋·scan 자체는 네트워크를 쓰지 않음 |
@@ -81,10 +81,15 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 
 | 항목 | git 출처 | 저장 형태 |
 |---|---|---|
-| 커밋 해시 | `%H` | 로컬 중복 제거용. 서버에는 원본 대신 HMAC ID로 전송 (6장) |
+| 커밋 해시 | `%H` | 원본 그대로 저장·전송. git 서비스에서 커밋 실재를 검증하는 근거 (`hash`) |
+| 작성자 이메일 | `%aE` (mailmap 반영) | 본인 식별에 쓴 이메일 (`authorEmail`) |
+| AI 기여 여부 | `%aN`, `%aE`, 메시지 트레일러·문구 (5장) | 마스킹 **전** 원문으로 판정. `aiContributed`(true/false), `aiAgents`(예: `["claude-code"]`) |
+| 저장소 namespace | `git remote get-url origin` (없으면 첫 번째 원격) | 원격 URL에서 `소유자/저장소`만 추출 (`namespace`, 예: `Alineteam-Inc/GitFolio`). 호스트·인증 정보(`https://user:token@…`)·포트·`.git`은 버림. aline.team 서버가 이 값으로 git 서비스 API를 조회해 `repositoryUid`를 확정하고 커밋 실재를 검증 |
+| git 서비스 | 원격 URL의 호스트 | `provider`: `GITHUB`, `GITLAB`, `BITBUCKET`, `AZURE_DEVOPS`, 그 외(사내 서버 포함)는 `OTHER`. 호스트 자체는 전송하지 않음 |
 | 시점 | `%aI` (author date) | ISO 8601, 타임존 포함 |
 | 커밋 메시지 | `%B` | 마스킹 후 저장 |
 | 파일명 | `--numstat` | **basename만.** 이름 변경 시 변경 후 이름. 마스킹 적용 |
+| 파일 유형·언어 | — | CLI는 판정하지 않음. aline.team 서버가 파일명으로 판단 |
 | 추가·삭제 줄 수 | `--numstat` | 바이너리 파일(`-`)은 0 |
 
 ### 3.2 본인 식별
@@ -197,11 +202,12 @@ Allow reading which files? [all / none / 1,3] >
 
 ### 5.1 분류
 
-| 분류 | 조건 |
+| 필드 | 의미 |
 |---|---|
-| `human` | 아래 신호 없음 |
-| `ai_assisted` | author는 본인 + AI 신호 있음 |
-| `ai_authored` | author가 에이전트 + `Co-authored-by`에 본인 이메일 |
+| `aiContributed` | 본인 커밋에 아래 AI 신호가 하나라도 있으면 `true` |
+| `aiAgents` | 확인된 에이전트 목록 (예: `["claude-code"]`) |
+
+- 수집 대상은 author가 본인인 커밋뿐이다. author가 에이전트인 커밋은 수집하지 않는다
 
 ### 5.2 탐지 단계
 
@@ -246,7 +252,7 @@ Allow reading which files? [all / none / 1,3] >
 4. **이메일 소유 확인**: 서버가 해당 이메일로 일회용 코드 발송 → CLI에 입력
    - 가입: 계정 생성 / 로그인: 기존 계정 확인. 선택과 실제 상태가 다르면 알리고 올바른 절차로 안내
 5. **기기 등록**: `init` 때 생성한 기기 키(6.1.1)의 공개 키를 계정에 등록
-6. **토큰 발급**: 서버가 이 기기 전용 토큰(`al-…`)과 계정 키를 발급 → `credentials.json`(권한 0600)에 저장, 이후 요청에 `Authorization: Bearer <토큰>`으로 사용
+6. **토큰 발급**: 서버가 이 기기 전용 토큰(`al-…`)을 발급 → `credentials.json`(권한 0600)에 저장, 이후 요청에 `Authorization: Bearer <토큰>`으로 사용
 
 > ⚠️ git credential helper, `gh` 인증 정보 등 **다른 서비스의 인증 정보는 읽거나 전송하지 않는다.**
 
@@ -281,8 +287,6 @@ Allow reading which files? [all / none / 1,3] >
 |---|---|
 | 토큰 취급 | 사용자에게 표시하지 않음. 로그·에러 메시지·`--dry-run` 출력에도 표시하지 않음. 커밋 메시지에 섞이면 마스킹(`al-` 패턴) |
 | 만료·폐기 | 만료 시 기기 키 서명으로 자동 재발급. 기기가 폐기된 경우 `gitfolio login` 재인증 안내. `logout`은 로컬 토큰·기기 키 삭제 + 서버 폐기 요청 |
-| 계정 키 | 레코드 ID 생성용 키. 토큰과 함께 발급, 계정의 모든 기기에서 동일 |
-
 #### 6.1.2 작업 이메일 추가 인증
 
 본인 커밋 식별(3.2)의 기본 이메일 외에, 회사·개인 등 **다른 작업 이메일을 인증받아 추가**할 수 있다.
@@ -319,8 +323,8 @@ Allow reading which files? [all / none / 1,3] >
 
 | 항목 | 설계 |
 |---|---|
-| 전송 내용 | 마스킹된 레코드만. 로컬 경로, 원격 URL, 원본 커밋 해시, 매니저 파일 경로·원문은 전송하지 않음 |
-| 레코드 ID | `HMAC-SHA256(계정 키, 커밋 해시)`. 여러 PC에서도 같은 커밋은 같은 ID. 원본 해시는 전송하지 않음 |
+| 전송 내용 | 마스킹된 레코드 (3.1 항목). 로컬 경로, 원격 URL(호스트·인증 정보), 매니저 파일 경로·원문은 전송하지 않음 |
+| 레코드 ID | `repositoryUid` + 커밋 해시. 여러 PC에서도 같은 커밋은 같은 ID |
 | 재전송 | 금지어 추가로 재마스킹된 레코드는 같은 ID로 덮어씀 |
 | 삭제 | `remove --purge`, `deps off`로 생긴 삭제 요청을 다음 sync 때 전송 |
 | 실패 | 오프라인·서버 오류 시 미전송 상태 유지, 다음 sync에서 재시도 |
@@ -340,8 +344,9 @@ Allow reading which files? [all / none / 1,3] >
 [Cross-border data transfer]
  Recipient : Alineteam Inc. (aline.team)
  Location  : United States - Google Cloud Platform ([region])
- Items     : masked commit messages, timestamps, file names,
-             line counts, AI usage classification,
+ Items     : commit hashes, author emails, masked commit messages,
+             timestamps, file names, line counts, AI usage,
+             repository namespaces (owner/repo),
              dependency names/versions (only if allowed)
  Purpose   : developer profile and resume analysis
  When/How  : after each successful git push, and on scheduled or
@@ -429,8 +434,9 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
 
  [Data Policy]
  - Source code is never collected.
- - Collected: commit messages (masked), timestamps, file names,
-   and lines added/deleted.
+ - Collected: commit hashes, author emails, commit messages
+   (masked), timestamps, file names, lines added/deleted,
+   AI usage, and repository namespaces (owner/repo).
  - Files are read only with your approval, and only package
    manager files, only to detect dependencies.
  - Data is masked on this computer and sent to aline.team
@@ -448,7 +454,8 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
 ```
  [데이터 정책]
  - 소스 코드는 수집하지 않습니다.
- - 수집 항목: 커밋 메시지(마스킹), 시점, 파일명, 추가·삭제 줄 수
+ - 수집 항목: 커밋 해시, 작성자 이메일, 커밋 메시지(마스킹), 시점,
+   파일명, 추가·삭제 줄 수, AI 사용 여부, 저장소 namespace(소유자/저장소)
  - 파일 읽기는 사용자가 승인한 패키지 매니저 파일에 한하며,
    의존성 파악에만 사용합니다.
  - 데이터는 이 컴퓨터에서 마스킹된 뒤, git push 직후와
@@ -559,7 +566,7 @@ Enable dependency detection? [y/N]
 ### 7.7 `export`
 
 - 로컬 데이터를 파일·화면으로 출력. 기본 JSON, `md`는 사람이 읽는 요약
-- 커밋 해시, 로컬 경로는 출력하지 않음
+- 로컬 경로는 출력하지 않음. 저장소는 이름과 `namespace`(소유자/저장소)로 표시
 - 이미 마스킹된 데이터만 출력
 
 ## 8. 로컬 저장 구조
@@ -570,7 +577,7 @@ Enable dependency detection? [y/N]
 | 파일 | 내용 |
 |---|---|
 | `config.json` | 저장소 모음 경로, 인증된 작업 이메일 목록(서버 캐시), 금지어, 의존성 기능 동의, push 동기화 on/off, 예약 시각 |
-| `credentials.json` | 기기 개인 키(`init` 시 생성), 기기 토큰, 계정 키, 국외 이전 동의 시각 (권한 0600) |
+| `credentials.json` | 기기 개인 키(`init` 시 생성), 기기 토큰, 국외 이전 동의 시각 (권한 0600) |
 | `repos.json` | 등록 저장소: 로컬 경로, 마스킹된 이름, 마지막 수집 정보, 매니저 파일 승인·거절·대기 목록 (**로컬 전용, 전송 안 함**) |
 | `commits.jsonl` | 커밋 1건당 1줄 |
 | `agent-tags.jsonl` | `post-commit` 훅이 기록한 커밋 해시 → 에이전트 |
@@ -591,8 +598,8 @@ Enable dependency detection? [y/N]
 - **noreply 전용 커밋**: GitHub 웹 UI 커밋, 클라우드 에이전트가 noreply로 본인을 공동 작성자에 넣은 커밋은 수집되지 않음
 - **마스킹**: 규칙 기반이라 완전하지 않음
 - **의존성**: 지원 목록에 없는 매니저 파일, 동적으로 생성되는 의존성 선언(스크립트·플러그인)은 누락. 모듈 귀속은 추정치
-- **레코드 ID**: 계정 키를 서버가 발급하므로, 서버는 이론상 공개 저장소 커밋 해시와 대조할 수 있음
-- **예약 동기화**: 컴퓨터가 꺼져 있으면 실행되지 않음. 그래서 push 동기화가 기본이며, 예약은 보완용
+- **공개 저장소**: 커밋 해시와 namespace를 보내므로, 공개 저장소는 해당 커밋과 코드를 누구나 찾아볼 수 있는 상태로 연결됨 (검증 목적상 의도된 동작)
+- **사내 git 서버**: `provider`가 `OTHER`로만 전송되므로 서버가 저장소·커밋을 git 서비스에서 검증할 수 없음- **예약 동기화**: 컴퓨터가 꺼져 있으면 실행되지 않음. 그래서 push 동기화가 기본이며, 예약은 보완용
 - **URL로 push**: `git push https://…`처럼 원격 이름 없이 push하면 원격 추적 브랜치가 갱신되지 않아 push 성공을 확인할 수 없음 → 해당 커밋은 수집되지 않음
 - **push 직후 기기 종료**: 백그라운드 전송 전에 꺼지면 다음 push·동기화 때 전송
 
@@ -610,8 +617,10 @@ Enable dependency detection? [y/N]
 
 | # | 항목 | 상태 | 필요한 것 | 막히는 단계 |
 |---|---|---|---|---|
-| 1 | aline.team API 명세 | 전달 예정 | 계정 존재 확인, 이메일 확인 코드 발송·검증, 작업 이메일 추가 인증·목록, 기기 공개 키 등록, 토큰·계정 키 발급, 기기 서명 재발급, 레코드 스키마, 삭제·토큰 폐기 API | ROADMAP 6, 7 |
+| 1 | aline.team API 명세 | 전달 예정 | 계정 존재 확인, 이메일 확인 코드 발송·검증, 작업 이메일 추가 인증·목록, 기기 공개 키 등록, 토큰 발급, namespace → `repositoryUid` 조회, 기기 서명 재발급, 레코드 스키마, 삭제·토큰 폐기 API | ROADMAP 6, 7 |
 | — | 국외 이전 고지 문구 | ✅ 완료 | 법무 검토 조항은 https://aline.team/privacy 에 반영됨. CLI 동의 화면은 이 방침과 일치시킴 | |
+| 2 | 개인정보처리방침 수집 항목 갱신 | aline.team 측 작업 | 커밋 해시, 작성자 이메일, AI 사용 여부, 저장소 namespace 추가 수집을 https://aline.team/privacy 에 반영 | ROADMAP 9 |
+| — | `repositoryUid` | ✅ 확정 | CLI는 namespace(`소유자/저장소`)를 보내고 aline.team 서버가 git 서비스 API로 조회 (3.1) | |
 | 3 | 데스크톱 앱 범위·일정 | 미정 | 앱이 CLI를 호출하는 방식(6.4)으로 갈지 | 이후 |
 | 4 | 일본어 문구 | 미정 | 원어민 검수 | ROADMAP 9 |
 | — | 본인 커밋 식별 이메일 | ✅ 확정 | 기본 `git config user.email` + aline.team에서 인증한 작업 이메일 (3.2, 6.1.2) | |
