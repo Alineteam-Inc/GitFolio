@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 )
 
@@ -150,10 +151,49 @@ func encodeCommits(p string, flag int, commits []Commit) error {
 	return f.Close()
 }
 
+// agentTag is what the post-commit hook records when an AI agent's environment made the commit.
+type agentTag struct {
+	Hash   string   `json:"hash"`
+	Agents []string `json:"agents"`
+}
+
+func appendAgentTag(dir string, t agentTag) error {
+	f, err := os.OpenFile(filepath.Join(dir, "agent-tags.jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	if err := json.NewEncoder(f).Encode(t); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
+}
+
+// readAgentTags returns the recorded agents by commit hash.
+// ponytail: the file only grows; prune tags of stored commits if it ever gets large.
+func readAgentTags(dir string) (map[string][]string, error) {
+	f, err := os.Open(filepath.Join(dir, "agent-tags.jsonl"))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	tags := map[string][]string{}
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		var t agentTag
+		if json.Unmarshal(sc.Bytes(), &t) == nil { // skip a line cut short by a crash
+			tags[t.Hash] = append(tags[t.Hash], t.Agents...)
+		}
+	}
+	return tags, sc.Err()
+}
+
 // scanRepo stores the user's commits in r that are not stored yet and returns how many were added.
-// With rebuild, r's stored commits are dropped first and collected again.
-// ponytail: reads the full range and dedupes by hash on every scan; hooks pass push ranges in ROADMAP step 4.
-// ponytail: no file lock; concurrent scans (hook + manual) can race until step 4 adds one.
+// With rebuild, r's stored commits are dropped first and collected again. Callers hold the data lock.
+// ponytail: reads every pushed commit and dedupes by hash on each scan; pass push ranges if big repos get slow.
 func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	mine, err := myEmails(r.Path)
 	if err != nil {
@@ -190,6 +230,10 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 		}
 		stored = kept
 	}
+	tags, err := readAgentTags(dir)
+	if err != nil {
+		return 0, err
+	}
 	known := map[string]bool{}
 	for _, c := range stored {
 		known[c.Hash] = true
@@ -198,6 +242,9 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	for _, c := range parseLog(out) {
 		if known[c.Hash] {
 			continue
+		}
+		if extra := tags[c.Hash]; len(extra) > 0 {
+			c.AIAgents = slices.Compact(slices.Sorted(slices.Values(append(c.AIAgents, extra...))))
 		}
 		if c.CreationType = creationType(c, mine); c.CreationType != "" {
 			c.Repo = r.ID
