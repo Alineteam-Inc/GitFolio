@@ -20,12 +20,17 @@ type Repo struct {
 	Provider  string `json:"provider,omitempty"`  // GITHUB, GITLAB, ... or OTHER
 	Namespace string `json:"namespace,omitempty"` // owner/repo on the git service
 	LastScan  string `json:"last_scan,omitempty"`
+	// Manifests records the user's decision per package manager file path: true = may be read.
+	// Local only, never exported or sent. Files missing here wait for approval.
+	Manifests map[string]bool `json:"manifests,omitempty"`
 }
 
 type FileStat struct {
-	Name string `json:"name"`
-	Add  int    `json:"add"`
-	Del  int    `json:"del"`
+	Name   string `json:"name"`
+	Add    int    `json:"add"`
+	Del    int    `json:"del"`
+	Module string `json:"module,omitempty"` // local only: nearest approved manifest's directory, never exported
+	path   string // full path, used for module lookup only, never stored
 }
 
 type Commit struct {
@@ -58,6 +63,7 @@ func newRepo(path string) Repo {
 
 type Config struct {
 	Mask []string `json:"mask,omitempty"` // blocked words: customer and internal project names
+	Deps bool     `json:"deps"`           // user allowed dependency detection (DESIGN 3.5)
 }
 
 func loadRepos(dir string) (repos []Repo, err error) {
@@ -206,6 +212,12 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	m := newMasker(cfg.Mask)
 	r.Name = m.apply(filepath.Base(r.Path))
 	r.Provider, r.Namespace = remote(r.Path)
+	var modules map[string]string
+	if cfg.Deps {
+		if modules, err = refreshDeps(dir, r, m); err != nil {
+			return 0, err
+		}
+	}
 	rng, err := logRange(r.Path)
 	if err != nil || rng == nil {
 		return 0, err
@@ -248,6 +260,9 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 		}
 		if c.CreationType = creationType(c, mine); c.CreationType != "" {
 			c.Repo = r.ID
+			for i := range c.Files {
+				c.Files[i].Module = moduleOf(c.Files[i].path, modules)
+			}
 			m.commit(&c) // after AI detection in parseLog, before anything is written
 			fresh = append(fresh, c)
 			known[c.Hash] = true

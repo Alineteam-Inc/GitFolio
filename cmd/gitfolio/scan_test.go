@@ -147,11 +147,12 @@ func TestScanRepo(t *testing.T) {
 	if e := byMsg["rename"].AuthorEmail; e != "Me@Example.com" {
 		t.Errorf("rename authorEmail = %q", e)
 	}
+	fs := func(name string, add, del int) FileStat { return FileStat{Name: name, Add: add, Del: del} }
 	want := map[string][]FileStat{
-		"first\n\nbody line": {{"logo.png", 0, 0}, {"a.go", 3, 0}}, // numstat lists paths sorted: logo.png < src/a.go
-		"rename":             {{"b.go", 0, 0}},
-		side:                 {{"c.txt", 1, 0}},
-		botWork:              {{"d.txt", 1, 0}},
+		"first\n\nbody line": {fs("logo.png", 0, 0), fs("a.go", 3, 0)}, // numstat lists paths sorted: logo.png < src/a.go
+		"rename":             {fs("b.go", 0, 0)},
+		side:                 {fs("c.txt", 1, 0)},
+		botWork:              {fs("d.txt", 1, 0)},
 	}
 	for msg, files := range want {
 		c, ok := byMsg[msg]
