@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -11,7 +12,7 @@ import (
 )
 
 // logFormat separates commits with \x1e and fields with \x1f; numstat lines follow the last \x1f.
-const logFormat = "--format=%x1e%H%x1f%aI%x1f%aE%x1f%B%x1f"
+const logFormat = "--format=%x1e%H%x1f%aI%x1f%aN%x1f%aE%x1f%B%x1f"
 
 // git runs git inside dir. GIT_DIR and friends are dropped so that running
 // from inside a git hook does not redirect the command to the hook's repository.
@@ -37,6 +38,60 @@ func topLevel(dir string) (string, error) {
 		return "", fmt.Errorf("%s is not a git repository", dir)
 	}
 	return strings.TrimSpace(out), nil
+}
+
+// providers maps git service hosts to the provider sent to aline.team; any other host is OTHER
+// (self-hosted servers included), so internal host names never leave the machine.
+var providers = map[string]string{
+	"github.com":        "GITHUB",
+	"ssh.github.com":    "GITHUB",
+	"gitlab.com":        "GITLAB",
+	"bitbucket.org":     "BITBUCKET",
+	"dev.azure.com":     "AZURE_DEVOPS",
+	"ssh.dev.azure.com": "AZURE_DEVOPS",
+}
+
+// remote returns the repository's provider and owner/repo on its git service (origin first,
+// otherwise the first remote). aline.team resolves them to the service's repository ID.
+// Both are empty without such a remote.
+func remote(repo string) (provider, namespace string) {
+	out, err := git(repo, "remote", "get-url", "origin")
+	if err != nil {
+		names, err := git(repo, "remote")
+		if err != nil || len(strings.Fields(names)) == 0 {
+			return "", ""
+		}
+		if out, err = git(repo, "remote", "get-url", strings.Fields(names)[0]); err != nil {
+			return "", ""
+		}
+	}
+	return parseRemote(strings.TrimSpace(out))
+}
+
+// parseRemote extracts the provider and owner/repo from https, ssh and scp-style
+// ("git@host:owner/repo.git") remote URLs. Host, credentials (https://user:token@host/...)
+// and port are never returned.
+func parseRemote(raw string) (provider, namespace string) {
+	var host, p string
+	if u, err := url.Parse(raw); err == nil && u.Host != "" {
+		host, p = u.Hostname(), u.Path
+	} else if !strings.Contains(raw, "://") {
+		if i := strings.Index(raw, ":"); i > 0 {
+			host, p = raw[:i], raw[i+1:]
+			if j := strings.LastIndex(host, "@"); j >= 0 {
+				host = host[j+1:]
+			}
+		}
+	}
+	p = strings.TrimSuffix(strings.Trim(p, "/"), ".git")
+	if !strings.Contains(host, ".") || p == "" { // local paths such as /srv/repo.git or C:\repo
+		return "", ""
+	}
+	provider = providers[strings.ToLower(host)]
+	if provider == "" {
+		provider = "OTHER"
+	}
+	return provider, p
 }
 
 // myEmails returns the lowercased emails that identify the user's own commits in repo.
@@ -74,12 +129,14 @@ func gitLog(repo string, rng []string) (string, error) {
 func parseLog(out string) []Commit {
 	var commits []Commit
 	for _, rec := range strings.Split(out, "\x1e") {
-		f := strings.SplitN(rec, "\x1f", 5)
-		if len(f) < 5 {
+		f := strings.SplitN(rec, "\x1f", 6)
+		if len(f) < 6 {
 			continue
 		}
-		c := Commit{Hash: f[0], Date: f[1], Email: f[2], Message: strings.TrimSpace(f[3])}
-		for _, line := range strings.Split(f[4], "\n") {
+		c := Commit{Hash: f[0], Date: f[1], AuthorEmail: f[3], Message: strings.TrimSpace(f[4])}
+		c.AIAgents = detectAgents(f[2], c.AuthorEmail, c.Message)
+		c.AIContributed = len(c.AIAgents) > 0
+		for _, line := range strings.Split(f[5], "\n") {
 			p := strings.SplitN(line, "\t", 3)
 			if len(p) < 3 {
 				continue

@@ -17,7 +17,9 @@ const usage = `usage: gitfolio <command> [arguments]
 
 commands:
   add [path]            register a repository and collect its commits
-  scan [path] [--all]   collect new commits (--all: every registered repository)
+  scan [path] [--all] [--rebuild]
+                        collect new commits (--all: every registered repository,
+                        --rebuild: drop stored commits and collect again)
   list                  show registered repositories
   export                print collected commits as JSON
   version               print version`
@@ -81,7 +83,7 @@ func cmdAdd(dir, path string) error {
 	}
 	repos = append(repos, newRepo(top))
 	r := &repos[len(repos)-1]
-	n, err := scanRepo(dir, r)
+	n, err := scanRepo(dir, r, false)
 	if err != nil {
 		return err
 	}
@@ -92,6 +94,7 @@ func cmdAdd(dir, path string) error {
 func cmdScan(dir string, args []string) error {
 	fs := flag.NewFlagSet("scan", flag.ContinueOnError)
 	all := fs.Bool("all", false, "scan every registered repository")
+	rebuild := fs.Bool("rebuild", false, "drop stored commits and collect again")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -112,7 +115,7 @@ func cmdScan(dir string, args []string) error {
 			continue
 		}
 		matched = true
-		n, err := scanRepo(dir, r)
+		n, err := scanRepo(dir, r, *rebuild)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "gitfolio: %s: %v\n", r.Name, err)
 			failed = true
@@ -153,7 +156,7 @@ func cmdList(dir string) error {
 	return w.Flush()
 }
 
-// cmdExport prints collected commits without local-only fields (hash, path).
+// cmdExport prints collected commits with the repository name and namespace in place of the local repo ID.
 func cmdExport(dir string) error {
 	repos, err := loadRepos(dir)
 	if err != nil {
@@ -163,21 +166,18 @@ func cmdExport(dir string) error {
 	if err != nil {
 		return err
 	}
-	names := map[string]string{}
+	byID := map[string]Repo{}
 	for _, r := range repos {
-		names[r.ID] = r.Name
+		byID[r.ID] = r
 	}
-	type exported struct {
-		Repo    string     `json:"repo"`
-		Date    string     `json:"date"`
-		Message string     `json:"message"`
-		Files   []FileStat `json:"files"`
-	}
-	out := make([]exported, 0, len(commits))
+	out := make([]Commit, 0, len(commits))
 	for _, c := range commits {
-		out = append(out, exported{names[c.Repo], c.Date, c.Message, c.Files})
+		r := byID[c.Repo]
+		c.Repo, c.Provider, c.Namespace = r.Name, r.Provider, r.Namespace
+		out = append(out, c)
 	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
+	enc.SetEscapeHTML(false) // keep "<a@b.com>" readable instead of <…>
 	return enc.Encode(out)
 }
