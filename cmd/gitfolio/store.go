@@ -55,24 +55,45 @@ func newRepo(path string) Repo {
 	return Repo{ID: hex.EncodeToString(sum[:6]), Path: path, Name: filepath.Base(path)}
 }
 
-func loadRepos(dir string) ([]Repo, error) {
-	b, err := os.ReadFile(filepath.Join(dir, "repos.json"))
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	var repos []Repo
-	return repos, json.Unmarshal(b, &repos)
+type Config struct {
+	Mask []string `json:"mask,omitempty"` // blocked words: customer and internal project names
+}
+
+func loadRepos(dir string) (repos []Repo, err error) {
+	err = loadJSON(filepath.Join(dir, "repos.json"), &repos)
+	return repos, err
 }
 
 func saveRepos(dir string, repos []Repo) error {
-	b, err := json.MarshalIndent(repos, "", "  ")
+	return saveJSON(filepath.Join(dir, "repos.json"), repos)
+}
+
+func loadConfig(dir string) (cfg Config, err error) {
+	err = loadJSON(filepath.Join(dir, "config.json"), &cfg)
+	return cfg, err
+}
+
+func saveConfig(dir string, cfg Config) error {
+	return saveJSON(filepath.Join(dir, "config.json"), cfg)
+}
+
+// loadJSON decodes p into v; a missing file leaves v untouched.
+func loadJSON(p string, v any) error {
+	b, err := os.ReadFile(p)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
-	p := filepath.Join(dir, "repos.json")
+	return json.Unmarshal(b, v)
+}
+
+func saveJSON(p string, v any) error {
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return err
+	}
 	if err := os.WriteFile(p+".tmp", b, 0o600); err != nil {
 		return err
 	}
@@ -138,6 +159,12 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return 0, err
+	}
+	m := newMasker(cfg.Mask)
+	r.Name = m.apply(filepath.Base(r.Path))
 	r.Provider, r.Namespace = remote(r.Path)
 	rng, err := logRange(r.Path)
 	if err != nil || rng == nil {
@@ -171,6 +198,7 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	for _, c := range parseLog(out) {
 		if mine[strings.ToLower(c.AuthorEmail)] && !known[c.Hash] {
 			c.Repo = r.ID
+			m.commit(&c) // after AI detection in parseLog, before anything is written
 			fresh = append(fresh, c)
 			known[c.Hash] = true
 		}

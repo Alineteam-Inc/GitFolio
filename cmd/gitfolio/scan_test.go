@@ -117,7 +117,8 @@ func TestScanRepo(t *testing.T) {
 			t.Errorf("%q: authorEmail %q, hash %q", c.Message, c.AuthorEmail, c.Hash)
 		}
 	}
-	side := "side\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+	// The trailer email is masked in storage, but AI detection ran on the raw message before that.
+	side := "side\n\nCo-Authored-By: Claude Opus 5.5 <[EMAIL]>"
 	if c := byMsg[side]; !c.AIContributed || len(c.AIAgents) != 1 || c.AIAgents[0] != "claude-code" {
 		t.Errorf("side commit ai = %v %v, want true [claude-code]", c.AIContributed, c.AIAgents)
 	}
@@ -144,5 +145,20 @@ func TestScanRepo(t *testing.T) {
 				t.Errorf("%q file %d = %+v, want %+v", msg, i, c.Files[i], files[i])
 			}
 		}
+	}
+
+	// A newly blocked word is applied to data that is already stored.
+	if err := cmdConfig(data, []string{"mask", "add", "body"}); err != nil {
+		t.Fatal(err)
+	}
+	if stored, err = readCommits(data); err != nil {
+		t.Fatal(err)
+	}
+	remasked := false
+	for _, c := range stored {
+		remasked = remasked || c.Message == "first\n\n[REDACTED] line"
+	}
+	if !remasked {
+		t.Errorf("mask add did not reach stored commits: %+v", stored)
 	}
 }

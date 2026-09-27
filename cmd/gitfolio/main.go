@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"slices"
+	"strings"
 	"text/tabwriter"
 )
 
@@ -22,6 +25,10 @@ commands:
                         --rebuild: drop stored commits and collect again)
   list                  show registered repositories
   export                print collected commits as JSON
+  config                show settings
+  config mask add|rm <word>...
+                        add or remove blocked words (customer or internal project names);
+                        added words are also applied to already stored data
   version               print version`
 
 func main() {
@@ -56,6 +63,8 @@ func run(args []string) error {
 		return cmdList(dir)
 	case "export":
 		return cmdExport(dir)
+	case "config":
+		return cmdConfig(dir, args[1:])
 	}
 	return fmt.Errorf("unknown command %q (see gitfolio help)", args[0])
 }
@@ -180,4 +189,66 @@ func cmdExport(dir string) error {
 	enc.SetIndent("", "  ")
 	enc.SetEscapeHTML(false) // keep "<a@b.com>" readable instead of <…>
 	return enc.Encode(out)
+}
+
+func cmdConfig(dir string, args []string) error {
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
+	if len(args) == 0 {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		enc.SetEscapeHTML(false)
+		return enc.Encode(cfg)
+	}
+	if len(args) < 3 || args[0] != "mask" || (args[1] != "add" && args[1] != "rm") {
+		return errors.New("usage: gitfolio config mask add|rm <word>...")
+	}
+	for _, w := range args[2:] {
+		if w = strings.TrimSpace(w); w == "" {
+			continue
+		}
+		i := slices.IndexFunc(cfg.Mask, func(x string) bool { return strings.EqualFold(x, w) })
+		switch {
+		case args[1] == "add" && i < 0:
+			cfg.Mask = append(cfg.Mask, w)
+		case args[1] == "rm" && i >= 0:
+			cfg.Mask = slices.Delete(cfg.Mask, i, i+1)
+		}
+	}
+	if err := saveConfig(dir, cfg); err != nil {
+		return err
+	}
+	if args[1] == "rm" {
+		fmt.Println("removed. Already masked data stays masked; run `gitfolio scan --all --rebuild` to collect it again.")
+		return nil
+	}
+	return remask(dir, newMasker(cfg.Mask))
+}
+
+// remask applies m to everything already stored, so a newly blocked word disappears from past data too.
+func remask(dir string, m masker) error {
+	commits, err := readCommits(dir)
+	if err != nil {
+		return err
+	}
+	for i := range commits {
+		m.commit(&commits[i])
+	}
+	if err := writeCommits(dir, commits); err != nil {
+		return err
+	}
+	repos, err := loadRepos(dir)
+	if err != nil {
+		return err
+	}
+	for i := range repos {
+		repos[i].Name = m.apply(filepath.Base(repos[i].Path))
+	}
+	if err := saveRepos(dir, repos); err != nil {
+		return err
+	}
+	fmt.Printf("applied to %d stored commits\n", len(commits))
+	return nil
 }
