@@ -1,0 +1,73 @@
+package main
+
+import (
+	"regexp"
+	"sort"
+	"strings"
+)
+
+// maskRules run in order: secrets first (they can sit inside URLs), then URLs (they can contain "@"),
+// then emails, IPs and issue references.
+var maskRules = []struct {
+	re   *regexp.Regexp
+	repl string
+}{
+	{regexp.MustCompile(`-----BEGIN [A-Z ]*PRIVATE KEY-----`), "[SECRET]"},
+	{regexp.MustCompile(`\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,}|sk-[\w-]{20,}|AKIA[0-9A-Z]{16}|xox[abprs]-[\w-]{10,}|eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,})`), "[SECRET]"},
+	{regexp.MustCompile(`\bal-\S{16,}`), "[SECRET]"}, // aline.team device token
+	{regexp.MustCompile(`(?i)\b(?:https?|ssh|git|ftp)://[^\s<>()\[\]"']+|\bwww\.[^\s<>()\[\]"']+`), "[URL]"},
+	{regexp.MustCompile(`[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+`), "[EMAIL]"},
+	{regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`), "[IP]"},
+	{regexp.MustCompile(`\B#\d+\b`), "[TICKET]"},
+}
+
+// ticketRe matches issue keys such as PAY-123. Standard names that look the same (UTF-8, SHA-256) are kept.
+// ponytail: fixed allowlist; add prefixes here when real messages get masked by mistake.
+var ticketRe = regexp.MustCompile(`\b[A-Z][A-Z0-9]{1,9}-\d+\b`)
+
+var notTickets = map[string]bool{
+	"UTF": true, "SHA": true, "ISO": true, "RFC": true, "HTTP": true, "TLS": true, "SSL": true, "ES": true,
+	"MD": true, "AES": true, "RSA": true, "CVE": true, "PEP": true, "JSR": true, "ECMA": true, "GPT": true, "IPV": true,
+}
+
+// masker hides sensitive values before anything is stored or sent (DESIGN 4).
+type masker struct{ words *regexp.Regexp }
+
+// newMasker builds a masker for the user's blocked words (customer or internal project names).
+func newMasker(words []string) masker {
+	var parts []string
+	for _, w := range words {
+		if w = strings.TrimSpace(w); w != "" {
+			parts = append(parts, regexp.QuoteMeta(w))
+		}
+	}
+	if len(parts) == 0 {
+		return masker{}
+	}
+	sort.Slice(parts, func(i, j int) bool { return len(parts[i]) > len(parts[j]) }) // longest first
+	return masker{regexp.MustCompile(`(?i)` + strings.Join(parts, "|"))}
+}
+
+func (m masker) apply(s string) string {
+	for _, r := range maskRules {
+		s = r.re.ReplaceAllString(s, r.repl)
+	}
+	s = ticketRe.ReplaceAllStringFunc(s, func(k string) string {
+		if notTickets[k[:strings.IndexByte(k, '-')]] {
+			return k
+		}
+		return "[TICKET]"
+	})
+	if m.words != nil {
+		s = m.words.ReplaceAllString(s, "[REDACTED]")
+	}
+	return s
+}
+
+// commit masks the message and file names of c. AI detection must already have run on the raw message.
+func (m masker) commit(c *Commit) {
+	c.Message = m.apply(c.Message)
+	for i := range c.Files {
+		c.Files[i].Name = m.apply(c.Files[i].Name)
+	}
+}
