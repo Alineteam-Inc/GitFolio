@@ -19,7 +19,11 @@ var version = "dev"
 const usage = `usage: gitfolio <command> [arguments]
 
 commands:
-  add [path]            register a repository and collect its commits
+  add [path]            register a repository, collect its commits and install git hooks
+                        (post-commit, pre-push) so later pushes are collected automatically
+  remove [path] [--purge]
+                        unregister a repository and restore its previous hooks
+                        (--purge: also delete its collected commits)
   scan [path] [--all] [--rebuild]
                         collect new commits (--all: every registered repository,
                         --rebuild: drop stored commits and collect again)
@@ -54,19 +58,26 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	switch args[0] {
-	case "add":
-		return cmdAdd(dir, pathArg(args[1:]))
-	case "scan":
-		return cmdScan(dir, args[1:])
-	case "list":
-		return cmdList(dir)
-	case "export":
-		return cmdExport(dir)
-	case "config":
-		return cmdConfig(dir, args[1:])
+	if args[0] == "hook" {
+		return cmdHook(dir, args[1:]) // takes the lock itself, only where it writes data
 	}
-	return fmt.Errorf("unknown command %q (see gitfolio help)", args[0])
+	return withLock(dir, func() error {
+		switch args[0] {
+		case "add":
+			return cmdAdd(dir, pathArg(args[1:]))
+		case "remove":
+			return cmdRemove(dir, args[1:])
+		case "scan":
+			return cmdScan(dir, args[1:])
+		case "list":
+			return cmdList(dir)
+		case "export":
+			return cmdExport(dir)
+		case "config":
+			return cmdConfig(dir, args[1:])
+		}
+		return fmt.Errorf("unknown command %q (see gitfolio help)", args[0])
+	})
 }
 
 func pathArg(args []string) string {
@@ -74,6 +85,19 @@ func pathArg(args []string) string {
 		return args[0]
 	}
 	return "."
+}
+
+// flagsFirst moves "-x" arguments before the others so "scan . --all" works like "scan --all .".
+func flagsFirst(args []string) []string {
+	var flags, rest []string
+	for _, a := range args {
+		if strings.HasPrefix(a, "-") {
+			flags = append(flags, a)
+		} else {
+			rest = append(rest, a)
+		}
+	}
+	return append(flags, rest...)
 }
 
 func cmdAdd(dir, path string) error {
@@ -96,15 +120,62 @@ func cmdAdd(dir, path string) error {
 	if err != nil {
 		return err
 	}
+	if err := saveRepos(dir, repos); err != nil {
+		return err
+	}
 	fmt.Printf("registered %s (%d commits)\n", r.Name, n)
-	return saveRepos(dir, repos)
+	if err := installHooks(top); err != nil {
+		fmt.Fprintf(os.Stderr, "gitfolio: git hooks not installed: %v\n  Commits are still collected by `gitfolio scan`.\n", err)
+	}
+	return nil
+}
+
+func cmdRemove(dir string, args []string) error {
+	fs := flag.NewFlagSet("remove", flag.ContinueOnError)
+	purge := fs.Bool("purge", false, "also delete this repository's collected commits")
+	if err := fs.Parse(flagsFirst(args)); err != nil {
+		return err
+	}
+	p := pathArg(fs.Args())
+	top, err := topLevel(p)
+	if err != nil { // the folder may already be gone
+		if top, err = filepath.Abs(p); err != nil {
+			return err
+		}
+	}
+	repos, err := loadRepos(dir)
+	if err != nil {
+		return err
+	}
+	i := slices.IndexFunc(repos, func(r Repo) bool { return r.Path == top })
+	if i < 0 {
+		return fmt.Errorf("%s is not registered", top)
+	}
+	r := repos[i]
+	if err := uninstallHooks(top); err != nil {
+		fmt.Fprintf(os.Stderr, "gitfolio: git hooks not restored: %v\n", err)
+	}
+	if *purge {
+		commits, err := readCommits(dir)
+		if err != nil {
+			return err
+		}
+		if err := writeCommits(dir, slices.DeleteFunc(commits, func(c Commit) bool { return c.Repo == r.ID })); err != nil {
+			return err
+		}
+	}
+	if err := saveRepos(dir, slices.Delete(repos, i, i+1)); err != nil {
+		return err
+	}
+	fmt.Printf("removed %s\n", r.Name)
+	return nil
 }
 
 func cmdScan(dir string, args []string) error {
 	fs := flag.NewFlagSet("scan", flag.ContinueOnError)
 	all := fs.Bool("all", false, "scan every registered repository")
 	rebuild := fs.Bool("rebuild", false, "drop stored commits and collect again")
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(flagsFirst(args)); err != nil {
 		return err
 	}
 	repos, err := loadRepos(dir)
@@ -158,9 +229,9 @@ func cmdList(dir string) error {
 		count[c.Repo]++
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tCOMMITS\tLAST SCAN\tPATH")
+	fmt.Fprintln(w, "NAME\tCOMMITS\tHOOKS\tLAST SCAN\tPATH")
 	for _, r := range repos {
-		fmt.Fprintf(w, "%s\t%d\t%s\t%s\n", r.Name, count[r.ID], r.LastScan, r.Path)
+		fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\n", r.Name, count[r.ID], hookStatus(r.Path), r.LastScan, r.Path)
 	}
 	return w.Flush()
 }
