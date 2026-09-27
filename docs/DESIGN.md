@@ -83,7 +83,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 |---|---|---|
 | 커밋 해시 | `%H` | 원본 그대로 저장·전송. git 서비스에서 커밋 실재를 검증하는 근거 (`hash`) |
 | 작성자 이메일 | `%aE` (mailmap 반영) | 본인 식별에 쓴 이메일 (`authorEmail`) |
-| AI 기여 여부 | `%aN`, `%aE`, 메시지 트레일러·문구 (5장) | 마스킹 **전** 원문으로 판정. `aiContributed`(true/false), `aiAgents`(예: `["claude-code"]`) |
+| 작성 형태 | `%aN`, `%aE`, 메시지 트레일러·문구 (5장) | 마스킹 **전** 원문으로 판정. `creationType`(`HUMAN` / `HUMAN_CO_AI` / `AI_CO_HUMAN`), `aiAgents`(예: `["claude-code"]`) |
 | 저장소 namespace | `git remote get-url origin` (없으면 첫 번째 원격) | 원격 URL에서 `소유자/저장소`만 추출 (`namespace`, 예: `Alineteam-Inc/GitFolio`). 호스트·인증 정보(`https://user:token@…`)·포트·`.git`은 버림. aline.team 서버가 이 값으로 git 서비스 API를 조회해 `repositoryUid`를 확정하고 커밋 실재를 검증 |
 | git 서비스 | 원격 URL의 호스트 | `provider`: `GITHUB`, `GITLAB`, `BITBUCKET`, `AZURE_DEVOPS`, 그 외(사내 서버 포함)는 `OTHER`. 호스트 자체는 전송하지 않음 |
 | 시점 | `%aI` (author date) | ISO 8601, 타임존 포함 |
@@ -105,7 +105,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 ### 3.3 제외 대상
 
 - merge 커밋 (`--no-merges`)
-- 본인 이메일이 author가 아닌 커밋
+- 본인이 author도 아니고, AI 에이전트가 author인 커밋의 `Co-authored-by`에도 본인이 없는 커밋
 
 ### 3.4 수집 범위
 
@@ -205,12 +205,15 @@ Allow reading which files? [all / none / 1,3] >
 
 ### 5.1 분류
 
-| 필드 | 의미 |
-|---|---|
-| `aiContributed` | 본인 커밋에 아래 AI 신호가 하나라도 있으면 `true` |
-| `aiAgents` | 확인된 에이전트 목록 (예: `["claude-code"]`) |
+| `creationType` | 조건 | 예 |
+|---|---|---|
+| `HUMAN` | author가 본인, AI 신호 없음 | 직접 작성한 커밋 |
+| `HUMAN_CO_AI` | author가 본인, AI 신호 있음 (트레일러·문구·커밋 시점 환경변수) | Claude Code·Codex로 작업해 본인 이름으로 커밋 |
+| `AI_CO_HUMAN` | author가 AI 에이전트, `Co-authored-by`에 본인 | Copilot coding agent, Cursor 클라우드 에이전트 |
 
-- 수집 대상은 author가 본인인 커밋뿐이다. author가 에이전트인 커밋은 수집하지 않는다
+- `aiAgents`: 확인된 에이전트 목록 (예: `["claude-code"]`)
+- author가 에이전트이고 공동 작성자에 본인이 없으면 누구의 커밋인지 알 수 없으므로 수집하지 않는다. 그래서 `AI` 단독 값은 두지 않는다 (플러그인 등 근거가 생기면 추가)
+- 클라우드 에이전트는 보통 사용자의 GitHub noreply 주소를 공동 작성자로 넣는다. 이 주소가 본인 식별 이메일에 없으면 `AI_CO_HUMAN` 커밋은 수집되지 않는다 (9장)
 
 ### 5.2 탐지 단계
 

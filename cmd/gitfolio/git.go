@@ -135,7 +135,7 @@ func parseLog(out string) []Commit {
 		}
 		c := Commit{Hash: f[0], Date: f[1], AuthorEmail: f[3], Message: strings.TrimSpace(f[4])}
 		c.AIAgents = detectAgents(f[2], c.AuthorEmail, c.Message)
-		c.AIContributed = len(c.AIAgents) > 0
+		c.coAuthors = coAuthorEmails(c.Message)
 		for _, line := range strings.Split(f[5], "\n") {
 			p := strings.SplitN(line, "\t", 3)
 			if len(p) < 3 {
