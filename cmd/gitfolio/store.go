@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -29,16 +28,17 @@ type FileStat struct {
 }
 
 type Commit struct {
-	Repo          string     `json:"repo"`                // Repo.ID locally, repository name in export
-	Provider      string     `json:"provider,omitempty"`  // filled in export only
-	Namespace     string     `json:"namespace,omitempty"` // filled in export only
-	Hash          string     `json:"hash"`
-	AuthorEmail   string     `json:"authorEmail"`
-	Date          string     `json:"date"`
-	Message       string     `json:"message"`
-	Files         []FileStat `json:"files"`
-	AIContributed bool       `json:"aiContributed"`
-	AIAgents      []string   `json:"aiAgents,omitempty"`
+	Repo         string     `json:"repo"`                // Repo.ID locally, repository name in export
+	Provider     string     `json:"provider,omitempty"`  // filled in export only
+	Namespace    string     `json:"namespace,omitempty"` // filled in export only
+	Hash         string     `json:"hash"`
+	AuthorEmail  string     `json:"authorEmail"`
+	Date         string     `json:"date"`
+	Message      string     `json:"message"`
+	Files        []FileStat `json:"files"`
+	CreationType string     `json:"creationType"` // HUMAN, HUMAN_CO_AI or AI_CO_HUMAN
+	AIAgents     []string   `json:"aiAgents,omitempty"`
+	coAuthors    []string   // raw Co-authored-by emails, used for matching only, never stored
 }
 
 func dataDir() (string, error) {
@@ -196,7 +196,10 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	}
 	var fresh []Commit
 	for _, c := range parseLog(out) {
-		if mine[strings.ToLower(c.AuthorEmail)] && !known[c.Hash] {
+		if known[c.Hash] {
+			continue
+		}
+		if c.CreationType = creationType(c, mine); c.CreationType != "" {
 			c.Repo = r.ID
 			m.commit(&c) // after AI detection in parseLog, before anything is written
 			fresh = append(fresh, c)
