@@ -87,48 +87,71 @@ func TestScanRepo(t *testing.T) {
 	run(me, "commit", "-q", "-m", "side\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>")
 	run(me, "checkout", "-q", "main")
 	run(me, "merge", "-q", "--no-ff", "-m", "merge", "side")
+	// An AI agent commits for the user (kept) and for someone else (skipped).
+	bot := []string{"GIT_AUTHOR_NAME=Copilot", "GIT_AUTHOR_EMAIL=198982749+Copilot@users.noreply.github.com", "GIT_COMMITTER_NAME=GitHub", "GIT_COMMITTER_EMAIL=noreply@github.com"}
+	write("d.txt", "x\n")
+	run(bot, "add", ".")
+	run(bot, "commit", "-q", "-m", "bot work\n\nCo-authored-by: me <me@example.com>")
+	write("e.txt", "x\n")
+	run(bot, "add", ".")
+	run(bot, "commit", "-q", "-m", "bot for other\n\nCo-authored-by: o <other@example.com>")
 
 	r := newRepo(repo)
 	n, err := scanRepo(data, &r, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n != 3 {
-		t.Fatalf("first scan added %d commits, want 3 (first, rename, side)", n)
+	if n != 4 {
+		t.Fatalf("first scan added %d commits, want 4 (first, rename, side, bot work)", n)
 	}
 	if n, err := scanRepo(data, &r, false); err != nil || n != 0 {
 		t.Fatalf("rescan added %d commits (err %v), want 0", n, err)
 	}
-	if n, err := scanRepo(data, &r, true); err != nil || n != 3 {
-		t.Fatalf("rebuild added %d commits (err %v), want 3", n, err)
+	if n, err := scanRepo(data, &r, true); err != nil || n != 4 {
+		t.Fatalf("rebuild added %d commits (err %v), want 4", n, err)
 	}
 
 	stored, err := readCommits(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(stored) != 3 {
-		t.Fatalf("stored %d commits after rebuild, want 3", len(stored))
+	if len(stored) != 4 {
+		t.Fatalf("stored %d commits after rebuild, want 4", len(stored))
 	}
 	byMsg := map[string]Commit{}
 	for _, c := range stored {
 		byMsg[c.Message] = c
-		if c.AuthorEmail != "Me@Example.com" || len(c.Hash) != 40 {
-			t.Errorf("%q: authorEmail %q, hash %q", c.Message, c.AuthorEmail, c.Hash)
+		if len(c.Hash) != 40 {
+			t.Errorf("%q: hash %q", c.Message, c.Hash)
 		}
 	}
-	// The trailer email is masked in storage, but AI detection ran on the raw message before that.
+	// Trailer emails are masked in storage, but AI detection ran on the raw message before that.
 	side := "side\n\nCo-Authored-By: Claude Opus 5.5 <[EMAIL]>"
-	if c := byMsg[side]; !c.AIContributed || len(c.AIAgents) != 1 || c.AIAgents[0] != "claude-code" {
-		t.Errorf("side commit ai = %v %v, want true [claude-code]", c.AIContributed, c.AIAgents)
+	botWork := "bot work\n\nCo-authored-by: me <[EMAIL]>"
+	for msg, want := range map[string]string{
+		"first\n\nbody line": "HUMAN",
+		"rename":             "HUMAN",
+		side:                 "HUMAN_CO_AI",
+		botWork:              "AI_CO_HUMAN",
+	} {
+		if got := byMsg[msg].CreationType; got != want {
+			t.Errorf("%q creationType = %q, want %q", msg, got, want)
+		}
 	}
-	if byMsg["rename"].AIContributed {
-		t.Error("rename commit marked as AI-contributed")
+	if a := byMsg[side].AIAgents; len(a) != 1 || a[0] != "claude-code" {
+		t.Errorf("side aiAgents = %v, want [claude-code]", a)
+	}
+	if a := byMsg[botWork].AIAgents; len(a) != 1 || a[0] != "copilot" {
+		t.Errorf("bot work aiAgents = %v, want [copilot]", a)
+	}
+	if e := byMsg["rename"].AuthorEmail; e != "Me@Example.com" {
+		t.Errorf("rename authorEmail = %q", e)
 	}
 	want := map[string][]FileStat{
 		"first\n\nbody line": {{"logo.png", 0, 0}, {"a.go", 3, 0}}, // numstat lists paths sorted: logo.png < src/a.go
 		"rename":             {{"b.go", 0, 0}},
 		side:                 {{"c.txt", 1, 0}},
+		botWork:              {{"d.txt", 1, 0}},
 	}
 	for msg, files := range want {
 		c, ok := byMsg[msg]

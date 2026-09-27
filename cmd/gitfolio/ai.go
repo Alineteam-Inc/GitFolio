@@ -75,15 +75,12 @@ func detectAgents(authorName, authorEmail, message string) []string {
 	if strings.HasSuffix(strings.ToLower(strings.TrimSpace(authorName)), "(aider)") {
 		add("aider")
 	}
+	for _, e := range coAuthorEmails(message) {
+		add(agentByEmail(e))
+	}
 	lower := strings.ToLower(message)
 	for _, line := range strings.Split(lower, "\n") {
-		line = strings.TrimSpace(line)
-		if v, ok := strings.CutPrefix(line, "co-authored-by:"); ok {
-			if i, j := strings.LastIndex(v, "<"), strings.LastIndex(v, ">"); i >= 0 && j > i {
-				add(agentByEmail(v[i+1 : j]))
-			}
-		}
-		if v, ok := strings.CutPrefix(line, "assisted-by:"); ok {
+		if v, ok := strings.CutPrefix(strings.TrimSpace(line), "assisted-by:"); ok {
 			for word, a := range assistedNames {
 				if strings.Contains(v, word) {
 					add(a)
@@ -98,4 +95,45 @@ func detectAgents(authorName, authorEmail, message string) []string {
 	}
 	slices.Sort(agents) // map iteration order is random; keep output stable
 	return agents
+}
+
+// coAuthorEmails returns the lowercased emails of the message's Co-authored-by trailers.
+func coAuthorEmails(message string) []string {
+	var emails []string
+	for _, line := range strings.Split(message, "\n") {
+		v, ok := strings.CutPrefix(strings.ToLower(strings.TrimSpace(line)), "co-authored-by:")
+		if !ok {
+			continue
+		}
+		if i, j := strings.LastIndex(v, "<"), strings.LastIndex(v, ">"); i >= 0 && j > i {
+			emails = append(emails, strings.TrimSpace(v[i+1:j]))
+		}
+	}
+	return emails
+}
+
+// How a collected commit was made (DESIGN 5.1).
+const (
+	creationHuman     = "HUMAN"       // authored by the user, no AI signal
+	creationHumanCoAI = "HUMAN_CO_AI" // authored by the user with an AI agent involved
+	creationAICoHuman = "AI_CO_HUMAN" // authored by an AI agent with the user as co-author
+)
+
+// creationType tells whether c belongs to the user and how it was made; "" means it is not the user's.
+// An agent's commit without the user as co-author cannot be attributed to anyone, so it is skipped.
+func creationType(c Commit, mine map[string]bool) string {
+	if mine[strings.ToLower(c.AuthorEmail)] {
+		if len(c.AIAgents) > 0 {
+			return creationHumanCoAI
+		}
+		return creationHuman
+	}
+	if agentByEmail(c.AuthorEmail) != "" {
+		for _, e := range c.coAuthors {
+			if mine[e] {
+				return creationAICoHuman
+			}
+		}
+	}
+	return ""
 }
