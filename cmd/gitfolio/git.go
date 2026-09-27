@@ -143,16 +143,20 @@ func parseLog(out string) []Commit {
 			}
 			add, _ := strconv.Atoi(p[0]) // binary files report "-", counted as 0
 			del, _ := strconv.Atoi(p[1])
-			c.Files = append(c.Files, FileStat{Name: baseName(p[2]), Add: add, Del: del})
+			full := newPath(p[2])
+			c.Files = append(c.Files, FileStat{Name: path.Base(full), Add: add, Del: del, path: full})
 		}
 		commits = append(commits, c)
 	}
 	return commits
 }
 
-// baseName returns the file name of a numstat path, taking the new side of a rename
+// baseName returns the file name of a numstat path.
+func baseName(p string) string { return path.Base(newPath(p)) }
+
+// newPath returns the path of a numstat entry, taking the new side of a rename
 // ("dir/{old => new}/f.go" or "old.go => new.go").
-func baseName(p string) string {
+func newPath(p string) string {
 	if strings.HasPrefix(p, `"`) {
 		if u, err := strconv.Unquote(p); err == nil {
 			p = u
@@ -166,5 +170,5 @@ func baseName(p string) string {
 			p = p[i+4:]
 		}
 	}
-	return path.Base(p)
+	return p
 }
