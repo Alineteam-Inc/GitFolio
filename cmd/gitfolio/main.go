@@ -29,6 +29,10 @@ commands:
                         --rebuild: drop stored commits and collect again)
   list                  show registered repositories
   export                print collected commits as JSON
+  deps [on|off|review [path]]
+                        dependency detection: show status, turn it on (you choose which
+                        package manager files may be read) or off (collected dependencies
+                        are deleted), or change the file choices of a repository
   config                show settings
   config mask add|rm <word>...
                         add or remove blocked words (customer or internal project names);
@@ -75,6 +79,8 @@ func run(args []string) error {
 			return cmdExport(dir)
 		case "config":
 			return cmdConfig(dir, args[1:])
+		case "deps":
+			return cmdDeps(dir, args[1:])
 		}
 		return fmt.Errorf("unknown command %q (see gitfolio help)", args[0])
 	})
@@ -116,6 +122,15 @@ func cmdAdd(dir, path string) error {
 	}
 	repos = append(repos, newRepo(top))
 	r := &repos[len(repos)-1]
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
+	if cfg.Deps && interactive() {
+		if _, err := reviewManifests(r); err != nil {
+			return err
+		}
+	}
 	n, err := scanRepo(dir, r, false)
 	if err != nil {
 		return err
@@ -182,6 +197,10 @@ func cmdScan(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
 	var top string
 	if !*all {
 		if top, err = topLevel(pathArg(fs.Args())); err != nil {
@@ -202,6 +221,11 @@ func cmdScan(dir string, args []string) error {
 			continue
 		}
 		fmt.Printf("%s: %d new commits\n", r.Name, n)
+		if cfg.Deps {
+			if n := pendingManifests(*r); n > 0 {
+				fmt.Printf("  %d package manager files wait for your review: gitfolio deps review %s\n", n, r.Path)
+			}
+		}
 	}
 	if !*all && !matched {
 		return fmt.Errorf("%s is not registered (run: gitfolio add)", top)
@@ -228,33 +252,87 @@ func cmdList(dir string) error {
 	for _, c := range commits {
 		count[c.Repo]++
 	}
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tCOMMITS\tHOOKS\tLAST SCAN\tPATH")
+	fmt.Fprintln(w, "NAME\tCOMMITS\tHOOKS\tDEPS\tLAST SCAN\tPATH")
 	for _, r := range repos {
-		fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\n", r.Name, count[r.ID], hookStatus(r.Path), r.LastScan, r.Path)
+		deps := "off"
+		if cfg.Deps {
+			allowed := 0
+			for _, ok := range r.Manifests {
+				if ok {
+					allowed++
+				}
+			}
+			deps = fmt.Sprintf("%d files", allowed)
+			if n := pendingManifests(r); n > 0 {
+				deps += fmt.Sprintf(" (%d to review)", n)
+			}
+		}
+		fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\t%s\n", r.Name, count[r.ID], hookStatus(r.Path), deps, r.LastScan, r.Path)
 	}
 	return w.Flush()
 }
 
-// cmdExport prints collected commits with the repository name and namespace in place of the local repo ID.
-func cmdExport(dir string) error {
+type exportData struct {
+	Commits      []Commit     `json:"commits"`
+	Dependencies []Dependency `json:"dependencies"`
+}
+
+// buildExport assembles what leaves the computer: repository names and namespaces instead of local IDs,
+// and only the dependencies of modules the user's own commits touched. Module IDs stay local.
+func buildExport(dir string) (exportData, error) {
 	repos, err := loadRepos(dir)
 	if err != nil {
-		return err
+		return exportData{}, err
 	}
 	commits, err := readCommits(dir)
 	if err != nil {
-		return err
+		return exportData{}, err
+	}
+	deps, err := loadDeps(dir)
+	if err != nil {
+		return exportData{}, err
 	}
 	byID := map[string]Repo{}
 	for _, r := range repos {
 		byID[r.ID] = r
 	}
-	out := make([]Commit, 0, len(commits))
+	out := exportData{make([]Commit, 0, len(commits)), make([]Dependency, 0, len(deps))}
+	touched := map[string]bool{} // repo ID + "/" + module ID
 	for _, c := range commits {
+		files := slices.Clone(c.Files)
+		for i := range files {
+			if files[i].Module != "" {
+				touched[c.Repo+"/"+files[i].Module] = true
+			}
+			files[i].Module = ""
+		}
 		r := byID[c.Repo]
-		c.Repo, c.Provider, c.Namespace = r.Name, r.Provider, r.Namespace
-		out = append(out, c)
+		c.Repo, c.Provider, c.Namespace, c.Files = r.Name, r.Provider, r.Namespace, files
+		out.Commits = append(out.Commits, c)
+	}
+	seen := map[string]bool{}
+	for _, d := range deps {
+		key := d.Repo + "/" + d.Ecosystem + "/" + d.Name
+		if !touched[d.Repo+"/"+d.Module] || seen[key] {
+			continue
+		}
+		seen[key] = true
+		r := byID[d.Repo]
+		d.Repo, d.Provider, d.Namespace, d.Module = r.Name, r.Provider, r.Namespace, ""
+		out.Dependencies = append(out.Dependencies, d)
+	}
+	return out, nil
+}
+
+func cmdExport(dir string) error {
+	out, err := buildExport(dir)
+	if err != nil {
+		return err
 	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
