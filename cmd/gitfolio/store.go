@@ -62,8 +62,10 @@ func newRepo(path string) Repo {
 }
 
 type Config struct {
-	Mask []string `json:"mask,omitempty"` // blocked words: customer and internal project names
-	Deps bool     `json:"deps"`           // user allowed dependency detection (DESIGN 3.5)
+	Mask      []string `json:"mask,omitempty"`      // blocked words: customer and internal project names
+	Deps      bool     `json:"deps"`                // user allowed dependency detection (DESIGN 3.5)
+	DepsAsked bool     `json:"depsAsked,omitempty"` // init asked once; later changes go through `gitfolio deps`
+	Roots     []string `json:"roots,omitempty"`     // folders where the user keeps repositories (init)
 }
 
 func loadRepos(dir string) (repos []Repo, err error) {
