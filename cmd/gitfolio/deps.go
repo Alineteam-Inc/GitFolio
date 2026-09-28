@@ -448,9 +448,16 @@ func interactive() bool {
 	return err == nil && st.Mode()&os.ModeCharDevice != 0
 }
 
+// stdinClosed turns true once input ends; some tools look like a terminal but cannot answer.
+var stdinClosed bool
+
 func prompt(q string) string {
 	fmt.Print(q)
-	line, _ := stdin.ReadString('\n')
+	line, err := stdin.ReadString('\n')
+	if err != nil {
+		stdinClosed = true
+		fmt.Println() // no answer: keep the next output on its own line
+	}
 	return strings.TrimSpace(line)
 }
 
@@ -519,10 +526,6 @@ func reviewManifests(r *Repo) (bool, error) {
 	}
 }
 
-const depsNotice = `Dependency detection reads the package manager files you select (package.json, go.mod,
-pom.xml, build.gradle, ...) in each repository, only to detect dependencies.
-Only dependency names and versions are kept; file contents and paths are never stored or sent.`
-
 func cmdDeps(dir string, args []string) error {
 	cfg, err := loadConfig(dir)
 	if err != nil {
@@ -550,8 +553,8 @@ func cmdDeps(dir string, args []string) error {
 		}
 		return nil
 	case "on":
-		fmt.Println(depsNotice)
-		cfg.Deps = true
+		fmt.Print(tr(detectLang(os.Getenv), "depsNotice"))
+		cfg.Deps, cfg.DepsAsked = true, true
 		if err := saveConfig(dir, cfg); err != nil {
 			return err
 		}
@@ -566,7 +569,7 @@ func cmdDeps(dir string, args []string) error {
 		}
 		return saveRepos(dir, repos)
 	case "off":
-		cfg.Deps = false
+		cfg.Deps, cfg.DepsAsked = false, true
 		if err := saveConfig(dir, cfg); err != nil {
 			return err
 		}

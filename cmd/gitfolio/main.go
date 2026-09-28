@@ -19,7 +19,9 @@ var version = "dev"
 const usage = `usage: gitfolio <command> [arguments]
 
 commands:
-  add [path]            register a repository, collect its commits and install git hooks
+  init [folder...]      first-time setup: data policy, device key, then find the repositories
+                        under your code folders and choose which ones to collect
+  add [path]          register a repository, collect its commits and install git hooks
                         (post-commit, pre-push) so later pushes are collected automatically
   remove [path] [--purge]
                         unregister a repository and restore its previous hooks
@@ -52,7 +54,7 @@ func run(args []string) error {
 		return nil
 	}
 	if args[0] == "version" {
-		fmt.Println("gitfolio", version)
+		fmt.Print(header())
 		return nil
 	}
 	if _, err := exec.LookPath("git"); err != nil {
@@ -62,8 +64,11 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if args[0] == "hook" {
+	switch args[0] {
+	case "hook":
 		return cmdHook(dir, args[1:]) // takes the lock itself, only where it writes data
+	case "init":
+		return cmdInit(dir, args[1:]) // interactive; takes the lock only while writing
 	}
 	return withLock(dir, func() error {
 		switch args[0] {
@@ -111,6 +116,12 @@ func cmdAdd(dir, path string) error {
 	if err != nil {
 		return err
 	}
+	return registerRepo(dir, top)
+}
+
+// registerRepo registers the repository at top (its git top-level), collects it and installs hooks.
+// Callers hold the data lock.
+func registerRepo(dir, top string) error {
 	repos, err := loadRepos(dir)
 	if err != nil {
 		return err
