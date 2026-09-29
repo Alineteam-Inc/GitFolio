@@ -19,7 +19,7 @@ var version = "dev"
 const usage = `usage: gitfolio <command> [arguments]
 
 commands:
-  init [folder...]      first-time setup: data policy, device key, then find the repositories
+  init [folder...]      first-time setup: data policy, aline.team login, then find the repositories
                         under your code folders and choose which ones to collect
   login                 sign in or sign up to aline.team with an email code; registers this device
   logout                sign out: revoke and remove this device's token
@@ -70,6 +70,18 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
+	if collects(args) {
+		creds, err := loadCredentials(dir)
+		if err != nil {
+			return err
+		}
+		if creds.Token == "" {
+			if args[0] == "hook" {
+				return nil // hooks do nothing before login
+			}
+			return errors.New(strings.TrimSpace(tr(detectLang(os.Getenv), "loginFirst")))
+		}
+	}
 	switch args[0] {
 	case "hook":
 		return cmdHook(dir, args[1:]) // takes the lock itself, only where it writes data
@@ -101,6 +113,19 @@ func run(args []string) error {
 		}
 		return fmt.Errorf("unknown command %q (see gitfolio help)", args[0])
 	})
+}
+
+// collects reports whether the command reads repositories. Nothing is collected before an aline.team
+// login (DESIGN 6.1); commands that only show, clean up or configure keep working, so a logged-out
+// user can still point to another server, remove repositories or turn dependency detection off.
+func collects(args []string) bool {
+	switch args[0] {
+	case "add", "scan", "hook":
+		return true
+	case "deps":
+		return len(args) > 1 && (args[1] == "on" || args[1] == "review")
+	}
+	return false
 }
 
 func pathArg(args []string) string {
