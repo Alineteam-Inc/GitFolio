@@ -20,42 +20,29 @@ import (
 type syncState struct {
 	Account  string            `json:"account,omitempty"` // the aline.team account the records below were sent to
 	Commits  map[string]string `json:"commits,omitempty"` // provider/namespace/hash → fingerprint of the record sent
-	Deps     map[string]string `json:"deps,omitempty"`    // provider/namespace → fingerprint of the dependency list sent
-	Deletes  []deletion        `json:"deletes,omitempty"` // deletions not yet accepted by the server
+	Deletes  []deletion        `json:"deletes,omitempty"` // repository deletions not yet accepted by the server
 	LastSync string            `json:"lastSync,omitempty"`
 }
 
-// deletion is a queued delete request: one repository's data (remove --purge) or all dependencies (deps off).
+// deletion asks aline.team to delete one repository's commits (remove --purge).
 type deletion struct {
-	What      string `json:"what"` // "repository" or "dependencies"
-	Provider  string `json:"provider,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-}
-
-type depItem struct {
-	Ecosystem string `json:"ecosystem"`
-	Name      string `json:"name"`
-	Version   string `json:"version,omitempty"`
-}
-
-type repoDeps struct {
-	Provider     string    `json:"provider"`
-	Namespace    string    `json:"namespace"`
-	Dependencies []depItem `json:"dependencies"`
+	Provider  string `json:"provider"`
+	Namespace string `json:"namespace"`
 }
 
 // syncPayload is what the next sync sends, in order; `sync --dry-run` prints it as is.
+// Dependencies are not sent yet: aline.team designs that API in its second phase (docs/API.md 4).
 type syncPayload struct {
-	Deletes      []deletion `json:"deletes"`
-	Commits      []Commit   `json:"commits"`
-	Dependencies []repoDeps `json:"dependencies"`
-	noRemote     int        // commits of repositories without a git service remote, never sent
+	Deletes  []deletion `json:"deletes"`
+	Commits  []Commit   `json:"commits"`
+	noRemote int        // commits of repositories without a git service remote, never sent
 }
 
 // Limits of the data API (docs/API.md 4.1).
 const (
 	batchSize     = 500
-	maxMessage    = 10000 // characters
+	maxBody       = 900_000 // bytes per request; the server's proxy takes 1 MB
+	maxMessage    = 10000   // characters
 	maxFilesSent  = 1000
 	syncStateFile = "sync.json"
 )
@@ -64,9 +51,6 @@ func loadSync(dir string) (st syncState, err error) {
 	err = loadJSON(filepath.Join(dir, syncStateFile), &st)
 	if st.Commits == nil {
 		st.Commits = map[string]string{}
-	}
-	if st.Deps == nil {
-		st.Deps = map[string]string{}
 	}
 	return st, err
 }
@@ -81,26 +65,20 @@ func fingerprint(v any) string {
 
 func commitKey(c Commit) string { return c.Provider + "/" + c.Namespace + "/" + c.Hash }
 
-// queueDeletion records a delete request for the next sync and forgets what was sent for it, so the
-// data is sent again if it comes back. Callers hold the data lock.
+// queueDeletion records a repository deletion for the next sync and forgets what was sent for it, so
+// the commits are sent again if the repository is added back. Callers hold the data lock.
 func queueDeletion(dir string, d deletion) error {
+	if d.Namespace == "" {
+		return nil // never sent: nothing to delete on the server
+	}
 	st, err := loadSync(dir)
 	if err != nil {
 		return err
 	}
-	if d.What == "repository" {
-		if d.Namespace == "" {
-			return nil // never sent: nothing to delete on the server
+	for k := range st.Commits {
+		if strings.HasPrefix(k, d.Provider+"/"+d.Namespace+"/") {
+			delete(st.Commits, k)
 		}
-		prefix := d.Provider + "/" + d.Namespace
-		for k := range st.Commits {
-			if strings.HasPrefix(k, prefix+"/") {
-				delete(st.Commits, k)
-			}
-		}
-		delete(st.Deps, prefix)
-	} else {
-		clear(st.Deps)
 	}
 	if !slices.Contains(st.Deletes, d) {
 		st.Deletes = append(st.Deletes, d)
@@ -110,12 +88,12 @@ func queueDeletion(dir string, d deletion) error {
 
 // pending works out what aline.team does not have yet. Records are the ones `gitfolio export` shows,
 // cut to the server's limits.
-func pending(dir string, st syncState) (p syncPayload, err error) {
+func pending(dir string, st syncState) (syncPayload, error) {
+	p := syncPayload{Deletes: append([]deletion{}, st.Deletes...), Commits: []Commit{}}
 	out, err := buildExport(dir)
 	if err != nil {
 		return p, err
 	}
-	p = syncPayload{Deletes: append([]deletion{}, st.Deletes...), Commits: []Commit{}, Dependencies: []repoDeps{}}
 	for _, c := range out.Commits {
 		if c.Namespace == "" {
 			p.noRemote++
@@ -131,37 +109,32 @@ func pending(dir string, st syncState) (p syncPayload, err error) {
 			p.Commits = append(p.Commits, c)
 		}
 	}
-	cfg, err := loadConfig(dir)
-	if err != nil || !cfg.Deps {
-		return p, err
-	}
-	repos, err := loadRepos(dir)
-	if err != nil {
-		return p, err
-	}
-	for _, r := range repos {
-		if r.Namespace == "" {
-			continue
-		}
-		list := []depItem{}
-		for _, d := range out.Dependencies {
-			if d.Provider == r.Provider && d.Namespace == r.Namespace {
-				list = append(list, depItem{d.Ecosystem, d.Name, d.Version})
-			}
-		}
-		key := r.Provider + "/" + r.Namespace
-		if sent, ok := st.Deps[key]; (ok || len(list) > 0) && sent != fingerprint(list) {
-			p.Dependencies = append(p.Dependencies, repoDeps{r.Provider, r.Namespace, list})
-		}
-	}
 	return p, nil
 }
 
-type syncCounts struct{ commits, deps, deletes, noRemote int }
+// batches splits commits into requests of at most batchSize records and maxBody bytes of JSON.
+func batches(commits []Commit) [][]Commit {
+	var out [][]Commit
+	var cur []Commit
+	size := 0
+	for _, c := range commits {
+		b, _ := json.Marshal(c)
+		if len(cur) > 0 && (len(cur) == batchSize || size+len(b)+1 > maxBody) {
+			out, cur, size = append(out, cur), nil, 0
+		}
+		cur, size = append(cur, c), size+len(b)+1
+	}
+	if len(cur) > 0 {
+		out = append(out, cur)
+	}
+	return out
+}
 
-// syncData sends what aline.team does not have yet: queued deletions, new or changed commits, then
-// dependency lists. Progress is saved as it goes, so after a failure only what was not accepted is sent
-// again. Callers hold the data lock.
+type syncCounts struct{ commits, deletes, noRemote int }
+
+// syncData sends what aline.team does not have yet: queued deletions, then new or changed commits.
+// Progress is saved as it goes, so after a failure only what was not accepted is sent again.
+// Callers hold the data lock.
 // ponytail: the lock stays held while sending; other commands wait up to 30s. Send outside the lock
 // if large first syncs make that a problem.
 func syncData(dir string, dryRun bool) (n syncCounts, err error) {
@@ -175,7 +148,7 @@ func syncData(dir string, dryRun bool) (n syncCounts, err error) {
 	}
 	if st.Account != c.creds.Email {
 		if st.Account != "" { // another account: it has none of this device's records yet
-			st = syncState{Commits: map[string]string{}, Deps: map[string]string{}}
+			st = syncState{Commits: map[string]string{}}
 		}
 		st.Account = c.creds.Email
 	}
@@ -193,17 +166,14 @@ func syncData(dir string, dryRun bool) (n syncCounts, err error) {
 	save := func() error { return saveSync(dir, st) }
 
 	for _, d := range p.Deletes {
-		path := "/cli/dependencies"
-		if d.What == "repository" {
-			path = "/cli/repositories?" + url.Values{"provider": {d.Provider}, "namespace": {d.Namespace}}.Encode()
-		}
+		path := "/cli/repositories?" + url.Values{"provider": {d.Provider}, "namespace": {d.Namespace}}.Encode()
 		if err := c.call("DELETE", path, nil, nil); err != nil {
 			return n, errors.Join(err, save())
 		}
 		st.Deletes = slices.DeleteFunc(st.Deletes, func(x deletion) bool { return x == d })
 		n.deletes++
 	}
-	for batch := range slices.Chunk(p.Commits, batchSize) {
+	for _, batch := range batches(p.Commits) {
 		err := c.upsert(batch, func(x Commit, accepted bool) {
 			st.Commits[commitKey(x)] = fingerprint(x)
 			if accepted {
@@ -213,13 +183,6 @@ func syncData(dir string, dryRun bool) (n syncCounts, err error) {
 		if serr := save(); err != nil || serr != nil {
 			return n, errors.Join(err, serr)
 		}
-	}
-	for _, d := range p.Dependencies {
-		if err := c.call("PUT", "/cli/dependencies", d, nil); err != nil {
-			return n, errors.Join(err, save())
-		}
-		st.Deps[d.Provider+"/"+d.Namespace] = fingerprint(d.Dependencies)
-		n.deps++
 	}
 	st.LastSync = time.Now().Format(time.RFC3339)
 	return n, save()
@@ -280,10 +243,10 @@ func cmdSync(dir string, args []string) error {
 	if err != nil || *dryRun {
 		return err
 	}
-	if n.commits+n.deps+n.deletes == 0 {
+	if n.commits+n.deletes == 0 {
 		say(lang, "upToDate")
 	} else {
-		say(lang, "synced", n.commits, n.deps, n.deletes)
+		say(lang, "synced", n.commits, n.deletes)
 	}
 	if n.noRemote > 0 {
 		say(lang, "noRemote", n.noRemote)
