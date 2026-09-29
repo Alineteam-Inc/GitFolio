@@ -165,7 +165,7 @@ func (f *fakeAline) handler() http.Handler {
 			}
 		}
 		for _, c := range in.Commits {
-			c.Provider, c.Namespace, c.Repo = in.Provider, in.Namespace, in.Repo
+			c.Provider, c.Namespace = in.Provider, in.Namespace
 			f.commits[commitKey(c)] = c
 		}
 		f.batches++

@@ -56,8 +56,8 @@ func TestSync(t *testing.T) {
 	if _, ok := f.commits["GITHUB/me/app/a3"]; !ok || len(f.commits) != 2 {
 		t.Fatalf("server has %v", f.commits)
 	}
-	if got := f.commits["GITHUB/me/app/a1"]; got.Repo != "app" || got.Branch != "main" || got.Files[0].Module != "" {
-		t.Errorf("sent record %+v: want the repository name, the branch and no module ID", got)
+	if got := f.commits["GITHUB/me/app/a1"]; got.Repo != "" || got.Branch != "main" || got.Files[0].Module != "" {
+		t.Errorf("sent record %+v: want the branch, and no repository name or module ID", got)
 	}
 	batches := f.batches
 	sync(0, 0) // nothing new
