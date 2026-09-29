@@ -250,7 +250,7 @@ Allow reading which files? [all / none / 1,3] >
 
 > 서버와 합의한 계약: [API.md](API.md) 1장 (aline.team `feat/cli-token`, 2026-09-29)
 
-**aline.team 가입은 필수이며, 가입·로그인 전에는 GitFolio가 아무것도 수집하거나 동작하지 않는다.** 로그인 전에 허용되는 명령은 `init`, `login`, `version`, 도움말뿐이고, 훅도 로그인 전에는 아무 일도 하지 않는다.
+**aline.team 가입은 필수이며, 가입·로그인 전에는 GitFolio가 아무것도 수집하거나 동작하지 않는다.** 로그인 전에는 저장소를 읽는 명령(`add`, `scan`, `deps on|review`)이 "먼저 로그인" 안내와 함께 거부되고, 훅은 아무 일도 하지 않는다. 보기·정리·설정 명령(`list`, `export`, `remove`, `deps`, `deps off`, `config`, `whoami`, `logout`, `version`, 도움말)은 동작한다 — 로그아웃한 사용자도 서버 주소를 바꾸거나(`config api-url`) 저장소 등록 해제·의존성 삭제를 할 수 있어야 하므로. `init`은 1단계 로그인을 마쳐야 다음 단계로 진행한다.
 
 계정은 사용자가 직접 입력하고 소유를 확인한 이메일로만 만든다. `git config user.email`은 계정 생성·로그인에 사용하지 않는다 (누구나 임의의 값으로 바꿀 수 있음). 사용자가 토큰을 직접 복사·입력하는 일은 없다.
 
