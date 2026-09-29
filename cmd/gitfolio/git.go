@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -123,6 +124,41 @@ func logRange(repo string) ([]string, error) {
 		return []string{"--remotes"}, nil
 	}
 	return []string{"HEAD"}, nil
+}
+
+// remoteBranches maps every commit on a remote-tracking branch to one branch name ("main",
+// "feature/login"). The remote's default branch comes first, so a commit already merged there is
+// reported on it, as the aline.team GitHub sync sees it; other commits get the branch they were pushed to.
+func remoteBranches(repo string) (map[string]string, error) {
+	out, err := git(repo, "for-each-ref", "--format=%(refname)", "refs/remotes")
+	if err != nil {
+		return nil, err
+	}
+	var refs []string
+	for _, ref := range strings.Fields(out) {
+		if !strings.HasSuffix(ref, "/HEAD") {
+			refs = append(refs, ref)
+		}
+	}
+	if head, err := git(repo, "symbolic-ref", "-q", "refs/remotes/origin/HEAD"); err == nil {
+		if i := slices.Index(refs, strings.TrimSpace(head)); i > 0 {
+			refs = append(append([]string{refs[i]}, refs[:i]...), refs[i+1:]...)
+		}
+	}
+	branch := map[string]string{}
+	var done []string
+	for _, ref := range refs {
+		out, err := git(repo, append([]string{"rev-list", "--no-merges", ref, "--not"}, done...)...)
+		if err != nil {
+			return nil, err
+		}
+		_, name, _ := strings.Cut(strings.TrimPrefix(ref, "refs/remotes/"), "/") // drop the remote name
+		for _, h := range strings.Fields(out) {
+			branch[h] = name
+		}
+		done = append(done, ref)
+	}
+	return branch, nil
 }
 
 func gitLog(repo string, rng []string) (string, error) {
