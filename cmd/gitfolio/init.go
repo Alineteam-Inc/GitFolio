@@ -1,11 +1,6 @@
 package main
 
 import (
-	"crypto/ed25519"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"io/fs"
 	"os"
@@ -30,11 +25,11 @@ func header() string {
 		" MIT License - Copyright (c) 2026 Alineteam Inc.\n"
 }
 
-// Credentials live in their own file with owner-only permissions.
+// Credentials live in their own file with owner-only permissions. Nothing here is ever printed.
 type Credentials struct {
-	// DeviceKey is this device's ed25519 private key seed. It never leaves this computer;
-	// only the public key is registered with aline.team (DESIGN 6.1.1).
-	DeviceKey string `json:"deviceKey"`
+	Token          string `json:"token,omitempty"` // aline.team CLI token (aln_cli_…), sent only in the Authorization header
+	TokenExpiresAt string `json:"tokenExpiresAt,omitempty"`
+	Email          string `json:"email,omitempty"` // account email, shown by login
 }
 
 func loadCredentials(dir string) (c Credentials, err error) {
@@ -42,32 +37,8 @@ func loadCredentials(dir string) (c Credentials, err error) {
 	return c, err
 }
 
-// ensureDeviceKey returns the device ID, creating the device key on first use.
-func ensureDeviceKey(dir string) (id string, created bool, err error) {
-	c, err := loadCredentials(dir)
-	if err != nil {
-		return "", false, err
-	}
-	seed, err := base64.StdEncoding.DecodeString(c.DeviceKey)
-	if err != nil || len(seed) != ed25519.SeedSize {
-		_, priv, err := ed25519.GenerateKey(rand.Reader)
-		if err != nil {
-			return "", false, err
-		}
-		seed = priv.Seed()
-		c.DeviceKey = base64.StdEncoding.EncodeToString(seed)
-		if err := saveJSON(filepath.Join(dir, "credentials.json"), c); err != nil { // 0600
-			return "", false, err
-		}
-		created = true
-	}
-	return deviceID(ed25519.NewKeyFromSeed(seed).Public().(ed25519.PublicKey)), created, nil
-}
-
-// deviceID is a short fingerprint of the public key, shown to people to tell devices apart.
-func deviceID(pub ed25519.PublicKey) string {
-	sum := sha256.Sum256(pub)
-	return "SHA256:" + hex.EncodeToString(sum[:8])
+func saveCredentials(dir string, c Credentials) error {
+	return saveJSON(filepath.Join(dir, "credentials.json"), c) // 0600
 }
 
 // cmdInit walks a new user through setup (DESIGN 7.2). Sign-up and login come in ROADMAP step 7;
@@ -77,15 +48,6 @@ func cmdInit(dir string, args []string) error {
 	fmt.Print(header() + "\n" + tr(lang, "policy") + "\n")
 	if interactive() {
 		prompt(tr(lang, "pressEnter"))
-	}
-	id, created, err := ensureDeviceKey(dir)
-	if err != nil {
-		return err
-	}
-	if created {
-		fmt.Printf(tr(lang, "deviceCreated"), id)
-	} else {
-		fmt.Printf(tr(lang, "deviceExisting"), id)
 	}
 	fmt.Print(tr(lang, "loginPending"))
 
