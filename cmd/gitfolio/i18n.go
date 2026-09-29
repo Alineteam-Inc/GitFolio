@@ -69,7 +69,7 @@ func parseAppleLanguages(out string) []string {
 
 // statusPrefix marks GitFolio's own result and error lines so they stand out among shell and git output.
 // Prompts and notices carry only the margin (a prefix would blur where to type).
-const statusPrefix = "== GitFolio == "
+const statusPrefix = "GitFolio-cli >>> "
 
 // margin keeps GitFolio's interactive text off the terminal's left edge.
 const margin = "  "
