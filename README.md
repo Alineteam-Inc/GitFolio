@@ -58,7 +58,7 @@ Your profile and resume are available at **[aline.team](https://aline.team)**.
 | Collected | Never collected |
 |---|---|
 | Commit hash, author email, date | Source code and file contents |
-| Commit message (masked) | Full file paths |
+| Commit message and branch name (masked) | Full file paths |
 | File names and lines added/deleted per file | Remote URLs, hosts and credentials |
 | Repository `owner/repo` and service (GitHub, GitLab, …) | Commits by other people |
 | Whether an AI agent took part (Claude Code, Codex, Cursor, Copilot, …) | |
@@ -123,7 +123,7 @@ gitfolio remove ~/code/my-project --purge   # 등록 해제, 기존 훅 복원, 
 
 ### 수집 항목
 
-- **수집:** 커밋 해시, 작성자 이메일, 시점, 커밋 메시지(마스킹), 파일명과 파일별 추가·삭제 줄 수,
+- **수집:** 커밋 해시, 작성자 이메일, 시점, 커밋 메시지·브랜치 이름(마스킹), 파일명과 파일별 추가·삭제 줄 수,
   저장소 `소유자/저장소`와 git 서비스, AI 에이전트 참여 여부
 - **수집하지 않음:** 소스 코드·파일 내용, 전체 경로, 원격 URL·호스트·인증 정보, 다른 사람의 커밋
 - 토큰·키, URL, 이메일, IP, 티켓 번호, 등록한 금지어는 **이 컴퓨터에서 가린 뒤** 저장·전송합니다.

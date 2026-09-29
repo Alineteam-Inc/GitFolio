@@ -38,6 +38,7 @@ type Commit struct {
 	Provider     string     `json:"provider,omitempty"`  // filled in export only
 	Namespace    string     `json:"namespace,omitempty"` // filled in export only
 	Hash         string     `json:"hash"`
+	Branch       string     `json:"branch,omitempty"` // remote branch it is on, masked (see remoteBranches)
 	AuthorEmail  string     `json:"authorEmail"`
 	Date         string     `json:"date"`
 	Message      string     `json:"message"`
@@ -235,6 +236,10 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// Commits stored before branches were recorded are collected once more, to get their branch.
+	if rng[0] == "--remotes" && slices.ContainsFunc(stored, func(c Commit) bool { return c.Repo == r.ID && c.Branch == "" }) {
+		rebuild = true
+	}
 	if rebuild {
 		kept := stored[:0]
 		for _, c := range stored {
@@ -271,6 +276,15 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 			m.commit(&c) // after AI detection in parseLog, before anything is written
 			fresh = append(fresh, c)
 			known[c.Hash] = true
+		}
+	}
+	if len(fresh) > 0 && rng[0] == "--remotes" {
+		branches, err := remoteBranches(r.Path)
+		if err != nil {
+			return 0, err
+		}
+		for i := range fresh {
+			fresh[i].Branch = m.apply(branches[fresh[i].Hash])
 		}
 	}
 	if err := appendCommits(dir, fresh); err != nil {
