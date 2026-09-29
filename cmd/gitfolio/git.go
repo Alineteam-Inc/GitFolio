@@ -52,8 +52,8 @@ var providers = map[string]string{
 	"ssh.github.com":    "GITHUB",
 	"gitlab.com":        "GITLAB",
 	"bitbucket.org":     "BITBUCKET",
-	"dev.azure.com":     "AZURE_DEVOPS",
-	"ssh.dev.azure.com": "AZURE_DEVOPS",
+	"dev.azure.com":     "DEVOPS",
+	"ssh.dev.azure.com": "DEVOPS",
 }
 
 // remote returns the repository's provider and owner/repo on its git service (origin first,
@@ -92,11 +92,40 @@ func parseRemote(raw string) (provider, namespace string) {
 	if !strings.Contains(host, ".") || p == "" { // local paths such as /srv/repo.git or C:\repo
 		return "", ""
 	}
-	provider = providers[strings.ToLower(host)]
+	host = strings.ToLower(host)
+	provider = providers[host]
+	if strings.HasSuffix(host, ".visualstudio.com") {
+		provider = "DEVOPS"
+	}
 	if provider == "" {
 		provider = "OTHER"
 	}
+	if provider == "DEVOPS" {
+		p = devopsNamespace(host, p)
+	}
 	return provider, p
+}
+
+// devopsNamespace turns an Azure DevOps remote path into organization/project/repository, the form
+// aline.team builds https://dev.azure.com/org/project/_git/repo from. It takes dev.azure.com/org/project/_git/repo,
+// ssh.dev.azure.com:v3/org/project/repo and the older org.visualstudio.com/[DefaultCollection/]project/_git/repo.
+func devopsNamespace(host, p string) string {
+	if u, err := url.PathUnescape(p); err == nil { // scp-style paths are still escaped ("My%20Project")
+		p = u
+	}
+	parts := strings.Split(strings.TrimPrefix(p, "v3/"), "/")
+	if org, ok := strings.CutSuffix(host, ".visualstudio.com"); ok && org != "vs-ssh" {
+		parts = append([]string{org}, parts...)
+		if len(parts) > 1 && parts[1] == "DefaultCollection" {
+			parts = slices.Delete(parts, 1, 2)
+		}
+	}
+	if i := slices.Index(parts, "_git"); i == 1 && len(parts) == 3 {
+		parts[1] = parts[2] // org/_git/repo: the project has the repository's name
+	} else if i >= 0 {
+		parts = slices.Delete(parts, i, i+1)
+	}
+	return strings.Join(parts, "/")
 }
 
 // myEmails returns the lowercased emails that identify the user's own commits in repo.
