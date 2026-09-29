@@ -17,13 +17,21 @@ is picked up in the background, without slowing the push down.
 
 ## Install
 
-**Homebrew** (coming soon)
+Available from the first release (v0.1.0).
+
+**Homebrew** (macOS, Linux)
 
 ```sh
-brew install alineteam-inc/tap/gitfolio
+brew install Alineteam-Inc/tap/gitfolio
 ```
 
-**curl** (coming soon) — a one-line installer that verifies the SHA-256 checksum of the download.
+**curl** — downloads over HTTPS and verifies the SHA-256 checksum before installing
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
+```
+
+Then run `gitfolio init`.
 
 **From source** (Go 1.27 or later)
 
@@ -86,8 +94,14 @@ GitFolio는 Alineteam Inc.가 만든 macOS·Linux용 CLI입니다. 내가 작성
 
 ### 설치
 
-- **Homebrew** (준비 중): `brew install alineteam-inc/tap/gitfolio`
-- **curl** (준비 중): 다운로드 파일의 SHA-256을 검증하는 한 줄 설치
+첫 릴리스(v0.1.0)부터 사용할 수 있습니다.
+
+- **Homebrew** (macOS, Linux): `brew install Alineteam-Inc/tap/gitfolio`
+- **curl** (HTTPS로 받고 SHA-256을 검증한 뒤 설치):
+  ```sh
+  curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
+  ```
+- 설치 후 `gitfolio init`을 실행하세요.
 - **소스에서 설치** (Go 1.27 이상):
   ```sh
   git clone https://github.com/Alineteam-Inc/GitFolio.git
