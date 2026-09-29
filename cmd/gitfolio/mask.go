@@ -64,10 +64,9 @@ func (m masker) apply(s string) string {
 	return s
 }
 
-// commit masks the message, branch and file names of c. AI detection must already have run on the raw message.
+// commit masks the message and file names of c (not the branch, see remoteBranches). AI detection must already have run on the raw message.
 func (m masker) commit(c *Commit) {
 	c.Message = m.apply(c.Message)
-	c.Branch = m.apply(c.Branch)
 	for i := range c.Files {
 		c.Files[i].Name = m.apply(c.Files[i].Name)
 	}
