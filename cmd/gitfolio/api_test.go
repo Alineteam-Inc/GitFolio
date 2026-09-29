@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -47,6 +49,13 @@ type fakeAline struct {
 	notified *bool // isNotified as sent in verify; nil when left out
 
 	startDeviceShown bool // start carried a device the code email can show
+
+	// Data API (docs/API.md 4, proposal). The handler holds mu; tests lock it to read.
+	mu      sync.Mutex
+	commits map[string]Commit    // provider/namespace/hash → record
+	deps    map[string][]depItem // provider/namespace → list
+	batches int                  // accepted commit batches
+	down    bool                 // answer data calls with 503
 }
 
 var emailDeviceName = regexp.MustCompile(`^(macOS|Linux|Windows) [A-Za-z0-9_]{1,16}$`)
@@ -128,7 +137,70 @@ func (f *fakeAline) handler() http.Handler {
 		f.token = ""
 		ok(w, nil) // 200 {"success": true}
 	})
-	return mux
+
+	data := func(h func(w http.ResponseWriter, r *http.Request)) func(http.ResponseWriter, *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case !authed(r):
+				fail(w, 401, "A001")
+			case f.down:
+				w.WriteHeader(http.StatusServiceUnavailable) // no ApiBody, as from a proxy
+			default:
+				if f.commits == nil {
+					f.commits, f.deps = map[string]Commit{}, map[string][]depItem{}
+				}
+				h(w, r)
+			}
+		}
+	}
+	mux.HandleFunc("POST /cli/commits/batch", data(func(w http.ResponseWriter, r *http.Request) {
+		var in struct{ Commits []Commit }
+		if json.NewDecoder(r.Body).Decode(&in) != nil || len(in.Commits) == 0 || len(in.Commits) > batchSize {
+			fail(w, 400, "C001")
+			return
+		}
+		for _, c := range in.Commits {
+			if c.Message == "bad" || c.Namespace == "" || c.Hash == "" {
+				fail(w, 400, "C001") // one bad record fails the whole batch
+				return
+			}
+		}
+		for _, c := range in.Commits {
+			f.commits[commitKey(c)] = c
+		}
+		f.batches++
+		ok(w, map[string]any{"upserted": len(in.Commits)})
+	}))
+	mux.HandleFunc("PUT /cli/dependencies", data(func(w http.ResponseWriter, r *http.Request) {
+		var in repoDeps
+		if json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" {
+			fail(w, 400, "C001")
+			return
+		}
+		f.deps[in.Provider+"/"+in.Namespace] = in.Dependencies
+		ok(w, nil)
+	}))
+	mux.HandleFunc("DELETE /cli/repositories", data(func(w http.ResponseWriter, r *http.Request) {
+		key := r.URL.Query().Get("provider") + "/" + r.URL.Query().Get("namespace")
+		n := 0
+		for k := range f.commits {
+			if strings.HasPrefix(k, key+"/") {
+				delete(f.commits, k)
+				n++
+			}
+		}
+		delete(f.deps, key)
+		ok(w, map[string]any{"deletedCommits": n})
+	}))
+	mux.HandleFunc("DELETE /cli/dependencies", data(func(w http.ResponseWriter, r *http.Request) {
+		clear(f.deps)
+		ok(w, nil)
+	}))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		mux.ServeHTTP(w, r)
+	})
 }
 
 func TestSignInMeLogout(t *testing.T) {

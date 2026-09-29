@@ -24,14 +24,17 @@ commands:
   login                 sign in or sign up to aline.team with an email code; registers this device
   logout                sign out: revoke and remove this device's token
   whoami                show the aline.team account this device is signed in to
-  add [path]        register a repository, collect its commits and install git hooks
+  add [path]            register a repository, collect its commits and install git hooks
                         (post-commit, pre-push) so later pushes are collected automatically
   remove [path] [--purge]
                         unregister a repository and restore its previous hooks
-                        (--purge: also delete its collected commits)
+                        (--purge: also delete its collected commits, here and on aline.team)
   scan [path] [--all] [--rebuild]
                         collect new commits (--all: every registered repository,
                         --rebuild: drop stored commits and collect again)
+  sync [--dry-run]      collect new commits in every repository and send what aline.team
+                        does not have yet (--dry-run: print it as JSON, send nothing).
+                        Pushes are sent right after git push unless autosync is off
   list                  show registered repositories
   export                print collected commits as JSON
   deps [on|off|review [path]]
@@ -45,6 +48,8 @@ commands:
   config api-url <url>|default
                         aline.team server to use (e.g. the development server);
                         the GITFOLIO_API_URL environment variable overrides it
+  config autosync on|off
+                        send to aline.team right after each git push (on by default)
   version               print version`
 
 func main() {
@@ -102,6 +107,8 @@ func run(args []string) error {
 			return cmdRemove(dir, args[1:])
 		case "scan":
 			return cmdScan(dir, args[1:])
+		case "sync":
+			return cmdSync(dir, args[1:])
 		case "list":
 			return cmdList(dir)
 		case "export":
@@ -120,7 +127,7 @@ func run(args []string) error {
 // user can still point to another server, remove repositories or turn dependency detection off.
 func collects(args []string) bool {
 	switch args[0] {
-	case "add", "scan", "hook":
+	case "add", "scan", "sync", "hook":
 		return true
 	case "deps":
 		return len(args) > 1 && (args[1] == "on" || args[1] == "review")
@@ -225,6 +232,9 @@ func cmdRemove(dir string, args []string) error {
 			return err
 		}
 		if err := writeCommits(dir, slices.DeleteFunc(commits, func(c Commit) bool { return c.Repo == r.ID })); err != nil {
+			return err
+		}
+		if err := queueDeletion(dir, deletion{What: "repository", Provider: r.Provider, Namespace: r.Namespace}); err != nil {
 			return err
 		}
 	}
@@ -402,6 +412,15 @@ func cmdConfig(dir string, args []string) error {
 		enc.SetEscapeHTML(false)
 		return enc.Encode(cfg)
 	}
+	if args[0] == "autosync" && len(args) == 2 && (args[1] == "on" || args[1] == "off") {
+		cfg.AutoSyncOff = args[1] == "off"
+		if err := saveConfig(dir, cfg); err != nil {
+			return err
+		}
+		lang := detectLang(os.Getenv)
+		say(lang, "autosync", tr(lang, args[1]))
+		return nil
+	}
 	if args[0] == "api-url" { // aline.team server, e.g. the development server; "default" = production
 		cfg.APIURL = ""
 		if len(args) > 1 && args[1] != "default" {
@@ -421,7 +440,7 @@ func cmdConfig(dir string, args []string) error {
 		return nil
 	}
 	if len(args) < 3 || args[0] != "mask" || (args[1] != "add" && args[1] != "rm") {
-		return errors.New("usage: gitfolio config mask add|rm <word>... | config api-url <url>|default")
+		return errors.New("usage: gitfolio config mask add|rm <word>... | config api-url <url>|default | config autosync on|off")
 	}
 	for _, w := range args[2:] {
 		if w = strings.TrimSpace(w); w == "" {
