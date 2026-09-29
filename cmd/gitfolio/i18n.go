@@ -130,8 +130,8 @@ var messages = map[string]map[string]string{
 		"en": ` [Data Policy]
  - Source code is never collected.
  - Collected: commit hashes, author emails, commit messages
-   (masked), timestamps, file names, lines added/deleted,
-   AI usage, and repository namespaces (owner/repo).
+   (masked), branch names, timestamps, file names, lines
+   added/deleted, AI usage, and repository namespaces (owner/repo).
  - Files are read only with your approval, and only package
    manager files, only to detect dependencies.
  - Sensitive parts of commit messages (tokens, URLs, emails,
@@ -144,8 +144,8 @@ var messages = map[string]map[string]string{
 `,
 		"ko": ` [데이터 정책]
  - 소스 코드는 수집하지 않습니다.
- - 수집 항목: 커밋 해시, 작성자 이메일, 커밋 메시지(마스킹), 시점,
-   파일명, 추가·삭제 줄 수, AI 사용 여부, 저장소 namespace(소유자/저장소)
+ - 수집 항목: 커밋 해시, 작성자 이메일, 커밋 메시지(마스킹), 브랜치 이름,
+   시점, 파일명, 추가·삭제 줄 수, AI 사용 여부, 저장소 namespace(소유자/저장소)
  - 파일 읽기는 사용자가 승인한 패키지 매니저 파일에 한하며,
    의존성 파악에만 사용합니다.
  - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
@@ -158,7 +158,7 @@ var messages = map[string]map[string]string{
 		"ja": ` [データポリシー]
  - ソースコードは収集しません。
  - 収集項目: コミットハッシュ、作成者のメールアドレス、
-   コミットメッセージ(マスキング済み)、日時、ファイル名、
+   コミットメッセージ(マスキング済み)、ブランチ名、日時、ファイル名、
    追加・削除行数、AI の利用有無、リポジトリ(オーナー/リポジトリ)
  - ファイルの読み取りは、承認されたパッケージマネージャーの
    ファイルに限り、依存関係の把握にのみ使用します。
@@ -196,9 +196,9 @@ var messages = map[string]map[string]string{
 		"ja": "フォルダーが見つかりません: %s\n",
 	},
 	"identityEmail": {
-		"en": "\nYour commits are identified by: %s (git config)\nAdding and verifying more work emails is coming soon.\n",
-		"ko": "\n본인 커밋은 이 이메일로 식별합니다: %s (git config)\n다른 작업 이메일을 인증해 추가하는 기능은 곧 지원합니다.\n",
-		"ja": "\nあなたのコミットはこのメールアドレスで識別します: %s (git config)\n他の業務用メールアドレスを認証して追加する機能は近日対応予定です。\n",
+		"en": "\nYour commits are identified by: %s (git config)\n",
+		"ko": "\n본인 커밋은 이 이메일로 식별합니다: %s (git config)\n",
+		"ja": "\nあなたのコミットはこのメールアドレスで識別します: %s (git config)\n",
 	},
 	"identityMissing": {
 		"en": "\ngit user.email is not set, so your commits cannot be identified.\nSet it with: git config --global user.email you@example.com\n",
@@ -556,6 +556,36 @@ var messages = map[string]map[string]string{
 		"en": "Dependency detection is off; collected dependencies were deleted.\n",
 		"ko": "의존성 분석을 껐고, 수집한 의존성은 삭제했습니다.\n",
 		"ja": "依存関係の分析をオフにし、収集した依存関係を削除しました。\n",
+	},
+	"synced": {
+		"en": "Synced with aline.team: %d commit(s) sent, %d repository deletion(s).\nDashboards and profiles show them after aline.team's next analysis run.\n",
+		"ko": "aline.team에 동기화했습니다: 커밋 %d개 전송, 저장소 삭제 %d건\n대시보드·프로필에는 aline.team의 다음 분석 때 반영됩니다.\n",
+		"ja": "aline.team と同期しました: コミット %d 件を送信、リポジトリ削除 %d 件\nダッシュボード・プロフィールには aline.team の次回の分析時に反映されます。\n",
+	},
+	"syncLater": {
+		"en": "Could not send to aline.team: %v\nNothing is lost: what was not sent goes with the next push or sync.\n",
+		"ko": "aline.team에 보내지 못했습니다: %v\n보내지 못한 데이터는 다음 push나 sync 때 다시 보냅니다.\n",
+		"ja": "aline.team に送信できませんでした: %v\n送信できなかったデータは、次の push または sync の際に再送します。\n",
+	},
+	"upToDate": {
+		"en": "aline.team is already up to date.\n",
+		"ko": "aline.team과 이미 동기화되어 있습니다.\n",
+		"ja": "aline.team とはすでに同期済みです。\n",
+	},
+	"noRemote": {
+		"en": "%d commit(s) are not sent because their repository has no usable remote on a git service.\n",
+		"ko": "쓸 수 있는 git 서비스 원격 저장소가 없는 저장소의 커밋 %d개는 보내지 않습니다.\n",
+		"ja": "利用できる git サービスのリモートがないリポジトリのコミット %d 件は送信しません。\n",
+	},
+	"commitRejected": {
+		"en": "aline.team did not accept commit %[2]s of %[1]s; it is skipped until it changes: %[3]v\n",
+		"ko": "aline.team이 %[1]s의 커밋 %[2]s를 받지 않아 건너뜁니다. 내용이 바뀌면 다시 보냅니다: %[3]v\n",
+		"ja": "aline.team が %[1]s のコミット %[2]s を受け付けなかったため、スキップします。内容が変われば再送します: %[3]v\n",
+	},
+	"autosync": {
+		"en": "Send right after git push: %s\n",
+		"ko": "git push 직후 자동 전송: %s\n",
+		"ja": "git push 直後の自動送信: %s\n",
 	},
 	"depsUpdated": {
 		"en": "%s: dependencies updated, %d commit(s) collected again.\n",
