@@ -58,9 +58,8 @@ func request(commits []Commit) commitBatch {
 
 // Limits of the data API (docs/API.md 4.1).
 const (
-	batchSize     = 500
-	maxBody       = 900_000 // bytes per request; the server's proxy takes 1 MB
-	maxMessage    = 10000   // characters
+	batchSize     = 500   // records per request
+	maxMessage    = 10000 // characters
 	maxFilesSent  = 1000
 	maxNamespace  = 200 // the server keys repositories by "[internal]"
 	syncStateFile = "sync.json"
@@ -131,8 +130,7 @@ func pending(dir string, st syncState) (syncPayload, error) {
 	return p, nil
 }
 
-// batches splits commits into requests of one repository each, at most batchSize records and
-// maxBody bytes of JSON.
+// batches splits commits into requests of one repository each, at most batchSize records.
 func batches(commits []Commit) [][]Commit {
 	commits = slices.Clone(commits)
 	slices.SortStableFunc(commits, func(a, b Commit) int {
@@ -140,14 +138,11 @@ func batches(commits []Commit) [][]Commit {
 	})
 	var out [][]Commit
 	var cur []Commit
-	size := 0
 	for _, c := range commits {
-		b, _ := json.Marshal(c)
-		if len(cur) > 0 && (cur[0].Provider != c.Provider || cur[0].Namespace != c.Namespace ||
-			len(cur) == batchSize || size+len(b)+1 > maxBody) {
-			out, cur, size = append(out, cur), nil, 0
+		if len(cur) > 0 && (cur[0].Provider != c.Provider || cur[0].Namespace != c.Namespace || len(cur) == batchSize) {
+			out, cur = append(out, cur), nil
 		}
-		cur, size = append(cur, c), size+len(b)+1
+		cur = append(cur, c)
 	}
 	if len(cur) > 0 {
 		out = append(out, cur)
