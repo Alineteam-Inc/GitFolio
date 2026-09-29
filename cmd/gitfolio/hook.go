@@ -178,7 +178,15 @@ func cmdHook(dir string, args []string) error {
 			if _, err := scanRepo(dir, &repos[i], false); err != nil {
 				return err
 			}
-			return saveRepos(dir, repos)
+			if err := saveRepos(dir, repos); err != nil {
+				return err
+			}
+			cfg, err := loadConfig(dir)
+			if err != nil || cfg.AutoSyncOff {
+				return err
+			}
+			_, err = syncData(dir, false) // offline or failed: sent by the next push or sync
+			return err
 		})
 	}
 	return fmt.Errorf("unknown hook %q", args[0])

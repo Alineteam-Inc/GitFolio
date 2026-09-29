@@ -74,6 +74,7 @@ const (
 	codeExpiredCode   = "A009" // email code expired or tried too often
 	codeUnverifiedWeb = "U004" // account made on the web without verifying its email
 	codeRateLimited   = "R001"
+	codeBadInput      = "C001" // malformed request
 )
 
 type client struct {
