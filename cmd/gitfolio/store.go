@@ -38,7 +38,7 @@ type Commit struct {
 	Provider     string     `json:"provider,omitempty"`  // filled in export only
 	Namespace    string     `json:"namespace,omitempty"` // filled in export only
 	Hash         string     `json:"hash"`
-	Branch       string     `json:"branch,omitempty"` // remote branch it is on, masked (see remoteBranches)
+	Branch       string     `json:"branch,omitempty"` // remote branch it is on (see remoteBranches), never masked
 	AuthorEmail  string     `json:"authorEmail"`
 	Date         string     `json:"date"`
 	Message      string     `json:"message"`
@@ -284,7 +284,7 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 			return 0, err
 		}
 		for i := range fresh {
-			fresh[i].Branch = m.apply(branches[fresh[i].Hash])
+			fresh[i].Branch = branches[fresh[i].Hash] // as is, so aline.team matches it with its GitHub sync
 		}
 	}
 	if err := appendCommits(dir, fresh); err != nil {
