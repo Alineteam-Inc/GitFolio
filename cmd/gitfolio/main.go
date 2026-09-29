@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -69,7 +68,7 @@ func run(args []string) error {
 		return nil
 	}
 	if _, err := exec.LookPath("git"); err != nil {
-		return errors.New("git not found in PATH")
+		return failure("noGit")
 	}
 	dir, err := dataDir()
 	if err != nil {
@@ -84,7 +83,7 @@ func run(args []string) error {
 			if args[0] == "hook" {
 				return nil // hooks do nothing before login
 			}
-			return errors.New(strings.TrimSpace(tr(detectLang(os.Getenv), "loginFirst")))
+			return failure("loginFirst")
 		}
 	}
 	switch args[0] {
@@ -118,7 +117,7 @@ func run(args []string) error {
 		case "deps":
 			return cmdDeps(dir, args[1:])
 		}
-		return fmt.Errorf("unknown command %q (see gitfolio help)", args[0])
+		return failure("unknownCommand", args[0])
 	})
 }
 
@@ -172,7 +171,7 @@ func registerRepo(dir, top string) error {
 	}
 	for _, r := range repos {
 		if r.Path == top {
-			return fmt.Errorf("%s is already registered", top)
+			return failure("alreadyRegistered", tildePath(top))
 		}
 	}
 	repos = append(repos, newRepo(top))
@@ -220,7 +219,7 @@ func cmdRemove(dir string, args []string) error {
 	}
 	i := slices.IndexFunc(repos, func(r Repo) bool { return r.Path == top })
 	if i < 0 {
-		return fmt.Errorf("%s is not registered", top)
+		return failure("notRegistered", tildePath(top))
 	}
 	r := repos[i]
 	if err := uninstallHooks(top); err != nil {
@@ -289,13 +288,13 @@ func cmdScan(dir string, args []string) error {
 		show(os.Stdout, msg)
 	}
 	if !*all && !matched {
-		return fmt.Errorf("%s is not registered (run: gitfolio add)", top)
+		return failure("notRegisteredAdd", tildePath(top))
 	}
 	if err := saveRepos(dir, repos); err != nil {
 		return err
 	}
 	if failed {
-		return errors.New("some repositories failed to scan")
+		return failure("scanFailed")
 	}
 	return nil
 }
@@ -440,7 +439,7 @@ func cmdConfig(dir string, args []string) error {
 		return nil
 	}
 	if len(args) < 3 || args[0] != "mask" || (args[1] != "add" && args[1] != "rm") {
-		return errors.New("usage: gitfolio config mask add|rm <word>... | config api-url <url>|default | config autosync on|off")
+		return failure("usage", "gitfolio config mask add|rm <word>... | config api-url <url>|default | config autosync on|off")
 	}
 	for _, w := range args[2:] {
 		if w = strings.TrimSpace(w); w == "" {
