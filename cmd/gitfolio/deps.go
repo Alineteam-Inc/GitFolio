@@ -601,7 +601,7 @@ func cmdDeps(dir string, args []string) error {
 		return saveRepos(dir, repos)
 	case "review":
 		if !cfg.Deps {
-			return errors.New("dependency detection is off (turn it on with: gitfolio deps on)")
+			return failure("depsIsOff")
 		}
 		top, err := topLevel(pathArg(args[1:]))
 		if err != nil {
@@ -609,14 +609,14 @@ func cmdDeps(dir string, args []string) error {
 		}
 		i := slices.IndexFunc(repos, func(r Repo) bool { return r.Path == top })
 		if i < 0 {
-			return fmt.Errorf("%s is not registered (run: gitfolio add)", top)
+			return failure("notRegisteredAdd", tildePath(top))
 		}
 		if err := reviewAndRescan(dir, &repos[i]); err != nil {
 			return err
 		}
 		return saveRepos(dir, repos)
 	}
-	return errors.New("usage: gitfolio deps [on|off|review [path]]")
+	return failure("usage", "gitfolio deps [on|off|review [path]]")
 }
 
 // reviewAndRescan asks about r's manifest files and, when decisions changed, collects r again so

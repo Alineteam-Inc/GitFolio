@@ -37,11 +37,11 @@ func apiBase(configured string) (string, error) {
 func checkAPIURL(raw string) error {
 	u, err := url.Parse(raw)
 	if err != nil || u.Host == "" {
-		return fmt.Errorf("API URL %q is not a valid URL", raw)
+		return failure("apiURLInvalid", raw)
 	}
 	h := u.Hostname()
 	if u.Scheme != "https" && !(u.Scheme == "http" && (h == "127.0.0.1" || h == "localhost" || h == "::1")) {
-		return fmt.Errorf("API URL %q must use https", raw)
+		return failure("apiURLHTTPS", raw)
 	}
 	return nil
 }
@@ -112,7 +112,7 @@ func (c *client) call(method, path string, in, out any) error {
 		if serr := saveCredentials(c.dir, c.creds); serr != nil {
 			return serr
 		}
-		return fmt.Errorf("%w (run `gitfolio login`)", err) // the server message already says to log in again
+		return fmt.Errorf("%w %s", err, tr(detectLang(os.Getenv), "relogin"))
 	}
 	return err
 }
