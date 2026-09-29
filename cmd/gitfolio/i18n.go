@@ -3,6 +3,8 @@ package main
 import (
 	"cmp"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -65,8 +67,8 @@ func parseAppleLanguages(out string) []string {
 	return langs
 }
 
-// statusPrefix marks GitFolio's own result lines so they stand out among shell and git output.
-// Prompts carry no prefix (it would blur where to type); errors stay "gitfolio: …" on stderr.
+// statusPrefix marks GitFolio's own result and error lines so they stand out among shell and git output.
+// Prompts and notices carry only the margin (a prefix would blur where to type).
 const statusPrefix = "== GitFolio == "
 
 // margin keeps GitFolio's interactive text off the terminal's left edge.
@@ -83,14 +85,20 @@ func indent(s string) string {
 	return strings.Join(lines, "\n")
 }
 
-// say prints a translated result line with the GitFolio prefix; further lines are indented under it.
-func say(lang, key string, args ...any) {
+// say prints a translated result line with the GitFolio prefix.
+func say(lang, key string, args ...any) { show(os.Stdout, fmt.Sprintf(tr(lang, key), args...)) }
+
+// warn is say for problems, on stderr.
+func warn(lang, key string, args ...any) { show(os.Stderr, fmt.Sprintf(tr(lang, key), args...)) }
+
+// show prints text with the GitFolio prefix on its first line and the other lines aligned under it.
+func show(w io.Writer, text string) {
 	under := strings.Repeat(" ", len(statusPrefix))
-	for i, line := range strings.Split(strings.TrimRight(fmt.Sprintf(tr(lang, key), args...), "\n"), "\n") {
+	for i, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
 		if i == 0 {
-			fmt.Println(margin + statusPrefix + line)
+			fmt.Fprintln(w, margin+statusPrefix+line)
 		} else {
-			fmt.Println(margin + under + line)
+			fmt.Fprintln(w, margin+under+line)
 		}
 	}
 }
@@ -203,9 +211,9 @@ var messages = map[string]map[string]string{
 		"ja": "リポジトリは選択されませんでした。いつでも `gitfolio init` を再実行して選べます。\n",
 	},
 	"searching": {
-		"en": "\nLooking for git repositories (folder names only; macOS may ask for folder access)...\n",
-		"ko": "\ngit 저장소를 찾는 중입니다. (폴더 이름만 확인하며, macOS가 폴더 접근 권한을 물을 수 있습니다)\n",
-		"ja": "\ngit リポジトリを検索しています。(フォルダー名のみ確認します。macOS がフォルダーへのアクセス許可を求める場合があります)\n",
+		"en": "Looking for git repositories (folder names only; macOS may ask for folder access)...\n",
+		"ko": "git 저장소를 찾는 중입니다. (폴더 이름만 확인하며, macOS가 폴더 접근 권한을 물을 수 있습니다)\n",
+		"ja": "git リポジトリを検索しています。(フォルダー名のみ確認します。macOS がフォルダーへのアクセス許可を求める場合があります)\n",
 	},
 	"noCandidates": {
 		"en": "No new repositories with your commits were found.\n",
@@ -228,9 +236,9 @@ var messages = map[string]map[string]string{
 		"ja": "ターミナルで `gitfolio init` を実行して選ぶか、`gitfolio add <パス>` で1件ずつ登録してください。\n",
 	},
 	"initDone": {
-		"en": "\nDone. From now on, your pushes in the chosen repositories are collected automatically.\nRun `gitfolio init` again any time to add repositories.\n",
-		"ko": "\n완료했습니다. 이제 선택한 저장소에서 push할 때마다 자동으로 수집됩니다.\n저장소를 추가하려면 언제든 `gitfolio init`을 다시 실행하세요.\n",
-		"ja": "\n完了しました。今後、選択したリポジトリで push するたびに自動で収集されます。\nリポジトリを追加するには、いつでも `gitfolio init` を再実行してください。\n",
+		"en": "Done. From now on, your pushes in the chosen repositories are collected automatically.\nRun `gitfolio init` again any time to add repositories.\n",
+		"ko": "완료했습니다. 이제 선택한 저장소에서 push할 때마다 자동으로 수집됩니다.\n저장소를 추가하려면 언제든 `gitfolio init`을 다시 실행하세요.\n",
+		"ja": "完了しました。今後、選択したリポジトリで push するたびに自動で収集されます。\nリポジトリを追加するには、いつでも `gitfolio init` を再実行してください。\n",
 	},
 	"signupNotice": {
 		"en": "There is no aline.team account for %s, so a new one will be created.\nSigning up means you agree to\n  Terms of Service: https://aline.team/terms\n  Privacy Policy:   https://aline.team/privacy\n",
@@ -321,5 +329,141 @@ var messages = map[string]map[string]string{
 		"en": "Sign-up and login to aline.team are coming soon; this step is skipped for now.\n",
 		"ko": "aline.team 가입·로그인은 준비 중이라 이 단계는 지금 건너뜁니다.\n",
 		"ja": "aline.team への登録・ログインは準備中のため、この手順は現在スキップします。\n",
+	},
+	"logoutServerFailed": {
+		"en": "Could not log out on the server (%v); the token on this device is removed anyway.\n",
+		"ko": "서버 로그아웃에 실패했지만(%v) 이 기기의 토큰은 삭제합니다.\n",
+		"ja": "サーバーでのログアウトに失敗しましたが(%v)、このデバイスのトークンは削除します。\n",
+	},
+	"failed": {
+		"en": "Error: %v\n",
+		"ko": "오류: %v\n",
+		"ja": "エラー: %v\n",
+	},
+	"repoFailed": {
+		"en": "%s: %v\n",
+		"ko": "%s: %v\n",
+		"ja": "%s: %v\n",
+	},
+	"registered": {
+		"en": "Registered %s (%d commit(s)).\n",
+		"ko": "%s 저장소를 등록했습니다. (커밋 %d개)\n",
+		"ja": "%s を登録しました。(コミット %d 件)\n",
+	},
+	"hooksNotInstalled": {
+		"en": "Git hooks were not installed: %v\nCommits are still collected by `gitfolio scan`.\n",
+		"ko": "git hook을 설치하지 못했습니다: %v\n`gitfolio scan`으로는 계속 수집할 수 있습니다.\n",
+		"ja": "git フックをインストールできませんでした: %v\n`gitfolio scan` では引き続き収集できます。\n",
+	},
+	"hooksNotRestored": {
+		"en": "Git hooks were not restored: %v\n",
+		"ko": "git hook을 원래대로 되돌리지 못했습니다: %v\n",
+		"ja": "git フックを元に戻せませんでした: %v\n",
+	},
+	"removed": {
+		"en": "Removed %s.\n",
+		"ko": "%s 저장소 등록을 해제했습니다.\n",
+		"ja": "%s の登録を解除しました。\n",
+	},
+	"scanned": {
+		"en": "%s: %d new commit(s)\n",
+		"ko": "%s: 새 커밋 %d개\n",
+		"ja": "%s: 新しいコミット %d 件\n",
+	},
+	"depsPending": {
+		"en": "Package manager files waiting for your review: %d (gitfolio deps review %s)\n",
+		"ko": "패키지 매니저 파일 %d개가 검토를 기다립니다: gitfolio deps review %s\n",
+		"ja": "パッケージマネージャーのファイル %d 件が確認待ちです: gitfolio deps review %s\n",
+	},
+	"apiURL": {
+		"en": "aline.team API: %s\n",
+		"ko": "aline.team API: %s\n",
+		"ja": "aline.team API: %s\n",
+	},
+	"maskRemoved": {
+		"en": "Removed. Already masked data stays masked; run `gitfolio scan --all --rebuild` to collect it again.\n",
+		"ko": "삭제했습니다. 이미 마스킹된 데이터는 그대로이며, 다시 수집하려면 `gitfolio scan --all --rebuild`를 실행하세요.\n",
+		"ja": "削除しました。すでにマスキングされたデータはそのままです。再収集するには `gitfolio scan --all --rebuild` を実行してください。\n",
+	},
+	"maskApplied": {
+		"en": "Applied to %d stored commit(s).\n",
+		"ko": "저장된 커밋 %d개에 적용했습니다.\n",
+		"ja": "保存済みのコミット %d 件に適用しました。\n",
+	},
+	"tooManyManifests": {
+		"en": "More than %d package manager files; the rest are ignored.\n",
+		"ko": "패키지 매니저 파일이 %d개를 넘어 나머지는 무시합니다.\n",
+		"ja": "パッケージマネージャーのファイルが %d 件を超えたため、残りは無視します。\n",
+	},
+	"noManifests": {
+		"en": "%s: no package manager files found.\n",
+		"ko": "%s: 패키지 매니저 파일이 없습니다.\n",
+		"ja": "%s: パッケージマネージャーのファイルはありません。\n",
+	},
+	"manifestsTitle": {
+		"en": "Package manager files in %s. Selected files are read only to detect dependencies:\n",
+		"ko": "%s의 패키지 매니저 파일입니다. 고른 파일은 의존성 파악에만 읽습니다.\n",
+		"ja": "%s のパッケージマネージャーのファイルです。選んだファイルは依存関係の把握にのみ読み取ります。\n",
+	},
+	// The three states have the same width within each language, so the file list stays aligned.
+	"manifestNew": {
+		"en": "new",
+		"ko": "신규",
+		"ja": "新規",
+	},
+	"manifestAllowed": {
+		"en": "allowed",
+		"ko": "허용",
+		"ja": "許可",
+	},
+	"manifestDeclined": {
+		"en": "declined",
+		"ko": "거부",
+		"ja": "拒否",
+	},
+	"manifestsAsk": {
+		"en": "Allow reading which files? [all / none / 1,3,5-7 / Enter = keep as is] > ",
+		"ko": "읽어도 되는 파일을 고르세요. [all / none / 1,3,5-7 / Enter = 그대로 두기] > ",
+		"ja": "読み取りを許可するファイルを選んでください。[all / none / 1,3,5-7 / Enter = 変更しない] > ",
+	},
+	"badSelection": {
+		"en": "Use all, none, or numbers between 1 and %d like 1,3,5-7.\n",
+		"ko": "all, none 또는 1,3,5-7처럼 1~%d 사이의 번호로 입력하세요.\n",
+		"ja": "all、none、または 1,3,5-7 のように 1〜%d の番号で入力してください。\n",
+	},
+	"depsStatus": {
+		"en": "Dependency detection: %s\n",
+		"ko": "의존성 분석: %s\n",
+		"ja": "依存関係の分析: %s\n",
+	},
+	"on": {
+		"en": "on",
+		"ko": "켜짐",
+		"ja": "オン",
+	},
+	"off": {
+		"en": "off",
+		"ko": "꺼짐",
+		"ja": "オフ",
+	},
+	"depsRepo": {
+		"en": "%s: %d allowed, %d waiting for review\n",
+		"ko": "%s: 허용 %d개, 검토 대기 %d개\n",
+		"ja": "%s: 許可 %d 件、確認待ち %d 件\n",
+	},
+	"depsReviewLater": {
+		"en": "Run `gitfolio deps review` in each repository to choose files.\n",
+		"ko": "저장소마다 `gitfolio deps review`를 실행해 읽을 파일을 고르세요.\n",
+		"ja": "リポジトリごとに `gitfolio deps review` を実行して、読み取るファイルを選んでください。\n",
+	},
+	"depsOff": {
+		"en": "Dependency detection is off; collected dependencies were deleted.\n",
+		"ko": "의존성 분석을 껐고, 수집한 의존성은 삭제했습니다.\n",
+		"ja": "依存関係の分析をオフにし、収集した依存関係を削除しました。\n",
+	},
+	"depsUpdated": {
+		"en": "%s: dependencies updated, %d commit(s) collected again.\n",
+		"ko": "%s: 의존성을 갱신하고 커밋 %d개를 다시 수집했습니다.\n",
+		"ja": "%s: 依存関係を更新し、コミット %d 件を再収集しました。\n",
 	},
 }

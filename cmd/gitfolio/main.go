@@ -49,7 +49,7 @@ commands:
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "gitfolio:", err)
+		warn(detectLang(os.Getenv), "failed", err)
 		os.Exit(1)
 	}
 }
@@ -161,9 +161,10 @@ func registerRepo(dir, top string) error {
 	if err := saveRepos(dir, repos); err != nil {
 		return err
 	}
-	fmt.Printf("registered %s (%d commits)\n", r.Name, n)
+	lang := detectLang(os.Getenv)
+	say(lang, "registered", r.Name, n)
 	if err := installHooks(top); err != nil {
-		fmt.Fprintf(os.Stderr, "gitfolio: git hooks not installed: %v\n  Commits are still collected by `gitfolio scan`.\n", err)
+		warn(lang, "hooksNotInstalled", err)
 	}
 	return nil
 }
@@ -191,7 +192,7 @@ func cmdRemove(dir string, args []string) error {
 	}
 	r := repos[i]
 	if err := uninstallHooks(top); err != nil {
-		fmt.Fprintf(os.Stderr, "gitfolio: git hooks not restored: %v\n", err)
+		warn(detectLang(os.Getenv), "hooksNotRestored", err)
 	}
 	if *purge {
 		commits, err := readCommits(dir)
@@ -205,7 +206,7 @@ func cmdRemove(dir string, args []string) error {
 	if err := saveRepos(dir, slices.Delete(repos, i, i+1)); err != nil {
 		return err
 	}
-	fmt.Printf("removed %s\n", r.Name)
+	say(detectLang(os.Getenv), "removed", r.Name)
 	return nil
 }
 
@@ -230,6 +231,7 @@ func cmdScan(dir string, args []string) error {
 			return err
 		}
 	}
+	lang := detectLang(os.Getenv)
 	var failed, matched bool
 	for i := range repos {
 		r := &repos[i]
@@ -239,16 +241,17 @@ func cmdScan(dir string, args []string) error {
 		matched = true
 		n, err := scanRepo(dir, r, *rebuild)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "gitfolio: %s: %v\n", r.Name, err)
+			warn(lang, "repoFailed", r.Name, err)
 			failed = true
 			continue
 		}
-		fmt.Printf("%s: %d new commits\n", r.Name, n)
+		msg := fmt.Sprintf(tr(lang, "scanned"), r.Name, n)
 		if cfg.Deps {
 			if n := pendingManifests(*r); n > 0 {
-				fmt.Printf("  %d package manager files wait for your review: gitfolio deps review %s\n", n, r.Path)
+				msg += fmt.Sprintf(tr(lang, "depsPending"), n, r.Path)
 			}
 		}
+		show(os.Stdout, msg)
 	}
 	if !*all && !matched {
 		return fmt.Errorf("%s is not registered (run: gitfolio add)", top)
@@ -389,7 +392,7 @@ func cmdConfig(dir string, args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("aline.team API:", base)
+		say(detectLang(os.Getenv), "apiURL", base)
 		return nil
 	}
 	if len(args) < 3 || args[0] != "mask" || (args[1] != "add" && args[1] != "rm") {
@@ -411,7 +414,7 @@ func cmdConfig(dir string, args []string) error {
 		return err
 	}
 	if args[1] == "rm" {
-		fmt.Println("removed. Already masked data stays masked; run `gitfolio scan --all --rebuild` to collect it again.")
+		say(detectLang(os.Getenv), "maskRemoved")
 		return nil
 	}
 	return remask(dir, newMasker(cfg.Mask))
@@ -439,6 +442,6 @@ func remask(dir string, m masker) error {
 	if err := saveRepos(dir, repos); err != nil {
 		return err
 	}
-	fmt.Printf("applied to %d stored commits\n", len(commits))
+	say(detectLang(os.Getenv), "maskApplied", len(commits))
 	return nil
 }
