@@ -63,8 +63,9 @@ Your profile and resume are available at **[aline.team](https://aline.team)**.
 | Repository `owner/repo` and service (GitHub, GitLab, …) | Commits by other people |
 | Whether an AI agent took part (Claude Code, Codex, Cursor, Copilot, …) | |
 
-- **Masked on your computer before anything is stored or sent:** tokens and keys, URLs, emails,
-  IP addresses, ticket numbers, and words you block with `gitfolio config mask add`.
+- **Masked in commit messages on your computer before anything is stored or sent:** tokens and keys,
+  URLs, emails, IP addresses, ticket numbers, and words you block with `gitfolio config mask add`.
+  File and repository names are kept as they are.
 - **Package manager files** (`package.json`, `pom.xml`, …) are read only with your per-file
   approval, and only to detect dependencies (coming soon).
 - Data is sent to aline.team (Alineteam Inc., Google Cloud, United States) and kept for one
@@ -126,7 +127,7 @@ gitfolio remove ~/code/my-project --purge   # 등록 해제, 기존 훅 복원, 
 - **수집:** 커밋 해시, 작성자 이메일, 시점, 커밋 메시지(마스킹), 브랜치 이름, 파일명과 파일별 추가·삭제 줄 수,
   저장소 `소유자/저장소`와 git 서비스, AI 에이전트 참여 여부
 - **수집하지 않음:** 소스 코드·파일 내용, 전체 경로, 원격 URL·호스트·인증 정보, 다른 사람의 커밋
-- 토큰·키, URL, 이메일, IP, 티켓 번호, 등록한 금지어는 **이 컴퓨터에서 가린 뒤** 저장·전송합니다.
+- 커밋 메시지 속 토큰·키, URL, 이메일, IP, 티켓 번호, 등록한 금지어는 **이 컴퓨터에서 가린 뒤** 저장·전송합니다. 파일명·저장소 이름은 그대로 둡니다.
 - 패키지 매니저 파일은 파일별로 승인한 경우에만, 의존성 파악 용도로만 읽습니다 (준비 중).
 - 데이터는 aline.team(Alineteam Inc., Google Cloud, 미국)으로 전송되며, 가입일로부터 1년간
   보관되고 계속 이용 중이면 자동 연장됩니다. 개인정보처리방침: https://aline.team/privacy

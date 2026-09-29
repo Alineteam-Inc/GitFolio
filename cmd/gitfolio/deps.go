@@ -113,7 +113,7 @@ func moduleOf(p string, modules map[string]string) string {
 // refreshDeps reads only the approved manifest files of r (committed version, file contents are
 // parsed in memory and dropped), stores their dependencies and returns the module IDs by directory.
 // ponytail: re-reads every approved file on each scan; skip unchanged blobs if repos get many manifests.
-func refreshDeps(dir string, r *Repo, m masker) (map[string]string, error) {
+func refreshDeps(dir string, r *Repo) (map[string]string, error) {
 	modules := map[string]string{}
 	var found []Dependency
 	for p, ok := range r.Manifests {
@@ -130,7 +130,7 @@ func refreshDeps(dir string, r *Repo, m masker) (map[string]string, error) {
 		}
 		modules[d] = moduleID(d)
 		for _, x := range parseManifest(path.Base(p), content) {
-			found = append(found, Dependency{Repo: r.ID, Module: modules[d], Ecosystem: manifestNames[path.Base(p)], Name: m.apply(x.name), Version: x.version})
+			found = append(found, Dependency{Repo: r.ID, Module: modules[d], Ecosystem: manifestNames[path.Base(p)], Name: x.name, Version: x.version})
 		}
 	}
 	all, err := loadDeps(dir)

@@ -171,8 +171,8 @@ func TestScanRepo(t *testing.T) {
 		}
 	}
 
-	// A newly blocked word is applied to data that is already stored.
-	if err := cmdConfig(data, []string{"mask", "add", "body"}); err != nil {
+	// A newly blocked word is applied to stored commit messages, and only to them: file names stay.
+	if err := cmdConfig(data, []string{"mask", "add", "body", "logo"}); err != nil {
 		t.Fatal(err)
 	}
 	if stored, err = readCommits(data); err != nil {
@@ -180,7 +180,12 @@ func TestScanRepo(t *testing.T) {
 	}
 	remasked := false
 	for _, c := range stored {
-		remasked = remasked || c.Message == "first\n\n[REDACTED] line"
+		if c.Message == "first\n\n[REDACTED] line" {
+			remasked = true
+			if c.Files[0].Name != "logo.png" {
+				t.Errorf("file name masked: %+v", c.Files)
+			}
+		}
 	}
 	if !remasked {
 		t.Errorf("mask add did not reach stored commits: %+v", stored)
