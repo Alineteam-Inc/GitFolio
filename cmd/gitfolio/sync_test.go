@@ -75,8 +75,14 @@ func TestSync(t *testing.T) {
 	if _, err := syncData(dir, false); err == nil {
 		t.Fatal("sync to a server that is down succeeded")
 	}
+	if st, _ := loadSync(dir); st.LastError == "" || st.LastSync == "" {
+		t.Errorf("failed sync not recorded: %+v", st)
+	}
 	f.down = false
 	sync(1, 0) // what failed is sent by the next sync
+	if st, _ := loadSync(dir); st.LastError != "" {
+		t.Errorf("successful sync kept the old error %q", st.LastError)
+	}
 
 	// remove --purge: the deletion reaches the server on the next sync.
 	must(queueDeletion(dir, deletion{"GITHUB", "me/app"}))

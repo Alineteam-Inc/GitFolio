@@ -70,6 +70,8 @@ type Config struct {
 	APIURL    string   `json:"apiUrl,omitempty"`    // aline.team API root; empty = production (config api-url)
 	// AutoSyncOff stops sending right after git push; sync still sends (config autosync).
 	AutoSyncOff bool `json:"autoSyncOff,omitempty"`
+	// Schedule is the daily sync time ("09:00", local) registered with the OS scheduler; empty = none.
+	Schedule string `json:"schedule,omitempty"`
 }
 
 func loadRepos(dir string) (repos []Repo, err error) {

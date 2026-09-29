@@ -18,10 +18,11 @@ import (
 
 // syncState remembers what aline.team already has, so only new or changed records are sent (DESIGN 6.2).
 type syncState struct {
-	Account  string            `json:"account,omitempty"` // the aline.team account the records below were sent to
-	Commits  map[string]string `json:"commits,omitempty"` // provider/namespace/hash → fingerprint of the record sent
-	Deletes  []deletion        `json:"deletes,omitempty"` // repository deletions not yet accepted by the server
-	LastSync string            `json:"lastSync,omitempty"`
+	Account   string            `json:"account,omitempty"`   // the aline.team account the records below were sent to
+	Commits   map[string]string `json:"commits,omitempty"`   // provider/namespace/hash → fingerprint of the record sent
+	Deletes   []deletion        `json:"deletes,omitempty"`   // repository deletions not yet accepted by the server
+	LastSync  string            `json:"lastSync,omitempty"`  // last attempt, shown by `gitfolio schedule`
+	LastError string            `json:"lastError,omitempty"` // why it failed; empty when it went through
 }
 
 // deletion asks aline.team to delete one repository's commits (remove --purge).
@@ -152,12 +153,29 @@ func batches(commits []Commit) [][]Commit {
 
 type syncCounts struct{ commits, deletes, noRemote int }
 
-// syncData sends what aline.team does not have yet: queued deletions, then new or changed commits.
-// Progress is saved as it goes, so after a failure only what was not accepted is sent again.
+// syncData sends what aline.team does not have yet and records when it tried and whether it worked.
 // Callers hold the data lock.
+func syncData(dir string, dryRun bool) (syncCounts, error) {
+	n, err := sendPending(dir, dryRun)
+	if dryRun {
+		return n, err
+	}
+	st, lerr := loadSync(dir)
+	if lerr != nil {
+		return n, errors.Join(err, lerr)
+	}
+	st.LastSync, st.LastError = time.Now().Format(time.RFC3339), ""
+	if err != nil {
+		st.LastError = err.Error()
+	}
+	return n, errors.Join(err, saveSync(dir, st))
+}
+
+// sendPending sends queued deletions, then new or changed commits. Progress is saved as it goes, so
+// after a failure only what was not accepted is sent again.
 // ponytail: the lock stays held while sending; other commands wait up to 30s. Send outside the lock
 // if large first syncs make that a problem.
-func syncData(dir string, dryRun bool) (n syncCounts, err error) {
+func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 	c, err := newClient(dir)
 	if err != nil {
 		return n, err
@@ -211,7 +229,6 @@ func syncData(dir string, dryRun bool) (n syncCounts, err error) {
 			return n, errors.Join(err, serr)
 		}
 	}
-	st.LastSync = time.Now().Format(time.RFC3339)
 	return n, save()
 }
 
