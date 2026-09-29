@@ -186,9 +186,9 @@ var messages = map[string]map[string]string{
 		"ja": "フォルダーが見つかりません: %s\n",
 	},
 	"identityEmail": {
-		"en": "\nYour commits are identified by: %s (git config)\nMore work emails can be added and verified once aline.team sign-in is available.\n",
-		"ko": "\n본인 커밋은 이 이메일로 식별합니다: %s (git config)\n다른 작업 이메일은 aline.team 로그인이 준비되면 인증 후 추가할 수 있습니다.\n",
-		"ja": "\nあなたのコミットはこのメールアドレスで識別します: %s (git config)\n他の業務用メールアドレスは、aline.team へのログイン対応後に認証して追加できます。\n",
+		"en": "\nYour commits are identified by: %s (git config)\nAdding and verifying more work emails is coming soon.\n",
+		"ko": "\n본인 커밋은 이 이메일로 식별합니다: %s (git config)\n다른 작업 이메일을 인증해 추가하는 기능은 곧 지원합니다.\n",
+		"ja": "\nあなたのコミットはこのメールアドレスで識別します: %s (git config)\n他の業務用メールアドレスを認証して追加する機能は近日対応予定です。\n",
 	},
 	"identityMissing": {
 		"en": "\ngit user.email is not set, so your commits cannot be identified.\nSet it with: git config --global user.email you@example.com\n",
@@ -325,10 +325,10 @@ var messages = map[string]map[string]string{
 		"ko": "로그아웃했습니다. 이 기기의 토큰을 폐기하고 삭제했습니다.\n",
 		"ja": "ログアウトしました。このデバイスのトークンを失効させ、削除しました。\n",
 	},
-	"loginPending": {
-		"en": "Sign-up and login to aline.team are coming soon; this step is skipped for now.\n",
-		"ko": "aline.team 가입·로그인은 준비 중이라 이 단계는 지금 건너뜁니다.\n",
-		"ja": "aline.team への登録・ログインは準備中のため、この手順は現在スキップします。\n",
+	"loginFirst": {
+		"en": "Log in to aline.team first: gitfolio login\n",
+		"ko": "먼저 aline.team에 로그인하세요: gitfolio login\n",
+		"ja": "先に aline.team にログインしてください: gitfolio login\n",
 	},
 	"logoutServerFailed": {
 		"en": "Could not log out on the server (%v); the token on this device is removed anyway.\n",
