@@ -36,13 +36,14 @@ func TestSync(t *testing.T) {
 	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com"}))
 	must(saveRepos(dir, []Repo{
 		{ID: "r1", Path: "/x/app", Name: "app", Provider: "GITHUB", Namespace: "me/app"},
-		{ID: "r2", Path: "/x/local", Name: "local"}, // no remote: never sent
+		{ID: "r2", Path: "/x/local", Name: "local"},                                                               // no remote: never sent
+		{ID: "r3", Path: "/x/deep", Name: "deep", Provider: "GITLAB", Namespace: strings.Repeat("g/", 100) + "x"}, // over 200 characters
 	}))
 	commit := func(repo, hash, msg string) Commit {
 		return Commit{Repo: repo, Hash: hash, Branch: "main", AuthorEmail: "dev@example.com", Date: "2026-09-29T10:00:00+09:00",
 			Message: msg, Files: []FileStat{{Name: "main.go", Add: 1, Module: "m1"}}, CreationType: "HUMAN"}
 	}
-	commits := []Commit{commit("r1", "a1", "feat: one"), commit("r1", "a2", "bad"), commit("r1", "a3", "fix: three"), commit("r2", "b1", "local")}
+	commits := []Commit{commit("r1", "a1", "feat: one"), commit("r1", "a2", "bad"), commit("r1", "a3", "fix: three"), commit("r2", "b1", "local"), commit("r3", "c1", "deep")}
 	commits[2].Files = make([]FileStat, maxFilesSent+5) // cut to the server's limit before sending
 	for i := range commits[2].Files {
 		commits[2].Files[i] = FileStat{Name: "f.go", Add: 1}
@@ -52,7 +53,7 @@ func TestSync(t *testing.T) {
 	if _, err := syncData(dir, true); err != nil || len(f.commits) != 0 {
 		t.Fatalf("dry run sent %d commits (%v)", len(f.commits), err)
 	}
-	sync(2, 0) // a2 is rejected (C001) and skipped, b1 has no remote
+	sync(2, 0) // a2 is rejected (C001) and skipped, b1 has no remote, c1's namespace is too long
 	if _, ok := f.commits["GITHUB/me/app/a3"]; !ok || len(f.commits) != 2 {
 		t.Fatalf("server has %v", f.commits)
 	}
