@@ -233,7 +233,7 @@ func cmdRemove(dir string, args []string) error {
 		if err := writeCommits(dir, slices.DeleteFunc(commits, func(c Commit) bool { return c.Repo == r.ID })); err != nil {
 			return err
 		}
-		if err := queueDeletion(dir, deletion{What: "repository", Provider: r.Provider, Namespace: r.Namespace}); err != nil {
+		if err := queueDeletion(dir, deletion{r.Provider, r.Namespace}); err != nil {
 			return err
 		}
 	}

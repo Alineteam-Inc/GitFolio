@@ -52,10 +52,9 @@ type fakeAline struct {
 
 	// Data API (docs/API.md 4, proposal). The handler holds mu; tests lock it to read.
 	mu      sync.Mutex
-	commits map[string]Commit    // provider/namespace/hash → record
-	deps    map[string][]depItem // provider/namespace → list
-	batches int                  // accepted commit batches
-	down    bool                 // answer data calls with 503
+	commits map[string]Commit // provider/namespace/hash → record
+	batches int               // accepted commit batches
+	down    bool              // answer data calls with 503
 }
 
 var emailDeviceName = regexp.MustCompile(`^(macOS|Linux|Windows) [A-Za-z0-9_]{1,16}$`)
@@ -147,7 +146,7 @@ func (f *fakeAline) handler() http.Handler {
 				w.WriteHeader(http.StatusServiceUnavailable) // no ApiBody, as from a proxy
 			default:
 				if f.commits == nil {
-					f.commits, f.deps = map[string]Commit{}, map[string][]depItem{}
+					f.commits = map[string]Commit{}
 				}
 				h(w, r)
 			}
@@ -155,12 +154,12 @@ func (f *fakeAline) handler() http.Handler {
 	}
 	mux.HandleFunc("POST /cli/commits/batch", data(func(w http.ResponseWriter, r *http.Request) {
 		var in struct{ Commits []Commit }
-		if json.NewDecoder(r.Body).Decode(&in) != nil || len(in.Commits) == 0 || len(in.Commits) > batchSize {
+		if r.ContentLength > 1<<20 || json.NewDecoder(r.Body).Decode(&in) != nil || len(in.Commits) == 0 || len(in.Commits) > batchSize {
 			fail(w, 400, "C001")
 			return
 		}
 		for _, c := range in.Commits {
-			if c.Message == "bad" || c.Namespace == "" || c.Hash == "" {
+			if c.Message == "bad" || c.Namespace == "" || c.Hash == "" || c.Branch == "" || len(c.Files) > maxFilesSent {
 				fail(w, 400, "C001") // one bad record fails the whole batch
 				return
 			}
@@ -171,15 +170,6 @@ func (f *fakeAline) handler() http.Handler {
 		f.batches++
 		ok(w, map[string]any{"upserted": len(in.Commits)})
 	}))
-	mux.HandleFunc("PUT /cli/dependencies", data(func(w http.ResponseWriter, r *http.Request) {
-		var in repoDeps
-		if json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" {
-			fail(w, 400, "C001")
-			return
-		}
-		f.deps[in.Provider+"/"+in.Namespace] = in.Dependencies
-		ok(w, nil)
-	}))
 	mux.HandleFunc("DELETE /cli/repositories", data(func(w http.ResponseWriter, r *http.Request) {
 		key := r.URL.Query().Get("provider") + "/" + r.URL.Query().Get("namespace")
 		n := 0
@@ -189,12 +179,7 @@ func (f *fakeAline) handler() http.Handler {
 				n++
 			}
 		}
-		delete(f.deps, key)
 		ok(w, map[string]any{"deletedCommits": n})
-	}))
-	mux.HandleFunc("DELETE /cli/dependencies", data(func(w http.ResponseWriter, r *http.Request) {
-		clear(f.deps)
-		ok(w, nil)
 	}))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()

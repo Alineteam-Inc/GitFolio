@@ -193,9 +193,9 @@ var messages = map[string]map[string]string{
 		"ja": "フォルダーが見つかりません: %s\n",
 	},
 	"identityEmail": {
-		"en": "\nYour commits are identified by: %s (git config)\nAdding and verifying more work emails is coming soon.\n",
-		"ko": "\n본인 커밋은 이 이메일로 식별합니다: %s (git config)\n다른 작업 이메일을 인증해 추가하는 기능은 곧 지원합니다.\n",
-		"ja": "\nあなたのコミットはこのメールアドレスで識別します: %s (git config)\n他の業務用メールアドレスを認証して追加する機能は近日対応予定です。\n",
+		"en": "\nYour commits are identified by: %s (git config)\n",
+		"ko": "\n본인 커밋은 이 이메일로 식별합니다: %s (git config)\n",
+		"ja": "\nあなたのコミットはこのメールアドレスで識別します: %s (git config)\n",
 	},
 	"identityMissing": {
 		"en": "\ngit user.email is not set, so your commits cannot be identified.\nSet it with: git config --global user.email you@example.com\n",
@@ -555,9 +555,9 @@ var messages = map[string]map[string]string{
 		"ja": "依存関係の分析をオフにし、収集した依存関係を削除しました。\n",
 	},
 	"synced": {
-		"en": "Synced with aline.team: %d commit(s), dependencies of %d repositories, %d deletion(s).\n",
-		"ko": "aline.team에 동기화했습니다: 커밋 %d개, 의존성 저장소 %d개, 삭제 %d건\n",
-		"ja": "aline.team と同期しました: コミット %d 件、依存関係 %d リポジトリ、削除 %d 件\n",
+		"en": "Synced with aline.team: %d commit(s) sent, %d repository deletion(s).\nDashboards and profiles show them after aline.team's next analysis run.\n",
+		"ko": "aline.team에 동기화했습니다: 커밋 %d개 전송, 저장소 삭제 %d건\n대시보드·프로필에는 aline.team의 다음 분석 때 반영됩니다.\n",
+		"ja": "aline.team と同期しました: コミット %d 件を送信、リポジトリ削除 %d 件\nダッシュボード・プロフィールには aline.team の次回の分析時に反映されます。\n",
 	},
 	"syncLater": {
 		"en": "Could not send to aline.team: %v\nNothing is lost: what was not sent goes with the next push or sync.\n",

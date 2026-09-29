@@ -1,14 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http/httptest"
+	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
 // TestSync walks the data API contract (docs/API.md 4) against the fake server: only new or changed
-// records are sent, a record the server rejects is skipped, a failed send is retried, and queued
-// deletions reach the server.
+// records are sent, a record the server rejects is skipped, a failed send is retried, and a queued
+// repository deletion reaches the server.
 func TestSync(t *testing.T) {
 	f := &fakeAline{token: testToken}
 	srv := httptest.NewServer(f.handler())
@@ -22,46 +26,48 @@ func TestSync(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	sync := func(wantCommits, wantDeps, wantDeletes int) {
+	sync := func(wantCommits, wantDeletes int) {
 		t.Helper()
 		n, err := syncData(dir, false)
-		if err != nil || n.commits != wantCommits || n.deps != wantDeps || n.deletes != wantDeletes {
-			t.Fatalf("sync = %+v, %v; want %d commits, %d dependency lists, %d deletions", n, err, wantCommits, wantDeps, wantDeletes)
+		if err != nil || n.commits != wantCommits || n.deletes != wantDeletes {
+			t.Fatalf("sync = %+v, %v; want %d commits, %d deletions", n, err, wantCommits, wantDeletes)
 		}
 	}
 	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com"}))
-	must(saveConfig(dir, Config{Deps: true}))
 	must(saveRepos(dir, []Repo{
 		{ID: "r1", Path: "/x/app", Name: "app", Provider: "GITHUB", Namespace: "me/app"},
 		{ID: "r2", Path: "/x/local", Name: "local"}, // no remote: never sent
 	}))
 	commit := func(repo, hash, msg string) Commit {
-		return Commit{Repo: repo, Hash: hash, AuthorEmail: "dev@example.com", Date: "2026-09-29T10:00:00+09:00", Message: msg,
-			Files: []FileStat{{Name: "package.json", Add: 1, Module: "m1"}}, CreationType: "HUMAN"}
+		return Commit{Repo: repo, Hash: hash, Branch: "main", AuthorEmail: "dev@example.com", Date: "2026-09-29T10:00:00+09:00",
+			Message: msg, Files: []FileStat{{Name: "main.go", Add: 1, Module: "m1"}}, CreationType: "HUMAN"}
 	}
 	commits := []Commit{commit("r1", "a1", "feat: one"), commit("r1", "a2", "bad"), commit("r1", "a3", "fix: three"), commit("r2", "b1", "local")}
+	commits[2].Files = make([]FileStat, maxFilesSent+5) // cut to the server's limit before sending
+	for i := range commits[2].Files {
+		commits[2].Files[i] = FileStat{Name: "f.go", Add: 1}
+	}
 	must(writeCommits(dir, commits))
-	must(saveJSON(filepath.Join(dir, "deps.json"), []Dependency{{Repo: "r1", Module: "m1", Ecosystem: "npm", Name: "react", Version: "18.2.0"}}))
 
 	if _, err := syncData(dir, true); err != nil || len(f.commits) != 0 {
 		t.Fatalf("dry run sent %d commits (%v)", len(f.commits), err)
 	}
-	sync(2, 1, 0) // a2 is rejected (C001) and skipped, b1 has no remote
-	if _, ok := f.commits["GITHUB/me/app/a3"]; !ok || len(f.commits) != 2 || f.deps["GITHUB/me/app"][0].Name != "react" {
-		t.Fatalf("server has %v, deps %v", f.commits, f.deps)
+	sync(2, 0) // a2 is rejected (C001) and skipped, b1 has no remote
+	if _, ok := f.commits["GITHUB/me/app/a3"]; !ok || len(f.commits) != 2 {
+		t.Fatalf("server has %v", f.commits)
 	}
-	if got := f.commits["GITHUB/me/app/a1"]; got.Repo != "app" || got.Files[0].Module != "" {
-		t.Errorf("sent record %+v: want the repository name and no module ID", got)
+	if got := f.commits["GITHUB/me/app/a1"]; got.Repo != "app" || got.Branch != "main" || got.Files[0].Module != "" {
+		t.Errorf("sent record %+v: want the repository name, the branch and no module ID", got)
 	}
 	batches := f.batches
-	sync(0, 0, 0) // nothing new
+	sync(0, 0) // nothing new
 	if f.batches != batches {
 		t.Error("unchanged records were sent again")
 	}
 
 	commits[0].Message = "feat: one [MASKED]" // e.g. after `config mask add`
 	must(writeCommits(dir, commits))
-	sync(1, 0, 0)
+	sync(1, 0)
 
 	f.down = true
 	commits[2].Message = "fix: three again"
@@ -70,23 +76,124 @@ func TestSync(t *testing.T) {
 		t.Fatal("sync to a server that is down succeeded")
 	}
 	f.down = false
-	sync(1, 0, 0) // what failed is sent by the next sync
+	sync(1, 0) // what failed is sent by the next sync
 
-	// deps off, then remove --purge: both deletions reach the server on the next sync.
-	must(queueDeletion(dir, deletion{What: "dependencies"}))
-	must(saveConfig(dir, Config{Deps: false}))
-	must(queueDeletion(dir, deletion{What: "repository", Provider: "GITHUB", Namespace: "me/app"}))
+	// remove --purge: the deletion reaches the server on the next sync.
+	must(queueDeletion(dir, deletion{"GITHUB", "me/app"}))
 	must(writeCommits(dir, commits[3:]))
 	must(saveRepos(dir, []Repo{{ID: "r2", Path: "/x/local", Name: "local"}}))
-	sync(0, 0, 2)
-	if len(f.commits) != 0 || len(f.deps) != 0 {
-		t.Errorf("after the deletions the server still has %v, deps %v", f.commits, f.deps)
+	sync(0, 1)
+	if len(f.commits) != 0 {
+		t.Errorf("after the deletion the server still has %v", f.commits)
 	}
 
 	// Another account on this device gets everything again.
 	must(writeCommits(dir, commits[:1]))
 	must(saveRepos(dir, []Repo{{ID: "r1", Path: "/x/app", Name: "app", Provider: "GITHUB", Namespace: "me/app"}}))
-	sync(1, 0, 0)
+	sync(1, 0)
 	must(saveCredentials(dir, Credentials{Token: testToken, Email: "other@example.com"}))
-	sync(1, 0, 0)
+	sync(1, 0)
+}
+
+// Requests stay under the server's 1 MB body limit and 500 records.
+func TestBatches(t *testing.T) {
+	big := Commit{Hash: "h", Message: strings.Repeat("가", maxMessage)} // about 30 KB of JSON
+	var commits []Commit
+	for range 100 {
+		commits = append(commits, big)
+	}
+	for range 1200 {
+		commits = append(commits, Commit{Hash: "s"})
+	}
+	total := 0
+	for _, b := range batches(commits) {
+		body, _ := json.Marshal(map[string]any{"commits": b})
+		if len(b) > batchSize || len(body) > 1<<20 {
+			t.Errorf("batch of %d records, %d bytes", len(b), len(body))
+		}
+		total += len(b)
+	}
+	if total != len(commits) {
+		t.Errorf("batches hold %d records, want %d", total, len(commits))
+	}
+}
+
+// TestRemoteBranches checks the branch each commit is reported on: the default branch wins over other
+// branches that also contain the commit, branch names are masked, and commits stored before branches
+// were recorded get theirs on the next scan.
+func TestRemoteBranches(t *testing.T) {
+	remoteDir, repo, dir := t.TempDir(), t.TempDir(), t.TempDir()
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = repo
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	commit := func(msg string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(repo, msg+".txt"), []byte(msg), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		git("add", ".")
+		git("commit", "-q", "-m", msg)
+	}
+	if out, err := exec.Command("git", "init", "-q", "--bare", "-b", "main", remoteDir).CombinedOutput(); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	git("init", "-q", "-b", "main")
+	git("config", "user.email", "me@example.com")
+	git("config", "user.name", "me")
+	git("remote", "add", "origin", "https://github.com/me/app.git")
+	git("remote", "set-url", "--push", "origin", remoteDir)
+	commit("on-main")
+	git("push", "-q", "origin", "main")
+	git("symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+	git("switch", "-q", "-c", "aaa") // sorts before main, and also contains on-main
+	commit("on-aaa")
+	git("push", "-q", "origin", "aaa")
+	git("switch", "-q", "-c", "feature/acme-login", "main")
+	commit("on-feature")
+	git("push", "-q", "origin", "feature/acme-login")
+
+	if err := saveConfig(dir, Config{Mask: []string{"acme"}}); err != nil {
+		t.Fatal(err)
+	}
+	r := newRepo(repo)
+	check := func() {
+		t.Helper()
+		if _, err := scanRepo(dir, &r, false); err != nil {
+			t.Fatal(err)
+		}
+		commits, err := readCommits(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := map[string]string{}
+		for _, c := range commits {
+			got[c.Message] = c.Branch
+		}
+		want := map[string]string{"on-main": "main", "on-aaa": "aaa", "on-feature": "feature/[REDACTED]-login"}
+		if len(got) != len(want) {
+			t.Fatalf("branches = %v, want %v", got, want)
+		}
+		for msg, b := range want {
+			if got[msg] != b {
+				t.Errorf("%s is on %q, want %q (all: %v)", msg, got[msg], b, got)
+			}
+		}
+	}
+	check()
+
+	commits, _ := readCommits(dir)
+	for i := range commits {
+		commits[i].Branch = "" // as stored by an older version
+	}
+	if err := writeCommits(dir, commits); err != nil {
+		t.Fatal(err)
+	}
+	check()
 }
