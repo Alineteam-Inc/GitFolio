@@ -456,6 +456,7 @@ var stdinClosed bool
 const questionMark = "? "
 
 func prompt(q string) string {
+	inParagraph = false
 	lines := strings.Split(strings.TrimLeft(q, " \n"), "\n")
 	for i, l := range lines {
 		if i == 0 {
@@ -513,7 +514,7 @@ func reviewManifests(r *Repo) (bool, error) {
 		say(lang, "noManifests", r.Name)
 		return false, nil
 	}
-	fmt.Print(indent(fmt.Sprintf(tr(lang, "manifestsTitle"), r.Name)))
+	notice(fmt.Sprintf(tr(lang, "manifestsTitle"), r.Name))
 	for i, f := range files {
 		state := tr(lang, "manifestNew")
 		if ok, decided := r.Manifests[f]; decided {
@@ -528,7 +529,7 @@ func reviewManifests(r *Repo) (bool, error) {
 		}
 		sel, err := parseSelection(answer, len(files))
 		if err != nil {
-			fmt.Print(indent(fmt.Sprintf(tr(lang, "badSelection"), len(files))))
+			notice(fmt.Sprintf(tr(lang, "badSelection"), len(files)))
 			continue
 		}
 		r.Manifests = map[string]bool{}
@@ -568,7 +569,7 @@ func cmdDeps(dir string, args []string) error {
 		show(os.Stdout, msg)
 		return nil
 	case "on":
-		fmt.Print(indent(tr(lang, "depsNotice")))
+		notice(tr(lang, "depsNotice"))
 		cfg.Deps, cfg.DepsAsked = true, true
 		if err := saveConfig(dir, cfg); err != nil {
 			return err

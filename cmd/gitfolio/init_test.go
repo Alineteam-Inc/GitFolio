@@ -152,3 +152,20 @@ func TestCredentialsPermission(t *testing.T) {
 		}
 	}
 }
+
+// Status lines printed one after another form one paragraph with a single prefix; a notice, a question,
+// a section or a blank line starts a new one.
+func TestStatusParagraphs(t *testing.T) {
+	var b strings.Builder
+	inParagraph = false
+	show(&b, "first")
+	show(&b, "second\nthird")
+	inParagraph = false // what notice, prompt, section and blank do
+	show(&b, "fourth")
+	under := strings.Repeat(" ", len(statusPrefix))
+	want := margin + statusPrefix + "first\n" + margin + under + "second\n" + margin + under + "third\n" + margin + statusPrefix + "fourth\n"
+	if b.String() != want {
+		t.Errorf("got\n%s\nwant\n%s", b.String(), want)
+	}
+	inParagraph = false
+}

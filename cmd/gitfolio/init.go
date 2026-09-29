@@ -67,9 +67,9 @@ func cmdInit(dir string, args []string) error {
 	section(lang, "reposTitle")
 	roots := askRoots(lang, cfg.Roots, args)
 	if out, err := git(".", "config", "--global", "user.email"); err == nil && strings.TrimSpace(out) != "" {
-		fmt.Print(indent(fmt.Sprintf(tr(lang, "identityEmail"), strings.TrimSpace(out))))
+		notice(fmt.Sprintf(tr(lang, "identityEmail"), strings.TrimSpace(out)))
 	} else {
-		fmt.Print(indent(tr(lang, "identityMissing")))
+		notice(tr(lang, "identityMissing"))
 	}
 	if err := withLock(dir, func() error {
 		c, err := loadConfig(dir)
@@ -89,11 +89,11 @@ func cmdInit(dir string, args []string) error {
 	// Settings.
 	section(lang, "settingsTitle")
 	autosync := askYesNo(lang, "autosyncAsk", !cfg.AutoSyncOff)
-	fmt.Print("\n" + indent(tr(lang, "depsNotice")))
+	notice("\n" + tr(lang, "depsNotice"))
 	deps := askYesNo(lang, "depsAsk", cfg.Deps)
-	fmt.Println()
+	blank()
 	when := askSchedule(lang, cfg.Schedule)
-	fmt.Println()
+	blank()
 	if err := withLock(dir, func() error { return applySettings(dir, autosync, deps) }); err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func cmdInit(dir string, args []string) error {
 	}
 	onOff := func(b bool) string { return tr(lang, map[bool]string{true: "on", false: "off"}[b]) }
 	daily := cmp.Or(cfg.Schedule, tr(lang, "off"))
-	fmt.Println()
+	blank()
 	say(lang, "initDone", len(repos), onOff(!cfg.AutoSyncOff), onOff(cfg.Deps), daily)
 	return nil
 }
@@ -132,7 +132,7 @@ func cmdInit(dir string, args []string) error {
 // chooseRepos finds unregistered repositories with the user's commits under roots and asks which to
 // collect. Nothing is chosen by default: company code is never collected unless the user picks it.
 func chooseRepos(lang, dir string, roots []string) ([]string, error) {
-	fmt.Println()
+	blank()
 	say(lang, "searching")
 	repos, err := loadRepos(dir)
 	if err != nil {
@@ -156,13 +156,13 @@ func chooseRepos(lang, dir string, roots []string) ([]string, error) {
 		say(lang, "noCandidates")
 		return nil, nil
 	}
-	fmt.Println()
+	blank()
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	for i, c := range cands {
 		fmt.Fprintf(w, "%s  %d\t%s\t%d\t%s\n", margin, i+1, tildePath(c.path), c.commits, c.last)
 	}
 	w.Flush()
-	fmt.Print("\n" + indent(tr(lang, "companyNotice")))
+	notice("\n" + tr(lang, "companyNotice"))
 	var sel []int
 	for interactive() && !stdinClosed {
 		answer := prompt(tr(lang, "selectRepos"))
@@ -172,7 +172,7 @@ func chooseRepos(lang, dir string, roots []string) ([]string, error) {
 		if sel, err = parseSelection(answer, len(cands)); err == nil {
 			break
 		}
-		fmt.Print(indent(fmt.Sprintf(tr(lang, "badSelection"), len(cands))))
+		notice(fmt.Sprintf(tr(lang, "badSelection"), len(cands)))
 	}
 	if len(sel) == 0 {
 		if stdinClosed || !interactive() {
@@ -232,7 +232,7 @@ func askYesNo(lang, key string, def bool) bool {
 		case a == "n" || a == "no":
 			return false
 		}
-		fmt.Print(indent(tr(lang, "yesNoAgain")))
+		notice(tr(lang, "yesNoAgain"))
 	}
 }
 
@@ -253,7 +253,7 @@ func askSchedule(lang, current string) string {
 		if h, m, ok := parseHHMM(a); ok {
 			return fmt.Sprintf("%02d:%02d", h, m)
 		}
-		fmt.Print(indent(tr(lang, "scheduleFormat")))
+		notice(tr(lang, "scheduleFormat"))
 	}
 }
 
@@ -311,7 +311,7 @@ func askRoots(lang string, saved, args []string) []string {
 	}
 	q += tr(lang, "rootsPrompt")
 	for {
-		fmt.Println()
+		blank()
 		answer := prompt(q)
 		if answer == "" {
 			return fallback
@@ -329,7 +329,7 @@ func askRoots(lang string, saved, args []string) []string {
 		if missing == "" {
 			return roots
 		}
-		fmt.Print(indent(fmt.Sprintf(tr(lang, "rootMissing"), missing)))
+		notice(fmt.Sprintf(tr(lang, "rootMissing"), missing))
 	}
 }
 
