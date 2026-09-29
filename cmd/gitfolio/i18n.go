@@ -211,9 +211,9 @@ var messages = map[string]map[string]string{
 		"ja": "依存関係の分析では、リポジトリごとにあなたが選んだパッケージマネージャーのファイル\n(package.json、go.mod、pom.xml、build.gradle など)のみを、依存関係の把握のためだけに読み取ります。\n依存関係の名前とバージョンのみを保持し、ファイルの内容とパスは保存も送信もしません。\n",
 	},
 	"depsAsk": {
-		"en": "Turn on dependency detection? You will choose the files per repository. [y/N] > ",
-		"ko": "의존성 분석을 켤까요? 읽을 파일은 저장소마다 직접 고릅니다. [y/N] > ",
-		"ja": "依存関係の分析を有効にしますか? 読み取るファイルはリポジトリごとに選びます。[y/N] > ",
+		"en": "Turn on dependency detection? You will choose the files per repository.",
+		"ko": "의존성 분석을 켤까요? 읽을 파일은 저장소마다 직접 고릅니다.",
+		"ja": "依存関係の分析を有効にしますか? 読み取るファイルはリポジトリごとに選びます。",
 	},
 	"noneSelected": {
 		"en": "No repositories were chosen. Run `gitfolio init` again any time to choose.\n",
@@ -246,9 +246,9 @@ var messages = map[string]map[string]string{
 		"ja": "ターミナルで `gitfolio init` を実行して選ぶか、`gitfolio add <パス>` で1件ずつ登録してください。\n",
 	},
 	"initDone": {
-		"en": "Done. From now on, your pushes in the chosen repositories are collected automatically.\nRun `gitfolio init` again any time to add repositories.\n",
-		"ko": "완료했습니다. 이제 선택한 저장소에서 push할 때마다 자동으로 수집됩니다.\n저장소를 추가하려면 언제든 `gitfolio init`을 다시 실행하세요.\n",
-		"ja": "完了しました。今後、選択したリポジトリで push するたびに自動で収集されます。\nリポジトリを追加するには、いつでも `gitfolio init` を再実行してください。\n",
+		"en": "Setup is done.\nRepositories: %d\nSend right after git push: %s\nDependency detection: %s\nDaily sync: %s\nChange these any time by running `gitfolio init` again, or with `gitfolio config`, `deps` and `schedule`.\n",
+		"ko": "설정을 마쳤습니다.\n등록 저장소: %d개\npush 직후 자동 전송: %s\n의존성 분석: %s\n예약 동기화: %s\n언제든 `gitfolio init`을 다시 실행하거나 `gitfolio config`·`deps`·`schedule`로 바꿀 수 있습니다.\n",
+		"ja": "設定が完了しました。\n登録リポジトリ: %d 件\ngit push 直後の自動送信: %s\n依存関係の分析: %s\n予約同期: %s\nいつでも `gitfolio init` を再実行するか、`gitfolio config`・`deps`・`schedule` で変更できます。\n",
 	},
 	"signupNotice": {
 		"en": "There is no aline.team account for %s, so a new one will be created.\nSigning up means you agree to\n  Terms of Service: https://aline.team/terms\n  Privacy Policy:   https://aline.team/privacy\n",
@@ -586,6 +586,51 @@ var messages = map[string]map[string]string{
 		"en": "Send right after git push: %s\n",
 		"ko": "git push 직후 자동 전송: %s\n",
 		"ja": "git push 直後の自動送信: %s\n",
+	},
+	"reposTitle": {
+		"en": "Repositories",
+		"ko": "저장소",
+		"ja": "リポジトリ",
+	},
+	"settingsTitle": {
+		"en": "Settings",
+		"ko": "설정",
+		"ja": "設定",
+	},
+	"syncTitle": {
+		"en": "Sync",
+		"ko": "동기화",
+		"ja": "同期",
+	},
+	"autosyncAsk": {
+		"en": "Send your commits to aline.team right after each git push? (off: only on sync or the daily sync)",
+		"ko": "git push할 때마다 커밋을 aline.team에 바로 보낼까요? (끄면 sync·예약 동기화 때만 전송)",
+		"ja": "git push のたびにコミットを aline.team へすぐ送信しますか?(オフ: sync・予約同期の時のみ送信)",
+	},
+	"yesNoAgain": {
+		"en": "Please answer y or n.\n",
+		"ko": "y 또는 n으로 답해 주세요.\n",
+		"ja": "y または n で答えてください。\n",
+	},
+	"scheduleAsk": {
+		"en": "Also sync once a day at a set time? It picks up pushes the hooks missed (other tools, --no-verify).",
+		"ko": "매일 정해진 시각에도 동기화할까요? 훅이 놓친 push(다른 도구, --no-verify 등)를 보완합니다.",
+		"ja": "毎日決まった時刻にも同期しますか?フックが拾えなかった push(他のツール、--no-verify など)を補います。",
+	},
+	"scheduleAskNew": {
+		"en": " [HH:MM, e.g. 09:00 / Enter = no] > ",
+		"ko": " [HH:MM, 예: 09:00 / Enter = 안 함] > ",
+		"ja": " [HH:MM、例: 09:00 / Enter = しない] > ",
+	},
+	"scheduleAskKeep": {
+		"en": " [HH:MM / off / Enter = keep %s] > ",
+		"ko": " [HH:MM / off = 끄기 / Enter = %s 유지] > ",
+		"ja": " [HH:MM / off = オフ / Enter = %s のまま] > ",
+	},
+	"scheduleFormat": {
+		"en": "Enter a time like 09:00, or off.\n",
+		"ko": "09:00처럼 시각을 입력하거나 off를 입력하세요.\n",
+		"ja": "09:00 のように時刻を入力するか、off と入力してください。\n",
 	},
 	"scheduleOn": {
 		"en": "Daily sync at %s is set up.\nIts output goes to: %s\n",

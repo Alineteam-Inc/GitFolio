@@ -47,7 +47,23 @@ func cmdSchedule(dir string, args []string) error {
 		say(lang, "scheduleStatus", when, last)
 		return nil
 	}
+	if len(args) > 1 {
+		return failure("usage", "gitfolio schedule [HH:MM | off]")
+	}
 	if args[0] == "off" {
+		return setSchedule(dir, lang, "")
+	}
+	return setSchedule(dir, lang, args[0])
+}
+
+// setSchedule registers the daily sync at when ("HH:MM", local time), or removes it when when is empty,
+// and saves the choice. Callers hold the data lock.
+func setSchedule(dir, lang, when string) error {
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
+	if when == "" {
 		if err := unschedule(dir); err != nil {
 			return err
 		}
@@ -58,8 +74,8 @@ func cmdSchedule(dir string, args []string) error {
 		say(lang, "scheduleOff")
 		return nil
 	}
-	h, m, ok := parseHHMM(args[0])
-	if !ok || len(args) > 1 {
+	h, m, ok := parseHHMM(when)
+	if !ok {
 		return failure("usage", "gitfolio schedule [HH:MM | off]")
 	}
 	exe, err := gitfolioPath()
