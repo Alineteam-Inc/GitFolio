@@ -153,18 +153,19 @@ func (f *fakeAline) handler() http.Handler {
 		}
 	}
 	mux.HandleFunc("POST /cli/commits/batch", data(func(w http.ResponseWriter, r *http.Request) {
-		var in struct{ Commits []Commit }
-		if r.ContentLength > 1<<20 || json.NewDecoder(r.Body).Decode(&in) != nil || len(in.Commits) == 0 || len(in.Commits) > batchSize {
+		var in commitBatch // one repository per request
+		if r.ContentLength > 1<<20 || json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" || len(in.Commits) == 0 || len(in.Commits) > batchSize {
 			fail(w, 400, "C001")
 			return
 		}
 		for _, c := range in.Commits {
-			if c.Message == "bad" || c.Namespace == "" || c.Hash == "" || c.Branch == "" || len(c.Files) > maxFilesSent {
+			if c.Message == "bad" || c.Namespace != "" || c.Repo != "" || c.Hash == "" || c.Branch == "" || len(c.Files) > maxFilesSent {
 				fail(w, 400, "C001") // one bad record fails the whole batch
 				return
 			}
 		}
 		for _, c := range in.Commits {
+			c.Provider, c.Namespace, c.Repo = in.Provider, in.Namespace, in.Repo
 			f.commits[commitKey(c)] = c
 		}
 		f.batches++
