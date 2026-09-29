@@ -626,20 +626,15 @@ var messages = map[string]map[string]string{
 		"ko": "동기화",
 		"ja": "同期",
 	},
-	"autosyncAsk": {
-		"en": "Send your commits to aline.team right after each git push?\n(off: only on sync or the daily sync)",
-		"ko": "git push할 때마다 커밋을 aline.team에 바로 보낼까요?\n(끄면 sync·예약 동기화 때만 전송)",
-		"ja": "git push のたびにコミットを aline.team へすぐ送信しますか?\n(オフ: sync・予約同期の時のみ送信)",
-	},
 	"yesNoAgain": {
 		"en": "Please answer y or n.\n",
 		"ko": "y 또는 n으로 답해 주세요.\n",
 		"ja": "y または n で答えてください。\n",
 	},
 	"scheduleAsk": {
-		"en": "Also sync once a day at a set time?\n(picks up pushes the hooks missed: other tools, --no-verify)",
-		"ko": "매일 정해진 시각에도 동기화할까요?\n(훅이 놓친 push 보완: 다른 도구, --no-verify 등)",
-		"ja": "毎日決まった時刻にも同期しますか?\n(フックが拾えなかった push を補います: 他のツール、--no-verify など)",
+		"en": "Collect and send automatically every day at a set time?\n(without it, run `gitfolio sync` yourself; pushed commits are still sent right away)",
+		"ko": "매일 정해진 시각에 자동으로 수집·전송할까요?\n(예약하지 않으면 `gitfolio sync`로 직접 실행, push한 커밋은 지금처럼 바로 전송)",
+		"ja": "毎日決まった時刻に自動で収集・送信しますか?\n(予約しない場合は `gitfolio sync` を直接実行。push したコミットはこれまでどおりすぐ送信)",
 	},
 	"scheduleAskNew": {
 		"en": " [HH:MM, e.g. 09:00 / Enter = no] > ",
