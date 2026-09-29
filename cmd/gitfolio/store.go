@@ -67,6 +67,8 @@ type Config struct {
 	DepsAsked bool     `json:"depsAsked,omitempty"` // init asked once; later changes go through `gitfolio deps`
 	Roots     []string `json:"roots,omitempty"`     // folders where the user keeps repositories (init)
 	APIURL    string   `json:"apiUrl,omitempty"`    // aline.team API root; empty = production (config api-url)
+	// AutoSyncOff stops sending right after git push; sync still sends (config autosync).
+	AutoSyncOff bool `json:"autoSyncOff,omitempty"`
 }
 
 func loadRepos(dir string) (repos []Repo, err error) {
