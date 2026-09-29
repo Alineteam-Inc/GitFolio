@@ -86,7 +86,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 | 저장소 namespace | `git remote get-url origin` (없으면 첫 번째 원격) | 원격 URL에서 `소유자/저장소`만 추출 (`namespace`, 예: `Alineteam-Inc/GitFolio`). 호스트·인증 정보(`https://user:token@…`)·포트·`.git`은 버림. aline.team 서버가 이 값으로 git 서비스 API를 조회해 저장소를 확정하고 커밋 실재를 검증 |
 | git 서비스 | 원격 URL의 호스트 | `provider`: `GITHUB`, `GITLAB`, `BITBUCKET`, `AZURE_DEVOPS`, 그 외(사내 서버 포함)는 `OTHER`. 호스트 자체는 전송하지 않음 |
 | 시점 | `%aI` (author date) | ISO 8601, 타임존 포함 |
-| 브랜치 | 원격 추적 브랜치 (`refs/remotes/…`) | 커밋이 있는 원격 브랜치 이름 하나 (`branch`, 원격 이름 제외). 기본 브랜치(`origin/HEAD`)에 들어간 커밋은 그 이름, 아니면 push된 브랜치. 웹 GitHub 연동 결과와 합쳐지는 기준. 마스킹 적용(금지어·티켓 번호 등) — 가려진 브랜치는 웹 연동 결과와 합쳐지지 않을 수 있음 |
+| 브랜치 | 원격 추적 브랜치 (`refs/remotes/…`) | 커밋이 있는 원격 브랜치 이름 하나 (`branch`, 원격 이름 제외). 기본 브랜치(`origin/HEAD`)에 들어간 커밋은 그 이름, 아니면 push된 브랜치. 웹 GitHub 연동 결과와 합쳐지는 기준. **마스킹하지 않음** (사용자 결정 2026-09-29: 웹 연동 결과와 같은 문서로 합쳐지도록 원래 이름 그대로. 금지어도 적용 안 함) |
 | 커밋 메시지 | `%B` | 마스킹 후 저장 |
 | 파일명 | `--numstat` | **basename만.** 이름 변경 시 변경 후 이름. 마스킹 적용 |
 | 파일 유형·언어 | — | CLI는 판정하지 않음. aline.team 서버가 파일명으로 판단 |
@@ -183,7 +183,7 @@ Allow reading which files? [all / none / 1,3] >
 
 ## 4. 마스킹
 
-수집 시점에 커밋 메시지, 파일명, 저장소 이름, 의존성 이름에 적용한다.
+수집 시점에 커밋 메시지, 파일명, 저장소 이름, 의존성 이름에 적용한다. 브랜치 이름에는 적용하지 않는다 (3.1).
 
 | 대상 | 탐지 | 치환 |
 |---|---|---|
@@ -407,7 +407,7 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
  [Data Policy]
  - Source code is never collected.
  - Collected: commit hashes, author emails, commit messages
-   and branch names (masked), timestamps, file names, lines
+   (masked), branch names, timestamps, file names, lines
    added/deleted, AI usage, and repository namespaces (owner/repo).
  - Files are read only with your approval, and only package
    manager files, only to detect dependencies.
@@ -426,7 +426,7 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
 ```
  [데이터 정책]
  - 소스 코드는 수집하지 않습니다.
- - 수집 항목: 커밋 해시, 작성자 이메일, 커밋 메시지·브랜치 이름(마스킹),
+ - 수집 항목: 커밋 해시, 작성자 이메일, 커밋 메시지(마스킹), 브랜치 이름,
    시점, 파일명, 추가·삭제 줄 수, AI 사용 여부, 저장소 namespace(소유자/저장소)
  - 파일 읽기는 사용자가 승인한 패키지 매니저 파일에 한하며,
    의존성 파악에만 사용합니다.

@@ -127,8 +127,8 @@ func TestBatches(t *testing.T) {
 }
 
 // TestRemoteBranches checks the branch each commit is reported on: the default branch wins over other
-// branches that also contain the commit, branch names are masked, and commits stored before branches
-// were recorded get theirs on the next scan.
+// branches that also contain the commit, branch names are sent as they are (even with a blocked word),
+// and commits stored before branches were recorded get theirs on the next scan.
 func TestRemoteBranches(t *testing.T) {
 	remoteDir, repo, dir := t.TempDir(), t.TempDir(), t.TempDir()
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
@@ -184,7 +184,7 @@ func TestRemoteBranches(t *testing.T) {
 		for _, c := range commits {
 			got[c.Message] = c.Branch
 		}
-		want := map[string]string{"on-main": "main", "on-aaa": "aaa", "on-feature": "feature/[REDACTED]-login"}
+		want := map[string]string{"on-main": "main", "on-aaa": "aaa", "on-feature": "feature/acme-login"}
 		if len(got) != len(want) {
 			t.Fatalf("branches = %v, want %v", got, want)
 		}
