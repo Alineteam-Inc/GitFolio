@@ -86,15 +86,15 @@ func cmdInit(dir string, args []string) error {
 		return err
 	}
 
-	// Settings.
+	// Settings. Collecting on a schedule is the daily sync; otherwise the user runs sync by hand.
+	// Sending right after git push stays on (config autosync) and is shown in the summary.
 	section(lang, "settingsTitle")
-	autosync := askYesNo(lang, "autosyncAsk", !cfg.AutoSyncOff)
-	notice("\n" + tr(lang, "depsNotice"))
+	notice(tr(lang, "depsNotice"))
 	deps := askYesNo(lang, "depsAsk", cfg.Deps)
 	blank()
 	when := askSchedule(lang, cfg.Schedule)
 	blank()
-	if err := withLock(dir, func() error { return applySettings(dir, autosync, deps) }); err != nil {
+	if err := withLock(dir, func() error { return applyDeps(dir, deps) }); err != nil {
 		return err
 	}
 	if when != cfg.Schedule {
@@ -189,16 +189,15 @@ func chooseRepos(lang, dir string, roots []string) ([]string, error) {
 	return chosen, nil
 }
 
-// applySettings saves the push-time sending and dependency choices. Turning dependency detection on asks
-// about the files of repositories already registered; turning it off deletes what it collected.
-// Callers hold the data lock.
-func applySettings(dir string, autosync, deps bool) error {
+// applyDeps saves the dependency detection choice. Turning it on asks about the files of repositories
+// already registered; turning it off deletes what it collected. Callers hold the data lock.
+func applyDeps(dir string, deps bool) error {
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err
 	}
 	was := cfg.Deps
-	cfg.AutoSyncOff, cfg.Deps, cfg.DepsAsked = !autosync, deps, true
+	cfg.Deps, cfg.DepsAsked = deps, true
 	if err := saveConfig(dir, cfg); err != nil {
 		return err
 	}
