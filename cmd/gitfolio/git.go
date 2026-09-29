@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -35,7 +36,10 @@ func git(dir string, args ...string) (string, error) {
 func topLevel(dir string) (string, error) {
 	out, err := git(dir, "rev-parse", "--show-toplevel")
 	if err != nil {
-		return "", fmt.Errorf("%s is not a git repository", dir)
+		if abs, aerr := filepath.Abs(dir); aerr == nil {
+			dir = abs
+		}
+		return "", failure("notGitRepo", tildePath(dir))
 	}
 	return strings.TrimSpace(out), nil
 }
@@ -99,7 +103,7 @@ func myEmails(repo string) (map[string]bool, error) {
 	out, err := git(repo, "config", "user.email")
 	email := strings.ToLower(strings.TrimSpace(out))
 	if err != nil || email == "" {
-		return nil, fmt.Errorf("user.email is not set (git config --global user.email you@example.com)")
+		return nil, failure("noUserEmail")
 	}
 	// Verified work emails from aline.team are added here in ROADMAP step 7.
 	return map[string]bool{email: true}, nil
