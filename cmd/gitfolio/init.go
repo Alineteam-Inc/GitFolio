@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"fmt"
 	"io/fs"
 	"os"
@@ -41,8 +42,10 @@ func saveCredentials(dir string, c Credentials) error {
 	return saveJSON(filepath.Join(dir, "credentials.json"), c) // 0600
 }
 
-// cmdInit walks a new user through setup (DESIGN 7.2). Nothing after the login step runs until the
-// user is logged in to aline.team.
+// cmdInit walks a new user through setup (DESIGN 7.2): login, the repositories to collect, the
+// settings, then a first sync. Nothing after the login step runs until the user is logged in to
+// aline.team. Every question defaults to the current setting, so running init again changes only
+// what the user changes.
 func cmdInit(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
 	fmt.Print(header() + "\n" + indent(tr(lang, "policy")) + "\n")
@@ -55,45 +58,85 @@ func cmdInit(dir string, args []string) error {
 	if creds, err := loadCredentials(dir); err != nil || creds.Token == "" {
 		return err // sign-up declined: nothing is set up before login
 	}
-
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err
 	}
-	roots := askRoots(lang, cfg.Roots, args)
 
-	// Step 3: the email that identifies the user's commits (DESIGN 3.2).
+	// Repositories: where they are, whose commits count, which ones to collect.
+	section(lang, "reposTitle")
+	roots := askRoots(lang, cfg.Roots, args)
 	if out, err := git(".", "config", "--global", "user.email"); err == nil && strings.TrimSpace(out) != "" {
 		fmt.Print(indent(fmt.Sprintf(tr(lang, "identityEmail"), strings.TrimSpace(out))))
 	} else {
 		fmt.Print(indent(tr(lang, "identityMissing")))
 	}
-
-	// Step 4: dependency detection is off unless the user says yes, and is asked only once.
-	askDeps := !cfg.DepsAsked && interactive() && !stdinClosed
-	deps := cfg.Deps
-	if askDeps {
-		fmt.Print("\n" + indent(tr(lang, "depsNotice")))
-		answer := strings.ToLower(prompt(tr(lang, "depsAsk")))
-		deps = answer == "y" || answer == "yes"
-		askDeps = !stdinClosed // no real answer: ask again next time
-	}
 	if err := withLock(dir, func() error {
-		if cfg, err = loadConfig(dir); err != nil {
+		c, err := loadConfig(dir)
+		if err != nil {
 			return err
 		}
-		cfg.Roots, cfg.Deps = roots, deps
-		cfg.DepsAsked = cfg.DepsAsked || askDeps
-		return saveConfig(dir, cfg)
+		c.Roots = roots
+		return saveConfig(dir, c)
 	}); err != nil {
 		return err
 	}
+	chosen, err := chooseRepos(lang, dir, roots)
+	if err != nil {
+		return err
+	}
 
+	// Settings.
+	section(lang, "settingsTitle")
+	autosync := askYesNo(lang, "autosyncAsk", !cfg.AutoSyncOff)
+	fmt.Print("\n" + indent(tr(lang, "depsNotice")))
+	deps := askYesNo(lang, "depsAsk", cfg.Deps)
+	fmt.Println()
+	when := askSchedule(lang, cfg.Schedule)
+	fmt.Println()
+	if err := withLock(dir, func() error { return applySettings(dir, autosync, deps) }); err != nil {
+		return err
+	}
+	if when != cfg.Schedule {
+		if err := withLock(dir, func() error { return setSchedule(dir, lang, when) }); err != nil {
+			warn(lang, "failed", err) // the rest of the setup still stands
+		}
+	}
+	for _, p := range chosen {
+		if err := withLock(dir, func() error { return registerRepo(dir, p) }); err != nil {
+			warn(lang, "repoFailed", tildePath(p), err)
+		}
+	}
+
+	// Sync (the first one sends the history of the chosen repositories), then what was set up.
+	repos, err := loadRepos(dir)
+	if err != nil {
+		return err
+	}
+	if len(repos) > 0 {
+		section(lang, "syncTitle")
+		if err := withLock(dir, func() error { return cmdSync(dir, nil) }); err != nil {
+			warn(lang, "failed", err) // sent by the next push or sync
+		}
+	}
+	if cfg, err = loadConfig(dir); err != nil {
+		return err
+	}
+	onOff := func(b bool) string { return tr(lang, map[bool]string{true: "on", false: "off"}[b]) }
+	daily := cmp.Or(cfg.Schedule, tr(lang, "off"))
+	fmt.Println()
+	say(lang, "initDone", len(repos), onOff(!cfg.AutoSyncOff), onOff(cfg.Deps), daily)
+	return nil
+}
+
+// chooseRepos finds unregistered repositories with the user's commits under roots and asks which to
+// collect. Nothing is chosen by default: company code is never collected unless the user picks it.
+func chooseRepos(lang, dir string, roots []string) ([]string, error) {
 	fmt.Println()
 	say(lang, "searching")
 	repos, err := loadRepos(dir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	registered := map[string]bool{}
 	for _, r := range repos {
@@ -111,7 +154,7 @@ func cmdInit(dir string, args []string) error {
 	}
 	if len(cands) == 0 {
 		say(lang, "noCandidates")
-		return nil
+		return nil, nil
 	}
 	fmt.Println()
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -124,7 +167,7 @@ func cmdInit(dir string, args []string) error {
 	for interactive() && !stdinClosed {
 		answer := prompt(tr(lang, "selectRepos"))
 		if answer == "" {
-			break // nothing chosen; company code is never collected by default
+			break
 		}
 		if sel, err = parseSelection(answer, len(cands)); err == nil {
 			break
@@ -137,17 +180,81 @@ func cmdInit(dir string, args []string) error {
 		} else {
 			say(lang, "noneSelected")
 		}
-		return nil
+		return nil, nil
 	}
+	var chosen []string
 	for _, i := range sel {
-		p := cands[i-1].path
-		if err := withLock(dir, func() error { return registerRepo(dir, p) }); err != nil {
-			warn(lang, "repoFailed", tildePath(p), err)
-		}
+		chosen = append(chosen, cands[i-1].path)
 	}
-	fmt.Println()
-	say(lang, "initDone")
+	return chosen, nil
+}
+
+// applySettings saves the push-time sending and dependency choices. Turning dependency detection on asks
+// about the files of repositories already registered; turning it off deletes what it collected.
+// Callers hold the data lock.
+func applySettings(dir string, autosync, deps bool) error {
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
+	was := cfg.Deps
+	cfg.AutoSyncOff, cfg.Deps, cfg.DepsAsked = !autosync, deps, true
+	if err := saveConfig(dir, cfg); err != nil {
+		return err
+	}
+	switch {
+	case deps && !was:
+		repos, err := loadRepos(dir)
+		if err != nil {
+			return err
+		}
+		for i := range repos {
+			if err := reviewAndRescan(dir, &repos[i]); err != nil {
+				return err
+			}
+		}
+		return saveRepos(dir, repos)
+	case !deps && was:
+		return cmdDeps(dir, []string{"off"})
+	}
 	return nil
+}
+
+// askYesNo asks a yes/no question; Enter keeps def.
+func askYesNo(lang, key string, def bool) bool {
+	hint := map[bool]string{true: " [Y/n] > ", false: " [y/N] > "}[def]
+	for {
+		switch a := strings.ToLower(prompt(tr(lang, key) + hint)); {
+		case a == "" || stdinClosed:
+			return def
+		case a == "y" || a == "yes":
+			return true
+		case a == "n" || a == "no":
+			return false
+		}
+		fmt.Print(indent(tr(lang, "yesNoAgain")))
+	}
+}
+
+// askSchedule asks for the daily sync time: Enter keeps the current one (none at first), off removes it.
+func askSchedule(lang, current string) string {
+	hint := tr(lang, "scheduleAskNew")
+	if current != "" {
+		hint = fmt.Sprintf(tr(lang, "scheduleAskKeep"), current)
+	}
+	for {
+		a := strings.ToLower(prompt(tr(lang, "scheduleAsk") + hint))
+		if a == "" || stdinClosed {
+			return current
+		}
+		if a == "off" || a == "n" || a == "no" {
+			return ""
+		}
+		if h, m, ok := parseHHMM(a); ok {
+			return fmt.Sprintf("%02d:%02d", h, m)
+		}
+		fmt.Print(indent(tr(lang, "scheduleFormat")))
+	}
 }
 
 // rootHints are common places to keep code, relative to the home folder.
