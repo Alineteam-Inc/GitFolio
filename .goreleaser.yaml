@@ -1,0 +1,58 @@
+# GoReleaser config — https://goreleaser.com
+# Check locally:   goreleaser check && goreleaser release --snapshot --clean
+# Release:         push a tag like v0.1.0; .github/workflows/release.yml runs this.
+version: 2
+project_name: gitfolio
+
+builds:
+  - main: ./cmd/gitfolio
+    binary: gitfolio
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  # No version in the file name, so install.sh can use GitHub's releases/latest/download/<file> URL.
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    files: [LICENSE, README.md]
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+# Homebrew cask (formulas for prebuilt binaries, `brews`, are deprecated since v2.10); casks work on
+# macOS and Linux. Install with: brew install Alineteam-Inc/tap/gitfolio
+homebrew_casks:
+  - name: gitfolio
+    directory: Casks
+    repository:
+      owner: Alineteam-Inc
+      name: homebrew-tap
+      # Pushed with a deploy key that can write to homebrew-tap only (the org does not allow
+      # fine-grained tokens). The secret holds the private key contents.
+      git:
+        url: git@github.com:Alineteam-Inc/homebrew-tap.git
+        private_key: "{{ .Env.HOMEBREW_TAP_DEPLOY_KEY }}"
+    homepage: https://aline.team
+    description: Turn your git history into a verified developer portfolio
+    license: MIT
+    caveats: |
+      Run `gitfolio init` to choose the repositories to collect.
+    # The binary is not signed or notarized yet, so macOS would block the quarantined download.
+    # GoReleaser's documented workaround clears the quarantine bit after install; it bypasses
+    # Gatekeeper for this binary only. Replace with signing and notarization (ROADMAP "이후").
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/gitfolio"]
+          end
+
+changelog:
+  use: github
+  filters:
+    exclude: ["^docs:", "^test:"]
