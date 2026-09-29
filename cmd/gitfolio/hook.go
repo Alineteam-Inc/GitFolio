@@ -63,10 +63,7 @@ func hooksDir(repo string) (string, error) {
 	}
 	hooks, common := abs(lines[0]), abs(lines[1])
 	if rel, err := filepath.Rel(common, hooks); err != nil || strings.HasPrefix(rel, "..") {
-		return "", fmt.Errorf("hooks live outside .git (%s, e.g. core.hooksPath or husky), so they were not changed.\n"+
-			"  Add these lines yourself:\n"+
-			"    pre-push:    gitfolio hook pre-push \"$PPID\"\n"+
-			"    post-commit: gitfolio hook post-commit", hooks)
+		return "", failure("hooksElsewhere", tildePath(hooks))
 	}
 	return hooks, nil
 }
@@ -86,7 +83,7 @@ func installHooks(repo string) error {
 				continue // already installed
 			}
 			if _, err := os.Stat(p + ".gitfolio-orig"); err == nil {
-				return fmt.Errorf("both %s and %s.gitfolio-orig exist; merge them by hand", p, name)
+				return failure("hooksBothExist", tildePath(p))
 			}
 			if err := os.Rename(p, p+".gitfolio-orig"); err != nil {
 				return err
@@ -227,7 +224,7 @@ func withLock(dir string, fn func() error) error {
 			continue
 		}
 		if time.Now().After(deadline) {
-			return errors.New("another gitfolio run is in progress; try again shortly")
+			return failure("busy")
 		}
 	}
 }
