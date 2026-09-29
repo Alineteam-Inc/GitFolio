@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 	"time"
 )
@@ -44,7 +45,11 @@ type fakeAline struct {
 	exists   bool  // the email already has an account
 	verified bool  // verify was called
 	notified *bool // isNotified as sent in verify; nil when left out
+
+	startDeviceShown bool // start carried a device the code email can show
 }
+
+var emailDeviceName = regexp.MustCompile(`^(macOS|Linux|Windows) [A-Za-z0-9_]{1,16}$`)
 
 const testToken = "aln_cli_AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_abcde"
 
@@ -71,11 +76,16 @@ func (f *fakeAline) handler() http.Handler {
 	authed := func(r *http.Request) bool { return f.token != "" && r.Header.Get("Authorization") == "Bearer "+f.token }
 
 	mux.HandleFunc("POST /gitfolio/auth/email/start", func(w http.ResponseWriter, r *http.Request) {
-		var in struct{ Email string }
+		var in struct {
+			Email  string
+			Device struct{ Name, Language, Timezone string }
+		}
 		if json.NewDecoder(r.Body).Decode(&in) != nil || in.Email == "" {
 			fail(w, 400, "C001")
 			return
 		}
+		// The server prints the device in the code email only in this exact form (no free text).
+		f.startDeviceShown = emailDeviceName.MatchString(in.Device.Name) && in.Device.Language != ""
 		ok(w, map[string]any{"challengeId": "ch_1", "expiresAt": time.Now().UTC().Add(10 * time.Minute), "codeLength": 6, "accountExists": f.exists})
 	})
 	mux.HandleFunc("POST /gitfolio/auth/email/verify", func(w http.ResponseWriter, r *http.Request) {
@@ -145,6 +155,9 @@ func TestSignInMeLogout(t *testing.T) {
 	}
 	if f.notified == nil || !*f.notified {
 		t.Errorf("isNotified = %v, want true for a sign-up that opted in", f.notified)
+	}
+	if !f.startDeviceShown {
+		t.Errorf("start did not send a device the code email can show (name %q)", deviceName())
 	}
 	if saved, _ := loadCredentials(dir); saved.Token != testToken || saved.Email != "dev@example.com" {
 		t.Fatalf("credentials after sign-in = %+v", saved)
