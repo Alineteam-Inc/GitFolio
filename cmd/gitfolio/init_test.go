@@ -5,25 +5,42 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 )
 
 func TestDetectLang(t *testing.T) {
+	defer func(f func() []string) { osLanguages = f }(osLanguages)
 	for _, tc := range []struct {
-		env  map[string]string
-		want string
+		env    map[string]string
+		device []string // macOS preferred languages; nil elsewhere
+		want   string
 	}{
-		{map[string]string{}, "en"},
-		{map[string]string{"LANG": "ko_KR.UTF-8"}, "ko"},
-		{map[string]string{"LANG": "ja_JP.UTF-8"}, "ja"},
-		{map[string]string{"LANG": "ko_KR.UTF-8", "LC_ALL": "C"}, "en"}, // LC_ALL overrides LANG
-		{map[string]string{"LANG": "en_US.UTF-8", "GITFOLIO_LANG": "ja"}, "ja"},
-		{map[string]string{"LANG": "fr_FR.UTF-8"}, "en"},
+		{map[string]string{}, nil, "en"},
+		{map[string]string{"LANG": "ko_KR.UTF-8"}, nil, "ko"},
+		{map[string]string{"LANG": "ja_JP.UTF-8"}, nil, "ja"},
+		{map[string]string{"LANG": "ko_KR.UTF-8", "LC_ALL": "C"}, nil, "en"}, // LC_ALL overrides LANG
+		{map[string]string{"LANG": "en_US.UTF-8", "GITFOLIO_LANG": "ja"}, nil, "ja"},
+		{map[string]string{"LANG": "fr_FR.UTF-8"}, nil, "en"},
+		// The device language wins over a terminal that sets LANG=en_US whatever the device says.
+		{map[string]string{"LANG": "en_US.UTF-8"}, []string{"ko-KR", "en-US"}, "ko"},
+		{map[string]string{"LANG": "ko_KR.UTF-8"}, []string{"en-US", "ko-KR"}, "en"},
+		{map[string]string{}, []string{"zh-Hans-KR", "ja-KR"}, "ja"},              // the first one GitFolio has
+		{map[string]string{"LANG": "ko_KR.UTF-8"}, []string{"zh-Hans"}, "ko"},     // none of them: environment
+		{map[string]string{"GITFOLIO_LANG": "ko"}, []string{"en-US", "ja"}, "ko"}, // GITFOLIO_LANG always wins
 	} {
+		osLanguages = func() []string { return tc.device }
 		if got := detectLang(func(k string) string { return tc.env[k] }); got != tc.want {
-			t.Errorf("detectLang(%v) = %q, want %q", tc.env, got, tc.want)
+			t.Errorf("detectLang(%v, device %v) = %q, want %q", tc.env, tc.device, got, tc.want)
 		}
+	}
+}
+
+func TestParseAppleLanguages(t *testing.T) {
+	out := "(\n    \"ko-KR\",\n    en,\n    \"ja-KR\"\n)\n" // `defaults read -g AppleLanguages`
+	if got := parseAppleLanguages(out); !slices.Equal(got, []string{"ko-KR", "en", "ja-KR"}) {
+		t.Errorf("parseAppleLanguages = %q", got)
 	}
 }
 

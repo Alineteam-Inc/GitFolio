@@ -1,28 +1,68 @@
 package main
 
 import (
+	"cmp"
 	"fmt"
+	"os/exec"
+	"runtime"
 	"strings"
+	"sync"
 )
 
-// detectLang picks the screen language from the environment (DESIGN 7.1): English by default,
-// Korean or Japanese when the system language says so. The first variable that is set wins.
-// ponytail: environment only; Windows needs an OS API call once Windows is supported.
+// detectLang picks the screen language (DESIGN 7.1): GITFOLIO_LANG if set, else the device's language
+// (on macOS the first one GitFolio has in System Settings › Language & Region, because terminals often
+// set LANG to en_US whatever the device language is), else LC_ALL, LC_MESSAGES or LANG, else English.
+// ponytail: Windows needs an OS API call (GetUserDefaultUILanguage) once Windows is supported.
 func detectLang(getenv func(string) string) string {
-	for _, k := range []string{"GITFOLIO_LANG", "LC_ALL", "LC_MESSAGES", "LANG"} {
-		v := strings.ToLower(strings.TrimSpace(getenv(k)))
-		if v == "" {
-			continue
+	if v := strings.TrimSpace(getenv("GITFOLIO_LANG")); v != "" {
+		return cmp.Or(langOf(v), "en")
+	}
+	for _, v := range osLanguages() {
+		if l := langOf(v); l != "" {
+			return l
 		}
-		switch {
-		case strings.HasPrefix(v, "ko"):
-			return "ko"
-		case strings.HasPrefix(v, "ja"):
-			return "ja"
+	}
+	for _, k := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
+		if v := strings.TrimSpace(getenv(k)); v != "" {
+			return cmp.Or(langOf(v), "en") // the first variable that is set wins, as in POSIX
 		}
-		return "en"
 	}
 	return "en"
+}
+
+// langOf maps a locale or language tag ("ko_KR.UTF-8", "ja-JP", "en-GB") to ko, ja or en; "" for others.
+func langOf(v string) string {
+	v = strings.ToLower(v)
+	for _, l := range []string{"ko", "ja", "en"} {
+		if strings.HasPrefix(v, l) {
+			return l
+		}
+	}
+	return ""
+}
+
+// osLanguages returns the device's preferred languages, most preferred first, read once per run.
+// On Linux LANG and LC_* already are the device setting.
+var osLanguages = sync.OnceValue(func() []string {
+	if runtime.GOOS != "darwin" {
+		return nil
+	}
+	out, err := exec.Command("defaults", "read", "-g", "AppleLanguages").Output()
+	if err != nil {
+		return nil
+	}
+	return parseAppleLanguages(string(out))
+})
+
+// parseAppleLanguages reads the output of `defaults read -g AppleLanguages`: ( "ko-KR", "en-US" ), one per line.
+func parseAppleLanguages(out string) []string {
+	var langs []string
+	for _, l := range strings.Split(out, "\n") {
+		if l = strings.Trim(strings.TrimSpace(l), `"(),`); l != "" {
+			langs = append(langs, l)
+		}
+	}
+	return langs
 }
 
 // statusPrefix marks GitFolio's own result lines so they stand out among shell and git output.
