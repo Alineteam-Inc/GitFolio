@@ -62,6 +62,7 @@ const (
 	maxBody       = 900_000 // bytes per request; the server's proxy takes 1 MB
 	maxMessage    = 10000   // characters
 	maxFilesSent  = 1000
+	maxNamespace  = 200 // the server keys repositories by "[internal]"
 	syncStateFile = "sync.json"
 )
 
@@ -113,7 +114,7 @@ func pending(dir string, st syncState) (syncPayload, error) {
 		return p, err
 	}
 	for _, c := range out.Commits {
-		if c.Namespace == "" {
+		if c.Namespace == "" || len(c.Namespace) > maxNamespace {
 			p.noRemote++
 			continue
 		}

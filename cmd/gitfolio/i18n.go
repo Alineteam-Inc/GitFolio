@@ -573,9 +573,9 @@ var messages = map[string]map[string]string{
 		"ja": "aline.team とはすでに同期済みです。\n",
 	},
 	"noRemote": {
-		"en": "%d commit(s) are not sent because their repository has no remote on a git service.\n",
-		"ko": "git 서비스 원격 저장소가 없는 저장소의 커밋 %d개는 보내지 않습니다.\n",
-		"ja": "git サービスのリモートがないリポジトリのコミット %d 件は送信しません。\n",
+		"en": "%d commit(s) are not sent because their repository has no usable remote on a git service.\n",
+		"ko": "쓸 수 있는 git 서비스 원격 저장소가 없는 저장소의 커밋 %d개는 보내지 않습니다.\n",
+		"ja": "利用できる git サービスのリモートがないリポジトリのコミット %d 件は送信しません。\n",
 	},
 	"commitRejected": {
 		"en": "aline.team did not accept commit %[2]s of %[1]s; it is skipped until it changes: %[3]v\n",
