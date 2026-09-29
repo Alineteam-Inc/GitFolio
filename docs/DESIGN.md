@@ -48,7 +48,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 |---|---|---|
 | 1 | **최소 수집** | 커밋 해시, 작성자 이메일, 커밋 메시지, 시점, 파일명(basename), 추가·삭제 줄 수, AI 기여 여부, 저장소 namespace(`소유자/저장소`)만 수집. 파일 내용·전체 경로·원격 URL(호스트·인증 정보)은 수집하지 않음 |
 | 2 | **파일 읽기는 승인 후에만** | 저장소 파일 내용을 읽는 것은 사용자가 **파일별로 승인한 패키지 매니저 파일**에 한하며, **의존성 파악 용도로만** 사용 |
-| 3 | **저장·전송 전 마스킹** | 원문은 로컬에도 서버에도 저장하지 않음. 수집 즉시 이 컴퓨터에서 마스킹 |
+| 3 | **저장·전송 전 마스킹** | 커밋 메시지의 민감한 부분(토큰·URL·이메일·IP·티켓 번호·금지어)은 원문을 로컬에도 서버에도 저장하지 않음. 수집 즉시 이 컴퓨터에서 마스킹. 파일명·저장소 이름은 마스킹하지 않음 (4장) |
 | 4 | **push 시 자동 전송** | push에 성공한 커밋은 push 직후 백그라운드로 전송(기본값). 기기가 꺼져 있으면 실행되지 않는 예약 동기화에만 의존하지 않기 위함. 예약·수동 동기화는 누락·실패분 보완. 커밋·scan 자체는 네트워크를 쓰지 않음 |
 | 5 | **투명성** | 전송 내용은 언제든 미리보기(`sync --dry-run`) 가능, 서버 데이터 삭제 요청 가능 |
 | 6 | **개발 흐름 방해 금지** | 훅은 커밋·push를 절대 막지 않고 지연시키지 않음. 전송은 백그라운드에서만. 네트워크 장애·gitfolio 삭제·고장 시에도 git은 정상 동작 |
@@ -87,7 +87,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 | git 서비스 | 원격 URL의 호스트 | `provider`: `GITHUB`, `GITLAB`, `BITBUCKET`, `AZURE_DEVOPS`, 그 외(사내 서버 포함)는 `OTHER`. 호스트 자체는 전송하지 않음 |
 | 시점 | `%aI` (author date) | ISO 8601, 타임존 포함 |
 | 커밋 메시지 | `%B` | 마스킹 후 저장 |
-| 파일명 | `--numstat` | **basename만.** 이름 변경 시 변경 후 이름. 마스킹 적용 |
+| 파일명 | `--numstat` | **basename만.** 이름 변경 시 변경 후 이름. 마스킹하지 않음 (4장) |
 | 파일 유형·언어 | — | CLI는 판정하지 않음. aline.team 서버가 파일명으로 판단 |
 | 추가·삭제 줄 수 | `--numstat` | 바이너리 파일(`-`)은 0 |
 
@@ -145,7 +145,7 @@ Allow reading which files? [all / none / 1,3] >
 | 사용 범위 | 의존성 이름·버전 추출에만 사용. 파일 원문은 메모리에서 파싱 후 즉시 버림 |
 | 저장 내용 | 모듈별 생태계, 의존성 이름, 선언된 버전. **파일 원문과 경로는 저장·전송하지 않음** (모듈은 `m1`, `m2` 같은 불투명 ID) |
 | 제외 의존성 | lock 파일(간접 의존성), 로컬 경로·git URL·사설 저장소 URL로 선언된 의존성 |
-| 마스킹 | 의존성 이름에도 금지어 적용 (예: `com.acme.billing`, `@acme/auth` 같은 사내 패키지) |
+| 마스킹 | 의존성 이름은 마스킹하지 않음 (커밋 메시지만 마스킹, 4장) |
 | 결정 기록 | 승인·거절은 로컬 `repos.json`에만 기록, 서버로 전송하지 않음. 거절한 파일은 다시 묻지 않음 |
 | 새 파일 | 훅 실행 중(비대화형) 새로 발견된 파일은 읽지 않고 **확인 대기**. 다음 대화형 명령 실행 시 알림, `gitfolio deps review`로 처리 |
 | 갱신 | 승인된 파일이 바뀐 경우에만 scan 때 다시 읽음 |
@@ -182,7 +182,7 @@ Allow reading which files? [all / none / 1,3] >
 
 ## 4. 마스킹
 
-수집 시점에 커밋 메시지, 파일명, 저장소 이름, 의존성 이름에 적용한다.
+수집 시점에 **커밋 메시지에만** 적용해 민감한 부분을 가린다 (사용자 결정 2026-09-29). 파일명·저장소 이름·의존성 이름은 원래 이름 그대로 둔다 — 저장소 이름은 어차피 `namespace`(`소유자/저장소`)로 전송된다.
 
 | 대상 | 탐지 | 치환 |
 |---|---|---|
@@ -195,7 +195,7 @@ Allow reading which files? [all / none / 1,3] >
 
 - 적용 순서: AI 판정(원문) → 토큰·키 → URL → 이메일 → IP → 티켓 번호 → 금지어. 결과를 다시 마스킹해도 달라지지 않음
 - 티켓 번호 패턴에서 `UTF-8`, `SHA-256`, `ISO-8601` 같은 표준 명칭은 제외 (허용 목록)
-- 저장소 이름·파일명·커밋 메시지에 적용. `namespace`·`authorEmail`은 검증·식별용이므로 마스킹하지 않음
+- 커밋 메시지에만 적용. 금지어(`config mask`)도 커밋 메시지에만 적용됨. `namespace`·`authorEmail`은 검증·식별용이므로 마스킹하지 않음
 - 금지어를 **추가**하면 로컬 데이터에 즉시 재적용. 이미 전송된 레코드는 다음 sync 때 재전송해 서버 데이터를 덮어씀
 - 금지어를 **삭제**해도 이미 가려진 값은 복원되지 않는다. 필요하면 `scan --rebuild`로 git에서 다시 수집한다
 - 규칙 기반이므로 누락·과잉 가능. `sync --dry-run`으로 전송 전 확인
@@ -409,10 +409,11 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
    AI usage, and repository namespaces (owner/repo).
  - Files are read only with your approval, and only package
    manager files, only to detect dependencies.
- - Data is masked on this computer and sent to aline.team
-   (Alineteam Inc., United States) after each git push and
-   when you sync. Kept for 1 year from sign-up, renewed
-   automatically while you keep using GitFolio.
+ - Sensitive parts of commit messages (tokens, URLs, emails,
+   ticket numbers, blocked words) are masked on this computer.
+   Data is sent to aline.team (Alineteam Inc., United States)
+   after each git push and when you sync. Kept for 1 year from
+   sign-up, renewed automatically while you keep using GitFolio.
  - An aline.team account is required.
  - Privacy policy: https://aline.team/privacy
 
@@ -428,8 +429,9 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
    파일명, 추가·삭제 줄 수, AI 사용 여부, 저장소 namespace(소유자/저장소)
  - 파일 읽기는 사용자가 승인한 패키지 매니저 파일에 한하며,
    의존성 파악에만 사용합니다.
- - 데이터는 이 컴퓨터에서 마스킹된 뒤, git push 직후와
-   동기화할 때 aline.team(Alineteam Inc., 미국)으로 전송되며
+ - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
+   이 컴퓨터에서 가립니다. 데이터는 git push 직후와 동기화할 때
+   aline.team(Alineteam Inc., 미국)으로 전송되며
    가입일로부터 1년간 보관됩니다. 계속 이용 중이면 자동 연장됩니다.
  - aline.team 가입이 필요합니다.
  - 개인정보처리방침: https://aline.team/privacy
@@ -485,7 +487,7 @@ Enable dependency detection? [y/N]
 
 **6. 후보 표시·선택**
 - 본인 커밋이 1개 이상인 저장소만. 번호, 로컬 경로, 본인 커밋 수, 마지막 커밋 날짜
-- 안내 문구: 경고 대신 사실과 해결 방법을 안내 — "선택한 저장소는 소스 코드 없이 커밋 메시지·파일명·저장소 이름만 마스킹해 전송합니다. 고객사·사내 프로젝트명은 `gitfolio config mask add <단어>`로 가릴 수 있습니다."
+- 안내 문구: 경고 대신 사실과 해결 방법을 안내 — "선택한 저장소는 소스 코드 없이 커밋 정보만 전송하며, 커밋 메시지의 민감한 부분은 가려서 보냅니다. 커밋 메시지 속 고객사·사내 프로젝트명은 `gitfolio config mask add <단어>`로 가릴 수 있습니다."
 - 번호 입력 (`1,3,5-7`, `all`, `none`) → 선택한 저장소마다 `add` 수행
 - 탐색 결과는 저장하지 않음. 선택한 저장소만 등록
 
@@ -552,7 +554,7 @@ Enable dependency detection? [y/N]
 |---|---|
 | `config.json` | 저장소 모음 경로, 인증된 작업 이메일 목록(서버 캐시), 금지어, 의존성 기능 동의, push 동기화 on/off, 예약 시각 |
 | `credentials.json` | aline.team CLI 토큰(`aln_cli_…`)·만료 시각·계정 이메일 (권한 0600) |
-| `repos.json` | 등록 저장소: 로컬 경로, 마스킹된 이름, 마지막 수집 정보, 매니저 파일 승인·거절·대기 목록 (**로컬 전용, 전송 안 함**) |
+| `repos.json` | 등록 저장소: 로컬 경로, 이름, 마지막 수집 정보, 매니저 파일 승인·거절·대기 목록 (**로컬 전용, 전송 안 함**) |
 | `commits.jsonl` | 커밋 1건당 1줄 |
 | `agent-tags.jsonl` | `post-commit` 훅이 기록한 커밋 해시 → 에이전트 |
 | `deps.json` | 저장소·모듈별 의존성 (의존성 기능 사용 시에만 생성) |
