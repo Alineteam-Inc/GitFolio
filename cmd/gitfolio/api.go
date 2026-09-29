@@ -178,8 +178,9 @@ type signInResult struct {
 	VerifiedEmails []string `json:"verifiedEmails"`
 }
 
-// deviceName tells devices apart in the aline.team token list. The host name is personal, so only
-// the OS and CPU are sent.
+// deviceName tells devices apart in the aline.team token list and the code email. The host name is
+// personal, so only the OS and CPU are sent. The server shows it in the email only in this exact
+// "(macOS|Linux|Windows) <arch>" form, so it never carries free text.
 func deviceName() string {
 	name := map[string]string{"darwin": "macOS", "linux": "Linux", "windows": "Windows"}[runtime.GOOS]
 	if name == "" {
@@ -227,14 +228,20 @@ var errSignupCancelled = errors.New("sign-up cancelled")
 // askCode is asked again while the code is wrong.
 func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), askCode func(retry bool) string) (signInResult, error) {
 	var res signInResult
+	// The same device object goes to start (the code email shows the device and the time in its time
+	// zone, in its language for a new account) and to verify (language and time zone set up a new account).
+	device := map[string]string{"name": deviceName(), "language": strings.ToUpper(detectLang(os.Getenv))}
+	if tz := localTimezone(); tz != "" {
+		device["timezone"] = tz
+	}
 	var start struct {
 		ChallengeID   string `json:"challengeId"`
 		AccountExists bool   `json:"accountExists"`
 	}
-	if err := c.send("POST", "/gitfolio/auth/email/start", map[string]string{"email": email}, &start, false); err != nil {
+	if err := c.send("POST", "/gitfolio/auth/email/start", map[string]any{"email": email, "device": device}, &start, false); err != nil {
 		return res, err
 	}
-	req := map[string]any{"challengeId": start.ChallengeID}
+	req := map[string]any{"challengeId": start.ChallengeID, "device": device}
 	if !start.AccountExists {
 		ok, notify := confirmSignup()
 		if !ok {
@@ -242,11 +249,6 @@ func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), as
 		}
 		req["isNotified"] = notify // service notification opt-in, used for a new account only
 	}
-	device := map[string]string{"name": deviceName(), "language": strings.ToUpper(detectLang(os.Getenv))}
-	if tz := localTimezone(); tz != "" {
-		device["timezone"] = tz
-	}
-	req["device"] = device // language and timezone only set up a new account
 	for try := 0; ; try++ {
 		req["code"] = askCode(try > 0)
 		err := c.send("POST", "/gitfolio/auth/email/verify", req, &res, false)
