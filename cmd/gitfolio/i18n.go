@@ -89,19 +89,42 @@ func indent(s string) string {
 // say prints a translated result line with the GitFolio prefix.
 func say(lang, key string, args ...any) { show(os.Stdout, fmt.Sprintf(tr(lang, key), args...)) }
 
-// warn is say for problems, on stderr.
-func warn(lang, key string, args ...any) { show(os.Stderr, fmt.Sprintf(tr(lang, key), args...)) }
+// warn is say for problems, on stderr. A problem always starts its own paragraph, so it stands out.
+func warn(lang, key string, args ...any) {
+	inParagraph = false
+	show(os.Stderr, fmt.Sprintf(tr(lang, key), args...))
+	inParagraph = false
+}
 
-// show prints text with the GitFolio prefix on its first line and the other lines aligned under it.
+// inParagraph is true while the last thing printed was a status line: the next one continues that
+// paragraph under its text instead of repeating the prefix. A blank line, a notice, a question or a
+// section header ends the paragraph (see blank, notice, prompt, section).
+var inParagraph bool
+
+// show prints text with the GitFolio prefix on its first line, unless it continues a paragraph, and
+// the other lines aligned under it.
 func show(w io.Writer, text string) {
 	under := strings.Repeat(" ", len(statusPrefix))
 	for i, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
-		if i == 0 {
+		if i == 0 && !inParagraph {
 			fmt.Fprintln(w, margin+statusPrefix+line)
 		} else {
 			fmt.Fprintln(w, margin+under+line)
 		}
 	}
+	inParagraph = true
+}
+
+// notice prints an explanation with the margin; it ends a status paragraph.
+func notice(s string) {
+	inParagraph = false
+	fmt.Print(indent(s))
+}
+
+// blank prints an empty line between paragraphs.
+func blank() {
+	inParagraph = false
+	fmt.Println()
 }
 
 // failure returns a translated error; main prints it with the GitFolio prefix. Errors that come from
@@ -112,6 +135,7 @@ func failure(key string, args ...any) error {
 
 // section prints the separator that opens an interactive command.
 func section(lang, titleKey string) {
+	inParagraph = false
 	fmt.Printf("\n%s===== GitFolio · %s =====\n", margin, strings.TrimSpace(tr(lang, titleKey)))
 }
 

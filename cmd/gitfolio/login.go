@@ -35,10 +35,10 @@ func cmdLogin(dir string) error {
 		if strings.Count(email, "@") == 1 && !strings.ContainsAny(email, " \t") {
 			break
 		}
-		fmt.Print(indent(tr(lang, "emailInvalid")))
+		notice(tr(lang, "emailInvalid"))
 	}
 	confirmSignup := func() (ok, notify bool) {
-		fmt.Print(indent("\n" + fmt.Sprintf(tr(lang, "signupNotice"), email)))
+		notice("\n" + fmt.Sprintf(tr(lang, "signupNotice"), email))
 		a := strings.ToLower(prompt(tr(lang, "signupAsk")))
 		if stdinClosed || (a != "" && a != "y" && a != "yes") {
 			return false, false
@@ -48,7 +48,7 @@ func cmdLogin(dir string) error {
 	}
 	askCode := func(retry bool, length int) string {
 		if retry {
-			fmt.Print(indent(tr(lang, "codeWrong")))
+			notice(tr(lang, "codeWrong"))
 		}
 		for {
 			code := strings.TrimSpace(prompt(fmt.Sprintf(tr(lang, "codeAsk"), email)))
@@ -56,7 +56,7 @@ func cmdLogin(dir string) error {
 			if stdinClosed || validCode(code, length) {
 				return code
 			}
-			fmt.Print(indent(fmt.Sprintf(tr(lang, "codeFormat"), length)))
+			notice(fmt.Sprintf(tr(lang, "codeFormat"), length))
 		}
 	}
 	res, err := c.signIn(email, confirmSignup, askCode)
