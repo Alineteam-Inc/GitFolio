@@ -530,8 +530,12 @@ Enable dependency detection? [y/N]
 | Linux | `systemd --user` 타이머 (`Persistent=true`). systemd가 없으면 `crontab` 한 줄 |
 | Windows | 작업 스케줄러 (Windows 지원 시) |
 
-- 예약 실행은 비대화형: 확인이 필요한 항목은 건너뛰고 다음 대화형 명령에서 알림
-- 실행 결과는 `list`의 마지막 동기화 시각·결과로 확인
+- `gitfolio schedule HH:MM`(현지 시각) 등록, `schedule off` 해제, 인자 없으면 예약 시각과 마지막 동기화 시각·결과(`sync.json`의 `lastSync`·`lastError`) 표시
+- 실행 명령은 PATH의 `gitfolio`(Homebrew 링크라 업그레이드 후에도 유지), 없으면 현재 실행 파일. 등록 시점 셸의 `PATH`와 `GITFOLIO_LANG`을 넘겨 git 경로·화면 언어를 터미널과 같게 함
+- 실행 기록: macOS·cron은 `gitfolio/schedule.log`, systemd는 `journalctl --user -u gitfolio-sync`
+- Linux: systemd 등록에 실패하면(사용자 세션 버스 없음 등) cron으로 대체. systemd로 등록되면 옛 cron 줄은 지움. crontab을 읽지 못하면(“no crontab” 외 오류) 덮어쓰지 않고 중단
+- macOS: `~/Documents`·`~/Desktop` 등에 있는 저장소는 첫 예약 실행 때 macOS가 폴더 접근 허용을 묻는다 (실측: 응답까지 실행이 멈춤, 한 번 허용하면 이후 바로 실행). 등록 시 안내
+- 예약 실행은 비대화형: 확인이 필요한 항목은 건너뜀 (지금은 sync에 확인 단계 없음). 로그인이 만료되면 게이트로 실패하고 다음 대화형 명령에서 재로그인 안내
 - `remove`로 마지막 저장소를 해제하거나 `schedule off` 시 스케줄러 항목 삭제
 
 ### 7.6 `remove`
