@@ -594,6 +594,9 @@ func cmdDeps(dir string, args []string) error {
 		if err := writeCommits(dir, commits); err != nil {
 			return err
 		}
+		if err := queueDeletion(dir, deletion{What: "dependencies"}); err != nil {
+			return err
+		}
 		say(lang, "depsOff")
 		return saveRepos(dir, repos)
 	case "review":

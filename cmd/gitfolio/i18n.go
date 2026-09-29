@@ -461,6 +461,36 @@ var messages = map[string]map[string]string{
 		"ko": "의존성 분석을 껐고, 수집한 의존성은 삭제했습니다.\n",
 		"ja": "依存関係の分析をオフにし、収集した依存関係を削除しました。\n",
 	},
+	"synced": {
+		"en": "Synced with aline.team: %d commit(s), dependencies of %d repositories, %d deletion(s).\n",
+		"ko": "aline.team에 동기화했습니다: 커밋 %d개, 의존성 저장소 %d개, 삭제 %d건\n",
+		"ja": "aline.team と同期しました: コミット %d 件、依存関係 %d リポジトリ、削除 %d 件\n",
+	},
+	"syncLater": {
+		"en": "Could not send to aline.team: %v\nNothing is lost: what was not sent goes with the next push or sync.\n",
+		"ko": "aline.team에 보내지 못했습니다: %v\n보내지 못한 데이터는 다음 push나 sync 때 다시 보냅니다.\n",
+		"ja": "aline.team に送信できませんでした: %v\n送信できなかったデータは、次の push または sync の際に再送します。\n",
+	},
+	"upToDate": {
+		"en": "aline.team is already up to date.\n",
+		"ko": "aline.team과 이미 동기화되어 있습니다.\n",
+		"ja": "aline.team とはすでに同期済みです。\n",
+	},
+	"noRemote": {
+		"en": "%d commit(s) are not sent because their repository has no remote on a git service.\n",
+		"ko": "git 서비스 원격 저장소가 없는 저장소의 커밋 %d개는 보내지 않습니다.\n",
+		"ja": "git サービスのリモートがないリポジトリのコミット %d 件は送信しません。\n",
+	},
+	"commitRejected": {
+		"en": "aline.team did not accept commit %[2]s of %[1]s; it is skipped until it changes: %[3]v\n",
+		"ko": "aline.team이 %[1]s의 커밋 %[2]s를 받지 않아 건너뜁니다. 내용이 바뀌면 다시 보냅니다: %[3]v\n",
+		"ja": "aline.team が %[1]s のコミット %[2]s を受け付けなかったため、スキップします。内容が変われば再送します: %[3]v\n",
+	},
+	"autosync": {
+		"en": "Send right after git push: %s\n",
+		"ko": "git push 직후 자동 전송: %s\n",
+		"ja": "git push 直後の自動送信: %s\n",
+	},
 	"depsUpdated": {
 		"en": "%s: dependencies updated, %d commit(s) collected again.\n",
 		"ko": "%s: 의존성을 갱신하고 커밋 %d개를 다시 수집했습니다.\n",
