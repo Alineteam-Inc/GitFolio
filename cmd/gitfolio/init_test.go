@@ -98,15 +98,11 @@ func TestFindRepos(t *testing.T) {
 	}
 }
 
-func TestDeviceKey(t *testing.T) {
+// The token file must be readable by its owner only.
+func TestCredentialsPermission(t *testing.T) {
 	dir := t.TempDir()
-	id, created, err := ensureDeviceKey(dir)
-	if err != nil || !created || !strings.HasPrefix(id, "SHA256:") {
-		t.Fatalf("first call = %q, %v, %v", id, created, err)
-	}
-	again, created, err := ensureDeviceKey(dir)
-	if err != nil || created || again != id {
-		t.Fatalf("second call = %q, %v, %v; want the same key reused", again, created, err)
+	if err := saveCredentials(dir, Credentials{Token: testToken}); err != nil {
+		t.Fatal(err)
 	}
 	if runtime.GOOS != "windows" {
 		st, err := os.Stat(filepath.Join(dir, "credentials.json"))

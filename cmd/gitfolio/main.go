@@ -21,7 +21,10 @@ const usage = `usage: gitfolio <command> [arguments]
 commands:
   init [folder...]      first-time setup: data policy, device key, then find the repositories
                         under your code folders and choose which ones to collect
-  add [path]          register a repository, collect its commits and install git hooks
+  login                 sign in or sign up to aline.team with an email code; registers this device
+  logout                sign out: revoke and remove this device's token
+  whoami                show the aline.team account this device is signed in to
+  add [path]        register a repository, collect its commits and install git hooks
                         (post-commit, pre-push) so later pushes are collected automatically
   remove [path] [--purge]
                         unregister a repository and restore its previous hooks
@@ -39,6 +42,9 @@ commands:
   config mask add|rm <word>...
                         add or remove blocked words (customer or internal project names);
                         added words are also applied to already stored data
+  config api-url <url>|default
+                        aline.team server to use (e.g. the development server);
+                        the GITFOLIO_API_URL environment variable overrides it
   version               print version`
 
 func main() {
@@ -69,6 +75,12 @@ func run(args []string) error {
 		return cmdHook(dir, args[1:]) // takes the lock itself, only where it writes data
 	case "init":
 		return cmdInit(dir, args[1:]) // interactive; takes the lock only while writing
+	case "login":
+		return cmdLogin(dir)
+	case "logout":
+		return cmdLogout(dir)
+	case "whoami":
+		return cmdWhoami(dir)
 	}
 	return withLock(dir, func() error {
 		switch args[0] {
@@ -362,8 +374,26 @@ func cmdConfig(dir string, args []string) error {
 		enc.SetEscapeHTML(false)
 		return enc.Encode(cfg)
 	}
+	if args[0] == "api-url" { // aline.team server, e.g. the development server; "default" = production
+		cfg.APIURL = ""
+		if len(args) > 1 && args[1] != "default" {
+			if err := checkAPIURL(args[1]); err != nil {
+				return err
+			}
+			cfg.APIURL = strings.TrimRight(args[1], "/")
+		}
+		if err := saveConfig(dir, cfg); err != nil {
+			return err
+		}
+		base, err := apiBase(cfg.APIURL)
+		if err != nil {
+			return err
+		}
+		fmt.Println("aline.team API:", base)
+		return nil
+	}
 	if len(args) < 3 || args[0] != "mask" || (args[1] != "add" && args[1] != "rm") {
-		return errors.New("usage: gitfolio config mask add|rm <word>...")
+		return errors.New("usage: gitfolio config mask add|rm <word>... | config api-url <url>|default")
 	}
 	for _, w := range args[2:] {
 		if w = strings.TrimSpace(w); w == "" {
