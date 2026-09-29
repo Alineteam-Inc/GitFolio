@@ -1,9 +1,11 @@
 package main
 
 import (
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -46,6 +48,56 @@ func TestParseRemote(t *testing.T) {
 		provider, ns := parseRemote(in)
 		if got := provider + " " + ns; got != want {
 			t.Errorf("parseRemote(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// webURL builds a repository address from provider and namespace the way aline.team does (docs/API.md 4,
+// confirmed by aline.team 2026-09-29): each path segment is percent-encoded, "/" stays a separator.
+func webURL(provider, namespace string) string {
+	seg := strings.Split(namespace, "/")
+	for i := range seg {
+		seg[i] = url.PathEscape(seg[i])
+	}
+	switch provider {
+	case "GITHUB":
+		return "https://github.com/" + strings.Join(seg, "/")
+	case "GITLAB":
+		return "https://gitlab.com/" + strings.Join(seg, "/")
+	case "BITBUCKET":
+		return "https://bitbucket.org/" + strings.Join(seg, "/")
+	case "DEVOPS":
+		if len(seg) == 3 {
+			return "https://dev.azure.com/" + seg[0] + "/" + seg[1] + "/_git/" + seg[2]
+		}
+		return "https://dev.azure.com/" + strings.Join(seg, "/")
+	}
+	return "" // OTHER has no address
+}
+
+// Whatever form a clone URL takes, the provider and namespace sent must give the address the git
+// service's web UI shows when sharing the repository.
+func TestRemoteGivesWebURL(t *testing.T) {
+	for remote, want := range map[string]string{
+		"git@github.com:Alineteam-Inc/GitFolio.git":                     "https://github.com/Alineteam-Inc/GitFolio",
+		"https://x-access-token:ghp_secret@github.com/o/r.git":          "https://github.com/o/r",
+		"git@github.com:me/me.github.io.git":                            "https://github.com/me/me.github.io",
+		"https://github.com/me/me.github.io":                            "https://github.com/me/me.github.io",
+		"ssh://git@ssh.github.com:443/o/r.git":                          "https://github.com/o/r",
+		"git@gitlab.com:group/sub/project.git":                          "https://gitlab.com/group/sub/project",
+		"https://oauth2:glpat-x@gitlab.com/group/project.git/":          "https://gitlab.com/group/project",
+		"git@bitbucket.org:workspace/repo.git":                          "https://bitbucket.org/workspace/repo",
+		"https://user@bitbucket.org/workspace/repo.git":                 "https://bitbucket.org/workspace/repo",
+		"https://org@dev.azure.com/org/My%20Project/_git/repo":          "https://dev.azure.com/org/My%20Project/_git/repo",
+		"https://dev.azure.com/org/%ED%95%9C%EA%B8%80/_git/repo":        "https://dev.azure.com/org/%ED%95%9C%EA%B8%80/_git/repo",
+		"git@ssh.dev.azure.com:v3/org/My%20Project/repo":                "https://dev.azure.com/org/My%20Project/_git/repo",
+		"https://org.visualstudio.com/DefaultCollection/Proj/_git/repo": "https://dev.azure.com/org/Proj/_git/repo",
+		"org@vs-ssh.visualstudio.com:v3/org/Proj/repo":                  "https://dev.azure.com/org/Proj/_git/repo",
+		"https://dev.azure.com/org/_git/repo":                           "https://dev.azure.com/org/repo/_git/repo",
+		"https://gitlab.company.internal/group/project.git":             "",
+	} {
+		if got := webURL(parseRemote(remote)); got != want {
+			t.Errorf("%s → %q, want %q", remote, got, want)
 		}
 	}
 }
