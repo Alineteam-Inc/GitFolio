@@ -31,9 +31,17 @@ func TestParseRemote(t *testing.T) {
 		"ssh://git@GitHub.com:22/o/r.git":                      "GITHUB o/r",
 		"git@gitlab.com:group/sub/project.git":                 "GITLAB group/sub/project",
 		"https://gitlab.company.internal/group/project/":       "OTHER group/project",
-		"/srv/git/repo.git":                                    " ",
-		"file:///srv/git/repo.git":                             " ",
-		`C:\work\repo`:                                         " ",
+		// Azure DevOps: always organization/project/repository.
+		"https://dev.azure.com/org/Proj/_git/repo":                          "DEVOPS org/Proj/repo",
+		"https://org@dev.azure.com/org/My%20Project/_git/repo":              "DEVOPS org/My Project/repo",
+		"git@ssh.dev.azure.com:v3/org/My%20Project/repo":                    "DEVOPS org/My Project/repo",
+		"https://org.visualstudio.com/Proj/_git/repo":                       "DEVOPS org/Proj/repo",
+		"https://org.visualstudio.com/DefaultCollection/Proj/_git/repo.git": "DEVOPS org/Proj/repo",
+		"org@vs-ssh.visualstudio.com:v3/org/Proj/repo":                      "DEVOPS org/Proj/repo",
+		"https://dev.azure.com/org/_git/repo":                               "DEVOPS org/repo/repo",
+		"/srv/git/repo.git":                                                 " ",
+		"file:///srv/git/repo.git":                                          " ",
+		`C:\work\repo`:                                                      " ",
 	} {
 		provider, ns := parseRemote(in)
 		if got := provider + " " + ns; got != want {
