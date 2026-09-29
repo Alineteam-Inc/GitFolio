@@ -14,7 +14,7 @@ var maskRules = []struct {
 }{
 	{regexp.MustCompile(`-----BEGIN [A-Z ]*PRIVATE KEY-----`), "[SECRET]"},
 	{regexp.MustCompile(`\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_\w{20,}|sk-[\w-]{20,}|AKIA[0-9A-Z]{16}|xox[abprs]-[\w-]{10,}|eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,})`), "[SECRET]"},
-	{regexp.MustCompile(`\bal-\S{16,}`), "[SECRET]"}, // aline.team device token
+	{regexp.MustCompile(`\baln_cli_[A-Za-z0-9_-]{43}`), "[SECRET]"}, // aline.team CLI token
 	{regexp.MustCompile(`(?i)\b(?:https?|ssh|git|ftp)://[^\s<>()\[\]"']+|\bwww\.[^\s<>()\[\]"']+`), "[URL]"},
 	{regexp.MustCompile(`[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+`), "[EMAIL]"},
 	{regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`), "[IP]"},
