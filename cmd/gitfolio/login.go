@@ -80,7 +80,7 @@ func validCode(code string, length int) bool {
 	return len(code) == length && strings.Trim(code, "0123456789") == ""
 }
 
-// cmdWhoami asks aline.team which account this device's token belongs to (GET /gitfolio/me).
+// cmdWhoami asks aline.team which account this device's token belongs to (GET /cli/me).
 func cmdWhoami(dir string) error {
 	lang := detectLang(os.Getenv)
 	c, err := newClient(dir)
@@ -97,7 +97,7 @@ func cmdWhoami(dir string) error {
 		} `json:"account"`
 		VerifiedEmails []string `json:"verifiedEmails"`
 	}
-	if err := c.call("GET", "/gitfolio/me", nil, &me); err != nil {
+	if err := c.call("GET", "/cli/me", nil, &me); err != nil {
 		return err
 	}
 	say(lang, "whoami", me.Account.Email, strings.Join(me.VerifiedEmails, ", "), c.base)
@@ -111,7 +111,7 @@ func cmdLogout(dir string) error {
 		return err
 	}
 	if c.loggedIn() {
-		if err := c.call("POST", "/gitfolio/auth/logout", nil, nil); err != nil {
+		if err := c.call("POST", "/cli/logout", nil, nil); err != nil {
 			warn(detectLang(os.Getenv), "logoutServerFailed", err)
 		}
 	}

@@ -75,7 +75,7 @@ func (f *fakeAline) handler() http.Handler {
 	}
 	authed := func(r *http.Request) bool { return f.token != "" && r.Header.Get("Authorization") == "Bearer "+f.token }
 
-	mux.HandleFunc("POST /gitfolio/auth/email/start", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /cli/start", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			Email  string
 			Device struct{ Name, Language, Timezone string }
@@ -88,7 +88,7 @@ func (f *fakeAline) handler() http.Handler {
 		f.startDeviceShown = emailDeviceName.MatchString(in.Device.Name) && in.Device.Language != ""
 		ok(w, map[string]any{"challengeId": "ch_1", "expiresAt": time.Now().UTC().Add(10 * time.Minute), "codeLength": 6, "accountExists": f.exists})
 	})
-	mux.HandleFunc("POST /gitfolio/auth/email/verify", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /cli/verify", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			ChallengeID string `json:"challengeId"`
 			Code        string `json:"code"`
@@ -113,14 +113,14 @@ func (f *fakeAline) handler() http.Handler {
 			"verifiedEmails": []string{"dev@example.com"},
 		})
 	})
-	mux.HandleFunc("GET /gitfolio/me", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /cli/me", func(w http.ResponseWriter, r *http.Request) {
 		if !authed(r) {
 			fail(w, 401, "A001")
 			return
 		}
 		ok(w, map[string]any{"account": map[string]any{"id": testAccountID, "email": "dev@example.com"}, "verifiedEmails": []string{"dev@example.com"}})
 	})
-	mux.HandleFunc("POST /gitfolio/auth/logout", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /cli/logout", func(w http.ResponseWriter, r *http.Request) {
 		if !authed(r) {
 			fail(w, 401, "A001")
 			return
@@ -166,8 +166,8 @@ func TestSignInMeLogout(t *testing.T) {
 	var me struct {
 		Account struct{ Email string } `json:"account"`
 	}
-	if err := c.call("GET", "/gitfolio/me", nil, &me); err != nil || me.Account.Email != "dev@example.com" {
-		t.Fatalf("GET /gitfolio/me = %+v, %v", me, err)
+	if err := c.call("GET", "/cli/me", nil, &me); err != nil || me.Account.Email != "dev@example.com" {
+		t.Fatalf("GET /cli/me = %+v, %v", me, err)
 	}
 
 	if err := cmdWhoami(dir); err != nil {
@@ -251,7 +251,7 @@ func TestRejectedTokenIsRemoved(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = c.call("GET", "/gitfolio/me", nil, nil)
+	err = c.call("GET", "/cli/me", nil, nil)
 	if ae, ok := err.(interface{ Unwrap() error }); err == nil || !ok || ae.Unwrap() == nil {
 		t.Fatalf("call with a rejected token = %v, want an A001 error", err)
 	}
