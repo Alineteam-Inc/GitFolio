@@ -30,12 +30,30 @@ type deletion struct {
 	Namespace string `json:"namespace"`
 }
 
-// syncPayload is what the next sync sends, in order; `sync --dry-run` prints it as is.
-// Dependencies are not sent yet: aline.team designs that API in its second phase (docs/API.md 4).
+// syncPayload is what the next sync sends, in order. Dependencies are not sent yet: aline.team designs
+// that API in its second phase (docs/API.md 4).
 type syncPayload struct {
 	Deletes  []deletion `json:"deletes"`
 	Commits  []Commit   `json:"commits"`
 	noRemote int        // commits of repositories without a git service remote, never sent
+}
+
+// commitBatch is one POST /cli/commits/batch request: one repository and its commits (docs/API.md 4.1).
+type commitBatch struct {
+	Provider  string   `json:"provider"`
+	Namespace string   `json:"namespace"`
+	Repo      string   `json:"repo"`
+	Commits   []Commit `json:"commits"`
+}
+
+// request builds the body for commits of one repository; the repository fields move to the top.
+func request(commits []Commit) commitBatch {
+	b := commitBatch{Provider: commits[0].Provider, Namespace: commits[0].Namespace, Repo: commits[0].Repo}
+	for _, c := range commits {
+		c.Provider, c.Namespace, c.Repo = "", "", ""
+		b.Commits = append(b.Commits, c)
+	}
+	return b
 }
 
 // Limits of the data API (docs/API.md 4.1).
@@ -112,14 +130,20 @@ func pending(dir string, st syncState) (syncPayload, error) {
 	return p, nil
 }
 
-// batches splits commits into requests of at most batchSize records and maxBody bytes of JSON.
+// batches splits commits into requests of one repository each, at most batchSize records and
+// maxBody bytes of JSON.
 func batches(commits []Commit) [][]Commit {
+	commits = slices.Clone(commits)
+	slices.SortStableFunc(commits, func(a, b Commit) int {
+		return strings.Compare(a.Provider+"/"+a.Namespace, b.Provider+"/"+b.Namespace)
+	})
 	var out [][]Commit
 	var cur []Commit
 	size := 0
 	for _, c := range commits {
 		b, _ := json.Marshal(c)
-		if len(cur) > 0 && (len(cur) == batchSize || size+len(b)+1 > maxBody) {
+		if len(cur) > 0 && (cur[0].Provider != c.Provider || cur[0].Namespace != c.Namespace ||
+			len(cur) == batchSize || size+len(b)+1 > maxBody) {
 			out, cur, size = append(out, cur), nil, 0
 		}
 		cur, size = append(cur, c), size+len(b)+1
@@ -157,11 +181,18 @@ func syncData(dir string, dryRun bool) (n syncCounts, err error) {
 		return n, err
 	}
 	n.noRemote = p.noRemote
-	if dryRun {
+	if dryRun { // the requests exactly as they would be sent
+		out := struct {
+			Deletes       []deletion    `json:"deletes"`
+			CommitBatches []commitBatch `json:"commitBatches"`
+		}{p.Deletes, []commitBatch{}}
+		for _, b := range batches(p.Commits) {
+			out.CommitBatches = append(out.CommitBatches, request(b))
+		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		enc.SetEscapeHTML(false)
-		return n, enc.Encode(p)
+		return n, enc.Encode(out)
 	}
 	save := func() error { return saveSync(dir, st) }
 
@@ -192,7 +223,7 @@ func syncData(dir string, dryRun bool) (n syncCounts, err error) {
 // as malformed (C001) is split to find the bad records; those are skipped with a warning and marked done
 // (not accepted), so they are not sent on every push, until they change.
 func (c *client) upsert(commits []Commit, done func(c Commit, accepted bool)) error {
-	err := c.call("POST", "/cli/commits/batch", map[string]any{"commits": commits}, nil)
+	err := c.call("POST", "/cli/commits/batch", request(commits), nil)
 	var ae *apiError
 	if errors.As(err, &ae) && ae.Code == codeBadInput {
 		if len(commits) == 1 {

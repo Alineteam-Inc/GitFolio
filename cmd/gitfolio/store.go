@@ -34,7 +34,7 @@ type FileStat struct {
 }
 
 type Commit struct {
-	Repo         string     `json:"repo"`                // Repo.ID locally, repository name in export
+	Repo         string     `json:"repo,omitempty"`      // Repo.ID locally, repository name in export, left out when sent
 	Provider     string     `json:"provider,omitempty"`  // filled in export only
 	Namespace    string     `json:"namespace,omitempty"` // filled in export only
 	Hash         string     `json:"hash"`
