@@ -111,7 +111,7 @@ func (c *client) call(method, path string, in, out any) error {
 		if serr := saveCredentials(c.dir, c.creds); serr != nil {
 			return serr
 		}
-		return fmt.Errorf("%w; sign in again with `gitfolio login`", err)
+		return fmt.Errorf("%w (run `gitfolio login`)", err) // the server message already says to log in again
 	}
 	return err
 }
@@ -225,8 +225,8 @@ var errSignupCancelled = errors.New("sign-up cancelled")
 // When the email has no account yet, the server signs it up; confirmSignup is asked first, because
 // signing up counts as agreeing to the terms and the privacy policy and a typo would make a stray
 // account. It also returns whether the user wants aline.team service notifications (sign-up only).
-// askCode is asked again while the code is wrong.
-func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), askCode func(retry bool) string) (signInResult, error) {
+// askCode gets the code length the server announced and is asked again while the code is wrong.
+func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), askCode func(retry bool, length int) string) (signInResult, error) {
 	var res signInResult
 	// The same device object goes to start (the code email shows the device and the time in its time
 	// zone, in its language for a new account) and to verify (language and time zone set up a new account).
@@ -237,6 +237,7 @@ func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), as
 	var start struct {
 		ChallengeID   string `json:"challengeId"`
 		AccountExists bool   `json:"accountExists"`
+		CodeLength    int    `json:"codeLength"`
 	}
 	if err := c.send("POST", "/gitfolio/auth/email/start", map[string]any{"email": email, "device": device}, &start, false); err != nil {
 		return res, err
@@ -250,7 +251,10 @@ func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), as
 		req["isNotified"] = notify // service notification opt-in, used for a new account only
 	}
 	for try := 0; ; try++ {
-		req["code"] = askCode(try > 0)
+		if start.CodeLength <= 0 {
+			start.CodeLength = 6
+		}
+		req["code"] = askCode(try > 0, start.CodeLength)
 		err := c.send("POST", "/gitfolio/auth/email/verify", req, &res, false)
 		var ae *apiError
 		if errors.As(err, &ae) && ae.Code == codeWrongCode && try < maxCodeTries-1 {

@@ -17,18 +17,28 @@ func cmdLogin(dir string) error {
 		return err
 	}
 	if c.loggedIn() {
-		fmt.Printf(tr(lang, "alreadyLoggedIn"), c.creds.Email)
+		say(lang, "alreadyLoggedIn", c.creds.Email)
 		return nil
 	}
 	if !interactive() {
 		return errors.New(strings.TrimSpace(tr(lang, "loginNeedsTerminal")))
 	}
-	email := strings.TrimSpace(prompt(tr(lang, "emailAsk")))
-	if stdinClosed || !strings.Contains(email, "@") {
-		return errors.New(strings.TrimSpace(tr(lang, "emailInvalid")))
+	section(lang, "loginTitle")
+	email := ""
+	for {
+		email = strings.TrimSpace(prompt(tr(lang, "emailAsk")))
+		if stdinClosed {
+			return errors.New(strings.TrimSpace(tr(lang, "emailInvalid")))
+		}
+		// Catch typos (e.g. a leftover IME character and a space) here, before the server
+		// rejects the request and the whole login has to start over.
+		if strings.Count(email, "@") == 1 && !strings.ContainsAny(email, " \t") {
+			break
+		}
+		fmt.Print(indent(tr(lang, "emailInvalid")))
 	}
 	confirmSignup := func() (ok, notify bool) {
-		fmt.Printf("\n"+tr(lang, "signupNotice"), email)
+		fmt.Print(indent("\n" + fmt.Sprintf(tr(lang, "signupNotice"), email)))
 		a := strings.ToLower(prompt(tr(lang, "signupAsk")))
 		if stdinClosed || (a != "" && a != "y" && a != "yes") {
 			return false, false
@@ -36,25 +46,38 @@ func cmdLogin(dir string) error {
 		n := strings.ToLower(prompt(tr(lang, "notifyAsk"))) // opt-in: only an explicit yes
 		return true, n == "y" || n == "yes"
 	}
-	res, err := c.signIn(email, confirmSignup, func(retry bool) string {
+	askCode := func(retry bool, length int) string {
 		if retry {
-			fmt.Print(tr(lang, "codeWrong"))
+			fmt.Print(indent(tr(lang, "codeWrong")))
 		}
-		return prompt(fmt.Sprintf(tr(lang, "codeAsk"), email))
-	})
+		for {
+			code := strings.TrimSpace(prompt(fmt.Sprintf(tr(lang, "codeAsk"), email)))
+			// A typo is caught here, so it neither ends the login nor uses up one of the server's tries.
+			if stdinClosed || validCode(code, length) {
+				return code
+			}
+			fmt.Print(indent(fmt.Sprintf(tr(lang, "codeFormat"), length)))
+		}
+	}
+	res, err := c.signIn(email, confirmSignup, askCode)
 	if errors.Is(err, errSignupCancelled) {
-		fmt.Print(tr(lang, "signupCancelled"))
+		say(lang, "signupCancelled")
 		return nil
 	}
 	if err != nil {
 		return err
 	}
 	if res.Account.Created {
-		fmt.Printf(tr(lang, "signedUp"), res.Account.Email)
+		say(lang, "signedUp", res.Account.Email)
 	} else {
-		fmt.Printf(tr(lang, "loggedIn"), res.Account.Email)
+		say(lang, "loggedIn", res.Account.Email)
 	}
 	return nil
+}
+
+// validCode reports whether code is exactly length digits.
+func validCode(code string, length int) bool {
+	return len(code) == length && strings.Trim(code, "0123456789") == ""
 }
 
 // cmdWhoami asks aline.team which account this device's token belongs to (GET /gitfolio/me).
@@ -65,7 +88,7 @@ func cmdWhoami(dir string) error {
 		return err
 	}
 	if !c.loggedIn() {
-		fmt.Print(tr(lang, "notLoggedIn"))
+		say(lang, "notLoggedIn")
 		return nil
 	}
 	var me struct {
@@ -77,7 +100,7 @@ func cmdWhoami(dir string) error {
 	if err := c.call("GET", "/gitfolio/me", nil, &me); err != nil {
 		return err
 	}
-	fmt.Printf(tr(lang, "whoami"), me.Account.Email, strings.Join(me.VerifiedEmails, ", "), c.base)
+	say(lang, "whoami", me.Account.Email, strings.Join(me.VerifiedEmails, ", "), c.base)
 	return nil
 }
 
@@ -95,6 +118,6 @@ func cmdLogout(dir string) error {
 	if err := saveCredentials(dir, Credentials{}); err != nil {
 		return err
 	}
-	fmt.Print(tr(detectLang(os.Getenv), "loggedOut"))
+	say(detectLang(os.Getenv), "loggedOut")
 	return nil
 }
