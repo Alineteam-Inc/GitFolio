@@ -558,7 +558,7 @@ Enable dependency detection? [y/N]
 | `commits.jsonl` | 커밋 1건당 1줄 |
 | `agent-tags.jsonl` | `post-commit` 훅이 기록한 커밋 해시 → 에이전트 |
 | `deps.json` | 저장소·모듈별 의존성 (의존성 기능 사용 시에만 생성) |
-| `sync.json` | 전송 완료 레코드 ID, 대기 중인 삭제 요청, 마지막 동기화 시각·결과 |
+| `sync.json` | 전송한 계정, 레코드 ID(`provider/namespace/hash`)별 전송 지문(내용 해시), 저장소별 의존성 지문, 대기 중인 삭제 요청, 마지막 동기화 시각 |
 
 커밋 레코드 예:
 
