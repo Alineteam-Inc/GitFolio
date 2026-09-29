@@ -79,16 +79,6 @@ var messages = map[string]map[string]string{
 		"ko": " 계속하려면 Enter, 중단하려면 Ctrl+C ",
 		"ja": " 続行するには Enter、中止するには Ctrl+C ",
 	},
-	"deviceCreated": {
-		"en": "This device's key was created. Device ID: %s\n",
-		"ko": "이 기기의 키를 만들었습니다. 기기 ID: %s\n",
-		"ja": "このデバイスのキーを作成しました。デバイス ID: %s\n",
-	},
-	"deviceExisting": {
-		"en": "Device ID: %s\n",
-		"ko": "기기 ID: %s\n",
-		"ja": "デバイス ID: %s\n",
-	},
 	"rootsAsk": {
 		"en": "\nWhich folders hold your repositories? (comma-separated)\n",
 		"ko": "\n저장소를 모아 둔 폴더를 입력하세요. (여러 개는 쉼표로 구분)\n",
@@ -163,6 +153,81 @@ var messages = map[string]map[string]string{
 		"en": "\nDone. From now on, your pushes in the chosen repositories are collected automatically.\nRun `gitfolio init` again any time to add repositories.\n",
 		"ko": "\n완료했습니다. 이제 선택한 저장소에서 push할 때마다 자동으로 수집됩니다.\n저장소를 추가하려면 언제든 `gitfolio init`을 다시 실행하세요.\n",
 		"ja": "\n完了しました。今後、選択したリポジトリで push するたびに自動で収集されます。\nリポジトリを追加するには、いつでも `gitfolio init` を再実行してください。\n",
+	},
+	"signupNotice": {
+		"en": "There is no aline.team account for %s, so a new one will be created.\nSigning up means you agree to\n  Terms of Service: https://aline.team/terms\n  Privacy Policy:   https://aline.team/privacy (includes the transfer to the United States)\n",
+		"ko": "%s(으)로 된 aline.team 계정이 없어 새 계정을 만듭니다.\n가입하면 아래 내용에 동의한 것으로 간주합니다.\n  이용약관: https://aline.team/terms\n  개인정보처리방침: https://aline.team/privacy (미국으로의 국외 이전 내용 포함)\n",
+		"ja": "%s の aline.team アカウントがないため、新しいアカウントを作成します。\n登録すると、以下に同意したものとみなされます。\n  利用規約: https://aline.team/terms\n  プライバシーポリシー: https://aline.team/privacy (米国への国外移転を含む)\n",
+	},
+	"signupAsk": {
+		"en": "Create the account? (check the email for typos) [Y/n] > ",
+		"ko": "계정을 만들까요? (이메일에 오타가 없는지 확인하세요) [Y/n] > ",
+		"ja": "アカウントを作成しますか?(メールアドレスに誤りがないかご確認ください) [Y/n] > ",
+	},
+	"notifyAsk": {
+		"en": "Receive aline.team service notifications by email? [y/N] > ",
+		"ko": "aline.team 서비스 알림을 이메일로 받을까요? [y/N] > ",
+		"ja": "aline.team のサービス通知をメールで受け取りますか? [y/N] > ",
+	},
+	"signupCancelled": {
+		"en": "No account was created. Run `gitfolio login` again with the right email.\n",
+		"ko": "계정을 만들지 않았습니다. 올바른 이메일로 `gitfolio login`을 다시 실행하세요.\n",
+		"ja": "アカウントは作成していません。正しいメールアドレスで `gitfolio login` を再実行してください。\n",
+	},
+	"emailAsk": {
+		"en": "Your aline.team email > ",
+		"ko": "aline.team 이메일 > ",
+		"ja": "aline.team のメールアドレス > ",
+	},
+	"emailInvalid": {
+		"en": "Please enter a valid email address.\n",
+		"ko": "올바른 이메일 주소를 입력하세요.\n",
+		"ja": "正しいメールアドレスを入力してください。\n",
+	},
+	"codeAsk": {
+		"en": "Enter the code sent to %s > ",
+		"ko": "%s(으)로 보낸 확인 코드를 입력하세요 > ",
+		"ja": "%s に送信した確認コードを入力してください > ",
+	},
+	"codeWrong": {
+		"en": "The code is not correct. Please try again.\n",
+		"ko": "확인 코드가 맞지 않습니다. 다시 입력하세요.\n",
+		"ja": "確認コードが正しくありません。もう一度入力してください。\n",
+	},
+	"signedUp": {
+		"en": "Welcome! Your aline.team account %s was created and this device is signed in.\n",
+		"ko": "aline.team 계정 %s 가입을 마쳤고, 이 기기에서 로그인했습니다.\n",
+		"ja": "aline.team アカウント %s の登録が完了し、このデバイスでログインしました。\n",
+	},
+	"loggedIn": {
+		"en": "Logged in as %s.\n",
+		"ko": "%s(으)로 로그인했습니다.\n",
+		"ja": "%s でログインしました。\n",
+	},
+	"alreadyLoggedIn": {
+		"en": "Already logged in as %s. Run `gitfolio logout` first to switch accounts.\n",
+		"ko": "이미 %s(으)로 로그인되어 있습니다. 계정을 바꾸려면 먼저 `gitfolio logout`을 실행하세요.\n",
+		"ja": "すでに %s でログインしています。アカウントを切り替えるには先に `gitfolio logout` を実行してください。\n",
+	},
+	"loginNeedsTerminal": {
+		"en": "Logging in needs a terminal: run `gitfolio login` there.\n",
+		"ko": "로그인은 터미널에서 해야 합니다. 터미널에서 `gitfolio login`을 실행하세요.\n",
+		"ja": "ログインにはターミナルが必要です。ターミナルで `gitfolio login` を実行してください。\n",
+	},
+	"notLoggedIn": {
+		"en": "Not logged in. Run `gitfolio login`.\n",
+		"ko": "로그인되어 있지 않습니다. `gitfolio login`을 실행하세요.\n",
+		"ja": "ログインしていません。`gitfolio login` を実行してください。\n",
+	},
+	"whoami": {
+		"en": "Logged in as %s\nVerified emails: %s\nServer: %s\n",
+		"ko": "로그인 계정: %s\n인증된 이메일: %s\n서버: %s\n",
+		"ja": "ログイン中のアカウント: %s\n認証済みメールアドレス: %s\nサーバー: %s\n",
+	},
+	"loggedOut": {
+		"en": "Logged out. This device's token was revoked and removed.\n",
+		"ko": "로그아웃했습니다. 이 기기의 토큰을 폐기하고 삭제했습니다.\n",
+		"ja": "ログアウトしました。このデバイスのトークンを失効させ、削除しました。\n",
 	},
 	"loginPending": {
 		"en": "Sign-up and login to aline.team are coming soon; this step is skipped for now.\n",

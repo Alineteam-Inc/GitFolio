@@ -1,0 +1,263 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"runtime"
+	"strings"
+	"time"
+)
+
+// defaultAPIBase is the aline.team API (docs/API.md, agreed with the aline.team server).
+const defaultAPIBase = "https://aline.team/api"
+
+// apiBase returns the API root: GITFOLIO_API_URL if set, else the one saved with
+// `gitfolio config api-url` (hooks started by GUI git clients do not see shell variables), else production.
+func apiBase(configured string) (string, error) {
+	raw := os.Getenv("GITFOLIO_API_URL")
+	if raw == "" {
+		raw = configured
+	}
+	if raw == "" {
+		return defaultAPIBase, nil
+	}
+	if err := checkAPIURL(raw); err != nil {
+		return "", err
+	}
+	return strings.TrimRight(raw, "/"), nil
+}
+
+// checkAPIURL accepts only HTTPS, except plain HTTP to this computer, so the token never travels unencrypted.
+func checkAPIURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return fmt.Errorf("API URL %q is not a valid URL", raw)
+	}
+	h := u.Hostname()
+	if u.Scheme != "https" && !(u.Scheme == "http" && (h == "127.0.0.1" || h == "localhost" || h == "::1")) {
+		return fmt.Errorf("API URL %q must use https", raw)
+	}
+	return nil
+}
+
+// apiError is a failure answer: {"success": false, "error": {"status", "code", "messageKo", …}}.
+// Codes are the server's ErrorCode values (A001, A008, …), listed in docs/API.md.
+type apiError struct {
+	Status    int    `json:"status"`
+	Code      string `json:"code"`
+	MessageKo string `json:"messageKo"`
+	MessageEn string `json:"messageEn"`
+	MessageJa string `json:"messageJa"`
+}
+
+func (e *apiError) Error() string {
+	msg := map[string]string{"ko": e.MessageKo, "ja": e.MessageJa}[detectLang(os.Getenv)]
+	if msg == "" {
+		msg = e.MessageEn
+	}
+	if msg == "" {
+		msg = http.StatusText(e.Status)
+	}
+	return fmt.Sprintf("aline.team: %s (%s)", msg, e.Code)
+}
+
+// Server error codes the CLI reacts to.
+const (
+	codeTokenInvalid  = "A001" // token invalid, expired or revoked
+	codeWrongCode     = "A008" // email code does not match
+	codeExpiredCode   = "A009" // email code expired or tried too often
+	codeUnverifiedWeb = "U004" // account made on the web without verifying its email
+	codeRateLimited   = "R001"
+)
+
+type client struct {
+	base  string
+	http  *http.Client
+	dir   string
+	creds Credentials
+}
+
+func newClient(dir string) (*client, error) {
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return nil, err
+	}
+	base, err := apiBase(cfg.APIURL)
+	if err != nil {
+		return nil, err
+	}
+	creds, err := loadCredentials(dir)
+	if err != nil {
+		return nil, err
+	}
+	return &client{base: base, http: &http.Client{Timeout: 30 * time.Second}, dir: dir, creds: creds}, nil
+}
+
+func (c *client) loggedIn() bool { return c.creds.Token != "" }
+
+// call sends an authenticated request. A token the server no longer accepts (expired or revoked) is
+// removed here, so the user signs in again with `gitfolio login`.
+func (c *client) call(method, path string, in, out any) error {
+	err := c.send(method, path, in, out, true)
+	var ae *apiError
+	if errors.As(err, &ae) && ae.Code == codeTokenInvalid {
+		c.creds.Token, c.creds.TokenExpiresAt = "", ""
+		if serr := saveCredentials(c.dir, c.creds); serr != nil {
+			return serr
+		}
+		return fmt.Errorf("%w; sign in again with `gitfolio login`", err)
+	}
+	return err
+}
+
+// send makes one request and unwraps the server's {"success", "contents"} envelope into out.
+// The token only ever goes into the Authorization header.
+func (c *client) send(method, path string, in, out any, auth bool) error {
+	var body io.Reader
+	if in != nil {
+		b, err := json.Marshal(in)
+		if err != nil {
+			return err
+		}
+		body = bytes.NewReader(b)
+	}
+	req, err := http.NewRequest(method, c.base+path, body)
+	if err != nil {
+		return err
+	}
+	if in != nil {
+		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", fmt.Sprintf("gitfolio/%s (%s; %s)", version, runtime.GOOS, runtime.GOARCH))
+	if auth {
+		req.Header.Set("Authorization", "Bearer "+c.creds.Token)
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+	if err != nil {
+		return err
+	}
+	var env struct {
+		Success  bool            `json:"success"`
+		Contents json.RawMessage `json:"contents"`
+		Error    *apiError       `json:"error"`
+	}
+	if jerr := json.Unmarshal(data, &env); jerr != nil || resp.StatusCode >= 300 || !env.Success {
+		if env.Error == nil {
+			env.Error = &apiError{}
+		}
+		if env.Error.Status == 0 {
+			env.Error.Status = resp.StatusCode
+		}
+		return env.Error
+	}
+	if out != nil && len(env.Contents) > 0 && string(env.Contents) != "null" {
+		return json.Unmarshal(env.Contents, out)
+	}
+	return nil
+}
+
+type signInResult struct {
+	Token          string   `json:"token"`
+	TokenExpiresAt string   `json:"tokenExpiresAt"`
+	Account        struct { // the account ID is not read: the CLI never needs it
+		Email   string `json:"email"`
+		Created bool   `json:"created"`
+	} `json:"account"`
+	VerifiedEmails []string `json:"verifiedEmails"`
+}
+
+// deviceName tells devices apart in the aline.team token list. The host name is personal, so only
+// the OS and CPU are sent.
+func deviceName() string {
+	name := map[string]string{"darwin": "macOS", "linux": "Linux", "windows": "Windows"}[runtime.GOOS]
+	if name == "" {
+		name = runtime.GOOS
+	}
+	return name + " " + runtime.GOARCH
+}
+
+// localTimezone returns this computer's IANA time zone ("Asia/Seoul"), or "" when it cannot tell;
+// the server then uses UTC. Go's time.Local does not expose the name, so TZ and /etc/localtime are read.
+func localTimezone() string {
+	name := strings.TrimPrefix(os.Getenv("TZ"), ":")
+	if name == "" {
+		if link, err := os.Readlink("/etc/localtime"); err == nil {
+			name = zoneFromPath(link)
+		}
+	}
+	if name == "" || len(name) > 64 || name == "Local" {
+		return ""
+	}
+	if _, err := time.LoadLocation(name); err != nil {
+		return ""
+	}
+	return name
+}
+
+// zoneFromPath takes the zone name out of a zoneinfo path such as /var/db/timezone/zoneinfo/Asia/Seoul.
+func zoneFromPath(p string) string {
+	if _, zone, ok := strings.Cut(p, "zoneinfo/"); ok {
+		return zone
+	}
+	return ""
+}
+
+// maxCodeTries is how many codes the CLI asks for.
+const maxCodeTries = 5
+
+// errSignupCancelled is returned when the user does not want a new account for the email they typed.
+var errSignupCancelled = errors.New("sign-up cancelled")
+
+// signIn verifies the email with a one-time code and stores the token (docs/API.md 1.1–1.2).
+// When the email has no account yet, the server signs it up; confirmSignup is asked first, because
+// signing up counts as agreeing to the terms and the privacy policy and a typo would make a stray
+// account. It also returns whether the user wants aline.team service notifications (sign-up only).
+// askCode is asked again while the code is wrong.
+func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), askCode func(retry bool) string) (signInResult, error) {
+	var res signInResult
+	var start struct {
+		ChallengeID   string `json:"challengeId"`
+		AccountExists bool   `json:"accountExists"`
+	}
+	if err := c.send("POST", "/gitfolio/auth/email/start", map[string]string{"email": email}, &start, false); err != nil {
+		return res, err
+	}
+	req := map[string]any{"challengeId": start.ChallengeID}
+	if !start.AccountExists {
+		ok, notify := confirmSignup()
+		if !ok {
+			return res, errSignupCancelled
+		}
+		req["isNotified"] = notify // service notification opt-in, used for a new account only
+	}
+	device := map[string]string{"name": deviceName(), "language": strings.ToUpper(detectLang(os.Getenv))}
+	if tz := localTimezone(); tz != "" {
+		device["timezone"] = tz
+	}
+	req["device"] = device // language and timezone only set up a new account
+	for try := 0; ; try++ {
+		req["code"] = askCode(try > 0)
+		err := c.send("POST", "/gitfolio/auth/email/verify", req, &res, false)
+		var ae *apiError
+		if errors.As(err, &ae) && ae.Code == codeWrongCode && try < maxCodeTries-1 {
+			continue
+		}
+		if err != nil {
+			return res, err
+		}
+		c.creds.Token, c.creds.TokenExpiresAt, c.creds.Email = res.Token, res.TokenExpiresAt, res.Account.Email
+		return res, saveCredentials(c.dir, c.creds)
+	}
+}

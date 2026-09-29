@@ -66,6 +66,7 @@ type Config struct {
 	Deps      bool     `json:"deps"`                // user allowed dependency detection (DESIGN 3.5)
 	DepsAsked bool     `json:"depsAsked,omitempty"` // init asked once; later changes go through `gitfolio deps`
 	Roots     []string `json:"roots,omitempty"`     // folders where the user keeps repositories (init)
+	APIURL    string   `json:"apiUrl,omitempty"`    // aline.team API root; empty = production (config api-url)
 }
 
 func loadRepos(dir string) (repos []Repo, err error) {
