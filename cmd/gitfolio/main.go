@@ -49,6 +49,9 @@ commands:
                         the GITFOLIO_API_URL environment variable overrides it
   config autosync on|off
                         send to aline.team right after each git push (on by default)
+  schedule [HH:MM | off]
+                        optional daily sync at a local time, for pushes the hooks missed
+                        (launchd on macOS, systemd or cron on Linux); no argument: show it
   version               print version`
 
 func main() {
@@ -116,6 +119,8 @@ func run(args []string) error {
 			return cmdConfig(dir, args[1:])
 		case "deps":
 			return cmdDeps(dir, args[1:])
+		case "schedule":
+			return cmdSchedule(dir, args[1:])
 		}
 		return failure("unknownCommand", args[0])
 	})
@@ -237,8 +242,20 @@ func cmdRemove(dir string, args []string) error {
 			return err
 		}
 	}
-	if err := saveRepos(dir, slices.Delete(repos, i, i+1)); err != nil {
+	repos = slices.Delete(repos, i, i+1)
+	if err := saveRepos(dir, repos); err != nil {
 		return err
+	}
+	if len(repos) == 0 { // nothing left to sync: the daily sync goes too
+		if cfg, err := loadConfig(dir); err == nil && cfg.Schedule != "" {
+			if err := unschedule(dir); err != nil {
+				return err
+			}
+			cfg.Schedule = ""
+			if err := saveConfig(dir, cfg); err != nil {
+				return err
+			}
+		}
 	}
 	say(detectLang(os.Getenv), "removed", r.Name)
 	return nil

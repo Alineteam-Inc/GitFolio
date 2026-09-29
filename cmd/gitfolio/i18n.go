@@ -587,6 +587,46 @@ var messages = map[string]map[string]string{
 		"ko": "git push 직후 자동 전송: %s\n",
 		"ja": "git push 直後の自動送信: %s\n",
 	},
+	"scheduleOn": {
+		"en": "Daily sync at %s is set up.\nIts output goes to: %s\n",
+		"ko": "매일 %s에 동기화하도록 등록했습니다.\n실행 기록: %s\n",
+		"ja": "毎日 %s に同期するよう登録しました。\n実行記録: %s\n",
+	},
+	"scheduleMacAccess": {
+		"en": "macOS may ask once whether gitfolio can use folders such as Documents or Desktop.\nAllow it, or the daily sync cannot read repositories kept there.\n",
+		"ko": "macOS가 gitfolio의 문서·데스크탑 등 폴더 접근을 한 번 물을 수 있습니다.\n허용해야 그 폴더에 있는 저장소를 예약 동기화가 읽을 수 있습니다.\n",
+		"ja": "macOS が gitfolio による書類・デスクトップなどのフォルダーへのアクセスを一度確認することがあります。\n許可しないと、そこにあるリポジトリを予約同期が読み取れません。\n",
+	},
+	"scheduleOff": {
+		"en": "The daily sync is removed.\n",
+		"ko": "예약 동기화를 해제했습니다.\n",
+		"ja": "予約同期を解除しました。\n",
+	},
+	"scheduleStatus": {
+		"en": "Daily sync: %s\nLast sync: %s\n",
+		"ko": "예약 동기화: %s\n마지막 동기화: %s\n",
+		"ja": "予約同期: %s\n前回の同期: %s\n",
+	},
+	"scheduleUnsupported": {
+		"en": "Scheduling is not supported on this system yet; run `gitfolio sync` yourself.\n",
+		"ko": "이 시스템에서는 아직 예약 동기화를 지원하지 않습니다. `gitfolio sync`를 직접 실행하세요.\n",
+		"ja": "このシステムでは予約同期にまだ対応していません。`gitfolio sync` を直接実行してください。\n",
+	},
+	"never": {
+		"en": "never",
+		"ko": "없음",
+		"ja": "なし",
+	},
+	"lastSyncOK": {
+		"en": "%s (done)",
+		"ko": "%s (성공)",
+		"ja": "%s (成功)",
+	},
+	"lastSyncFailed": {
+		"en": "%s (failed: %s)",
+		"ko": "%s (실패: %s)",
+		"ja": "%s (失敗: %s)",
+	},
 	"depsUpdated": {
 		"en": "%s: dependencies updated, %d commit(s) collected again.\n",
 		"ko": "%s: 의존성을 갱신하고 커밋 %d개를 다시 수집했습니다.\n",
