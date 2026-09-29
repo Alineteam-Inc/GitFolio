@@ -68,7 +68,7 @@ func cmdLogin(dir string) error {
 		return err
 	}
 	if res.Account.Created {
-		say(lang, "signedUp", res.Account.Email)
+		show(os.Stdout, fmt.Sprintf(tr(lang, "signedUp"), res.Account.Email)+tr(lang, "passwordMail"))
 	} else {
 		say(lang, "loggedIn", res.Account.Email)
 	}

@@ -290,6 +290,12 @@ var messages = map[string]map[string]string{
 		"ko": "aline.team 계정 %s 가입을 마쳤고, 이 기기에서 로그인했습니다.\n",
 		"ja": "aline.team アカウント %s の登録が完了し、このデバイスでログインしました。\n",
 	},
+	// aline.team mails a one-time link (24 hours) after a CLI sign-up, since the account has no web password.
+	"passwordMail": {
+		"en": "To log in on the web (aline.team), set a password with the link we emailed you.\nThe link works once within 24 hours; after that, use \"Forgot password\" on the website.\n",
+		"ko": "웹(aline.team) 로그인용 비밀번호 설정 메일을 보냈습니다.\n메일의 링크는 24시간 동안 한 번 쓸 수 있고, 만료되면 웹의 \"비밀번호 찾기\"로 설정하세요.\n",
+		"ja": "Web(aline.team)ログイン用のパスワード設定メールを送信しました。\nリンクは24時間以内に1回のみ使えます。期限切れの場合は、Web の「パスワードをお忘れですか」から設定してください。\n",
+	},
 	"loggedIn": {
 		"en": "Logged in as %s.\n",
 		"ko": "%s(으)로 로그인했습니다.\n",
