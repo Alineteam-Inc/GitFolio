@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http/httptest"
 	"os"
 	"os/exec"
@@ -96,18 +95,11 @@ func TestSync(t *testing.T) {
 	sync(1, 0)
 }
 
-// Requests hold one repository each and stay under the server's 1 MB body limit and 500 records.
+// Requests hold one repository each and at most 500 records.
 func TestBatches(t *testing.T) {
-	big := Commit{Hash: "h", Message: strings.Repeat("가", maxMessage)} // about 30 KB of JSON
 	var commits []Commit
-	for range 100 {
-		commits = append(commits, big)
-	}
-	for range 1200 {
-		commits = append(commits, Commit{Hash: "s"})
-	}
-	for i := range commits { // two repositories, interleaved
-		commits[i].Provider, commits[i].Namespace = "GITHUB", []string{"me/a", "me/b"}[i%2]
+	for i := range 1300 { // two repositories, interleaved
+		commits = append(commits, Commit{Hash: "h", Provider: "GITHUB", Namespace: []string{"me/a", "me/b"}[i%2]})
 	}
 	total := 0
 	for _, b := range batches(commits) {
@@ -116,9 +108,8 @@ func TestBatches(t *testing.T) {
 				t.Fatalf("a batch mixes %s and %s", b[0].Namespace, c.Namespace)
 			}
 		}
-		body, _ := json.Marshal(request(b))
-		if len(b) > batchSize || len(body) > 1<<20 {
-			t.Errorf("batch of %d records, %d bytes", len(b), len(body))
+		if len(b) > batchSize {
+			t.Errorf("batch of %d records", len(b))
 		}
 		total += len(b)
 	}

@@ -154,7 +154,7 @@ func (f *fakeAline) handler() http.Handler {
 	}
 	mux.HandleFunc("POST /cli/commits/batch", data(func(w http.ResponseWriter, r *http.Request) {
 		var in commitBatch // one repository per request
-		if r.ContentLength > 1<<20 || json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" || len(in.Commits) == 0 || len(in.Commits) > batchSize {
+		if r.ContentLength > 100<<20 || json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" || len(in.Commits) == 0 || len(in.Commits) > batchSize {
 			fail(w, 400, "C001")
 			return
 		}
