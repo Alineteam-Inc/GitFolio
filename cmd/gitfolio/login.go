@@ -21,14 +21,14 @@ func cmdLogin(dir string) error {
 		return nil
 	}
 	if !interactive() {
-		return errors.New(strings.TrimSpace(tr(lang, "loginNeedsTerminal")))
+		return failure("loginNeedsTerminal")
 	}
 	section(lang, "loginTitle")
 	email := ""
 	for {
 		email = strings.TrimSpace(prompt(tr(lang, "emailAsk")))
 		if stdinClosed {
-			return errors.New(strings.TrimSpace(tr(lang, "emailInvalid")))
+			return failure("emailInvalid")
 		}
 		// Catch typos (e.g. a leftover IME character and a space) here, before the server
 		// rejects the request and the whole login has to start over.

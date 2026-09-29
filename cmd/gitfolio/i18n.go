@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -101,6 +102,12 @@ func show(w io.Writer, text string) {
 			fmt.Fprintln(w, margin+under+line)
 		}
 	}
+}
+
+// failure returns a translated error; main prints it with the GitFolio prefix. Errors that come from
+// git itself or only show up in hooks stay as they are.
+func failure(key string, args ...any) error {
+	return errors.New(strings.TrimSpace(fmt.Sprintf(tr(detectLang(os.Getenv), key), args...)))
 }
 
 // section prints the separator that opens an interactive command.
@@ -335,6 +342,86 @@ var messages = map[string]map[string]string{
 		"en": "Log in to aline.team first: gitfolio login\n",
 		"ko": "먼저 aline.team에 로그인하세요: gitfolio login\n",
 		"ja": "先に aline.team にログインしてください: gitfolio login\n",
+	},
+	"relogin": {
+		"en": "(run `gitfolio login`)",
+		"ko": "(`gitfolio login`으로 다시 로그인하세요)",
+		"ja": "(`gitfolio login` で再ログインしてください)",
+	},
+	"apiURLInvalid": {
+		"en": "API URL %q is not a valid URL.\n",
+		"ko": "올바른 URL이 아닙니다: %q\n",
+		"ja": "API URL %q は正しい URL ではありません。\n",
+	},
+	"apiURLHTTPS": {
+		"en": "API URL %q must use https (plain http is allowed only to this computer).\n",
+		"ko": "API 주소는 https만 쓸 수 있습니다 (http는 이 컴퓨터 주소만 허용): %q\n",
+		"ja": "API URL %q は https である必要があります(http はこのコンピューターのアドレスのみ可)。\n",
+	},
+	"noGit": {
+		"en": "git was not found. Install git first.\n",
+		"ko": "git을 찾을 수 없습니다. 먼저 git을 설치하세요.\n",
+		"ja": "git が見つかりません。先に git をインストールしてください。\n",
+	},
+	"notGitRepo": {
+		"en": "%s is not a git repository.\n",
+		"ko": "git 저장소가 아닙니다: %s\n",
+		"ja": "%s は git リポジトリではありません。\n",
+	},
+	"noUserEmail": {
+		"en": "git user.email is not set, so your commits cannot be identified.\nSet it with: git config --global user.email you@example.com\n",
+		"ko": "git user.email이 설정되어 있지 않아 본인 커밋을 식별할 수 없습니다.\n설정 방법: git config --global user.email you@example.com\n",
+		"ja": "git の user.email が設定されていないため、あなたのコミットを識別できません。\n設定方法: git config --global user.email you@example.com\n",
+	},
+	"alreadyRegistered": {
+		"en": "%s is already registered.\n",
+		"ko": "이미 등록된 저장소입니다: %s\n",
+		"ja": "%s はすでに登録されています。\n",
+	},
+	"notRegistered": {
+		"en": "%s is not registered.\n",
+		"ko": "등록되지 않은 저장소입니다: %s\n",
+		"ja": "%s は登録されていません。\n",
+	},
+	"notRegisteredAdd": {
+		"en": "%s is not registered. Register it with `gitfolio add`.\n",
+		"ko": "등록되지 않은 저장소입니다: %s\n`gitfolio add`로 등록하세요.\n",
+		"ja": "%s は登録されていません。`gitfolio add` で登録してください。\n",
+	},
+	"scanFailed": {
+		"en": "Some repositories could not be scanned (see above).\n",
+		"ko": "일부 저장소를 수집하지 못했습니다. (위 내용 참고)\n",
+		"ja": "一部のリポジトリを収集できませんでした。(上記を参照)\n",
+	},
+	"depsIsOff": {
+		"en": "Dependency detection is off. Turn it on with `gitfolio deps on`.\n",
+		"ko": "의존성 분석이 꺼져 있습니다. `gitfolio deps on`으로 켜세요.\n",
+		"ja": "依存関係の分析はオフです。`gitfolio deps on` で有効にしてください。\n",
+	},
+	"unknownCommand": {
+		"en": "Unknown command %q. See `gitfolio help`.\n",
+		"ko": "알 수 없는 명령입니다: %q\n`gitfolio help`에서 명령 목록을 확인하세요.\n",
+		"ja": "不明なコマンド %q です。`gitfolio help` をご確認ください。\n",
+	},
+	"usage": {
+		"en": "Usage: %s\n",
+		"ko": "사용법: %s\n",
+		"ja": "使い方: %s\n",
+	},
+	"busy": {
+		"en": "Another gitfolio run is in progress; try again shortly.\n",
+		"ko": "다른 gitfolio 작업이 진행 중입니다. 잠시 후 다시 시도하세요.\n",
+		"ja": "別の gitfolio の処理が実行中です。しばらくしてから再試行してください。\n",
+	},
+	"hooksElsewhere": {
+		"en": "Hooks live outside .git (%s, e.g. core.hooksPath or husky), so they were not changed.\nAdd these lines yourself:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
+		"ko": "훅 폴더가 .git 밖에 있어(%s, 예: core.hooksPath·husky) 훅을 바꾸지 않았습니다.\n아래 줄을 직접 추가하세요:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
+		"ja": "フックが .git の外にあるため(%s、例: core.hooksPath・husky)、変更していません。\n次の行をご自身で追加してください:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
+	},
+	"hooksBothExist": {
+		"en": "Both %[1]s and %[1]s.gitfolio-orig exist; merge them by hand.\n",
+		"ko": "기존 훅과 백업이 모두 있어 직접 하나로 합쳐야 합니다: %[1]s, %[1]s.gitfolio-orig\n",
+		"ja": "%[1]s と %[1]s.gitfolio-orig の両方があります。手動で1つにまとめてください。\n",
 	},
 	"logoutServerFailed": {
 		"en": "Could not log out on the server (%v); the token on this device is removed anyway.\n",

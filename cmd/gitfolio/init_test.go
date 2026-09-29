@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -41,6 +42,26 @@ func TestParseAppleLanguages(t *testing.T) {
 	out := "(\n    \"ko-KR\",\n    en,\n    \"ja-KR\"\n)\n" // `defaults read -g AppleLanguages`
 	if got := parseAppleLanguages(out); !slices.Equal(got, []string{"ko-KR", "en", "ja-KR"}) {
 		t.Errorf("parseAppleLanguages = %q", got)
+	}
+}
+
+// Every translation takes the same arguments as the English text, so no language prints %!s(MISSING).
+func TestMessageVerbsMatch(t *testing.T) {
+	verbs := regexp.MustCompile(`%(\[\d+\])?[-+# 0-9.]*[a-zA-Z]`)
+	for key, byLang := range messages {
+		want := verbs.FindAllString(byLang["en"], -1)
+		slices.Sort(want)
+		for _, lang := range []string{"ko", "ja"} {
+			got := verbs.FindAllString(byLang[lang], -1)
+			slices.Sort(got)
+			if !slices.Equal(got, want) {
+				t.Errorf("message %q: %s has %v, en has %v", key, lang, got, want)
+			}
+		}
+	}
+	t.Setenv("GITFOLIO_LANG", "ko")
+	if err := failure("notRegistered", "~/Code/demo"); err.Error() != "등록되지 않은 저장소입니다: ~/Code/demo" {
+		t.Errorf("failure = %q", err)
 	}
 }
 
