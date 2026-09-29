@@ -364,7 +364,7 @@ gitfolio hook post-commit|pre-push   (내부용, 훅에서 호출)
   3. `LC_ALL` → `LC_MESSAGES` → `LANG` 중 처음 설정된 값의 앞 두 글자 (`ko_KR.UTF-8` → `ko`). Linux는 이것이 기기 설정
   4. 그 외는 영어
 - Windows는 환경변수가 보통 없으므로 Windows 지원 시 OS API(`GetUserDefaultUILanguage`) 판별 추가
-- 출력 모양: 결과·오류 줄은 `  == GitFolio == …`(오류는 stderr, `오류: …`), 안내문·질문은 앞 여백(2칸)만, 대화형 명령 시작은 `===== GitFolio · 제목 =====`. `list` 표·`export`/`config` JSON·`help`는 접두어 없음 (복사·파이프용)
+- 출력 모양: 결과·오류 줄은 `  GitFolio-cli >>> …`(오류는 stderr, `오류: …`), 안내문·질문은 앞 여백(2칸)만, 대화형 명령 시작은 `===== GitFolio · 제목 =====`. `list` 표·`export`/`config` JSON·`help`는 접두어 없음 (복사·파이프용)
 - 서버·Go 오류 본문은 아직 영어가 섞임 (`오류: … is not registered`). 사용자 입력 오류부터 차례로 번역
 - 메시지는 Go 코드 안의 언어별 표로 관리 (외부 라이브러리 없음). 번역이 없는 메시지는 영어로 대체
 - 번역 대상은 사람이 읽는 화면 문구만. JSON 키·훅 출력·에러 코드는 번역하지 않음
