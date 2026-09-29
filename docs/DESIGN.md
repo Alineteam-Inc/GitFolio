@@ -367,7 +367,7 @@ gitfolio hook post-commit|pre-push   (내부용, 훅에서 호출)
   4. 그 외는 영어
 - Windows는 환경변수가 보통 없으므로 Windows 지원 시 OS API(`GetUserDefaultUILanguage`) 판별 추가
 - 출력 모양: 결과·오류 줄은 `  GitFolio-cli >>> …`(오류는 stderr, `오류: …`), 안내문·질문은 앞 여백(2칸)만, 대화형 명령 시작은 `===== GitFolio · 제목 =====`. `list` 표·`export`/`config` JSON·`help`는 접두어 없음 (복사·파이프용)
-- 서버·Go 오류 본문은 아직 영어가 섞임 (`오류: … is not registered`). 사용자 입력 오류부터 차례로 번역
+- 오류도 화면 언어로 표시 (`오류: 등록되지 않은 저장소입니다: ~/Code/demo`). 서버 오류는 응답의 `messageKo`·`messageEn`·`messageJa`, git이 출력한 오류와 훅 내부 오류는 원문 그대로
 - 메시지는 Go 코드 안의 언어별 표로 관리 (외부 라이브러리 없음). 번역이 없는 메시지는 영어로 대체
 - 번역 대상은 사람이 읽는 화면 문구만. JSON 키·훅 출력·에러 코드는 번역하지 않음
 - 정책·동의 문구는 모든 언어에서 의미가 동일해야 함. 일본어는 원어민 검수 필요
