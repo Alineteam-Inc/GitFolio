@@ -69,7 +69,7 @@ func parseAppleLanguages(out string) []string {
 }
 
 // statusPrefix marks GitFolio's own result and error lines so they stand out among shell and git output.
-// Prompts and notices carry only the margin (a prefix would blur where to type).
+// Questions start with "? " (see prompt); notices carry only the margin.
 const statusPrefix = "GitFolio-cli >>> "
 
 // margin keeps GitFolio's interactive text off the terminal's left edge.
@@ -171,14 +171,14 @@ var messages = map[string]map[string]string{
 `,
 	},
 	"pressEnter": {
-		"en": " Press Enter to continue, or Ctrl+C to quit. ",
-		"ko": " 계속하려면 Enter, 중단하려면 Ctrl+C ",
-		"ja": " 続行するには Enter、中止するには Ctrl+C ",
+		"en": "Press Enter to continue, or Ctrl+C to quit. ",
+		"ko": "계속하려면 Enter, 중단하려면 Ctrl+C ",
+		"ja": "続行するには Enter、中止するには Ctrl+C ",
 	},
 	"rootsAsk": {
-		"en": "\nWhich folders hold your repositories? (comma-separated)\n",
-		"ko": "\n저장소를 모아 둔 폴더를 입력하세요. (여러 개는 쉼표로 구분)\n",
-		"ja": "\nリポジトリを置いているフォルダーを入力してください。(複数はカンマ区切り)\n",
+		"en": "Which folders hold your repositories? (comma-separated)\n",
+		"ko": "저장소를 모아 둔 폴더를 입력하세요. (여러 개는 쉼표로 구분)\n",
+		"ja": "リポジトリを置いているフォルダーを入力してください。(複数はカンマ区切り)\n",
 	},
 	"rootsFound": {
 		"en": "Found: %s\n",
@@ -603,9 +603,9 @@ var messages = map[string]map[string]string{
 		"ja": "同期",
 	},
 	"autosyncAsk": {
-		"en": "Send your commits to aline.team right after each git push? (off: only on sync or the daily sync)",
-		"ko": "git push할 때마다 커밋을 aline.team에 바로 보낼까요? (끄면 sync·예약 동기화 때만 전송)",
-		"ja": "git push のたびにコミットを aline.team へすぐ送信しますか?(オフ: sync・予約同期の時のみ送信)",
+		"en": "Send your commits to aline.team right after each git push?\n(off: only on sync or the daily sync)",
+		"ko": "git push할 때마다 커밋을 aline.team에 바로 보낼까요?\n(끄면 sync·예약 동기화 때만 전송)",
+		"ja": "git push のたびにコミットを aline.team へすぐ送信しますか?\n(オフ: sync・予約同期の時のみ送信)",
 	},
 	"yesNoAgain": {
 		"en": "Please answer y or n.\n",
@@ -613,9 +613,9 @@ var messages = map[string]map[string]string{
 		"ja": "y または n で答えてください。\n",
 	},
 	"scheduleAsk": {
-		"en": "Also sync once a day at a set time? It picks up pushes the hooks missed (other tools, --no-verify).",
-		"ko": "매일 정해진 시각에도 동기화할까요? 훅이 놓친 push(다른 도구, --no-verify 등)를 보완합니다.",
-		"ja": "毎日決まった時刻にも同期しますか?フックが拾えなかった push(他のツール、--no-verify など)を補います。",
+		"en": "Also sync once a day at a set time?\n(picks up pushes the hooks missed: other tools, --no-verify)",
+		"ko": "매일 정해진 시각에도 동기화할까요?\n(훅이 놓친 push 보완: 다른 도구, --no-verify 등)",
+		"ja": "毎日決まった時刻にも同期しますか?\n(フックが拾えなかった push を補います: 他のツール、--no-verify など)",
 	},
 	"scheduleAskNew": {
 		"en": " [HH:MM, e.g. 09:00 / Enter = no] > ",

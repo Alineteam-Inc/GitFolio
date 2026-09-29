@@ -451,8 +451,20 @@ func interactive() bool {
 // stdinClosed turns true once input ends; some tools look like a terminal but cannot answer.
 var stdinClosed bool
 
+// questionMark starts every line that waits for the user's answer, so questions stand out from
+// notices and results; the lines of a longer question line up under its text.
+const questionMark = "? "
+
 func prompt(q string) string {
-	fmt.Print(indent(q))
+	lines := strings.Split(strings.TrimLeft(q, " \n"), "\n")
+	for i, l := range lines {
+		if i == 0 {
+			lines[i] = margin + questionMark + l
+		} else {
+			lines[i] = margin + strings.Repeat(" ", len(questionMark)) + l
+		}
+	}
+	fmt.Print(strings.Join(lines, "\n"))
 	line, err := stdin.ReadString('\n')
 	if err != nil {
 		stdinClosed = true

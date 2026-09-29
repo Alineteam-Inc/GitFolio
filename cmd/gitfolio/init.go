@@ -301,16 +301,18 @@ func askRoots(lang string, saved, args []string) []string {
 	if !interactive() {
 		return fallback
 	}
-	for {
-		fmt.Print(indent(tr(lang, "rootsAsk")))
-		if len(defaults) > 0 {
-			var shown []string
-			for _, d := range defaults {
-				shown = append(shown, tildePath(d))
-			}
-			fmt.Print(indent(fmt.Sprintf(tr(lang, "rootsFound"), strings.Join(shown, ", "))))
+	q := tr(lang, "rootsAsk")
+	if len(defaults) > 0 {
+		var shown []string
+		for _, d := range defaults {
+			shown = append(shown, tildePath(d))
 		}
-		answer := prompt(tr(lang, "rootsPrompt"))
+		q += fmt.Sprintf(tr(lang, "rootsFound"), strings.Join(shown, ", "))
+	}
+	q += tr(lang, "rootsPrompt")
+	for {
+		fmt.Println()
+		answer := prompt(q)
 		if answer == "" {
 			return fallback
 		}
