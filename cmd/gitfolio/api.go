@@ -239,7 +239,7 @@ func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), as
 		AccountExists bool   `json:"accountExists"`
 		CodeLength    int    `json:"codeLength"`
 	}
-	if err := c.send("POST", "/gitfolio/auth/email/start", map[string]any{"email": email, "device": device}, &start, false); err != nil {
+	if err := c.send("POST", "/cli/start", map[string]any{"email": email, "device": device}, &start, false); err != nil {
 		return res, err
 	}
 	req := map[string]any{"challengeId": start.ChallengeID, "device": device}
@@ -255,7 +255,7 @@ func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), as
 			start.CodeLength = 6
 		}
 		req["code"] = askCode(try > 0, start.CodeLength)
-		err := c.send("POST", "/gitfolio/auth/email/verify", req, &res, false)
+		err := c.send("POST", "/cli/verify", req, &res, false)
 		var ae *apiError
 		if errors.As(err, &ae) && ae.Code == codeWrongCode && try < maxCodeTries-1 {
 			continue
