@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,8 +12,8 @@ import (
 )
 
 // TestHooksEndToEnd installs the hooks with the real binary in a repository that already has a
-// pre-push hook, then checks that an agent-made commit is collected after git push, that the old
-// hook still runs, and that remove restores it.
+// pre-push hook, then checks that an agent-made commit is collected and sent to aline.team (a fake
+// server) after git push, that the old hook still runs, and that remove restores it.
 func TestHooksEndToEnd(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("hook scripts need sh")
@@ -32,6 +33,10 @@ func TestHooksEndToEnd(t *testing.T) {
 	}
 	t.Setenv("AI_AGENT", "")
 	t.Setenv("AGENT", "")
+	f := &fakeAline{token: testToken}
+	srv := httptest.NewServer(f.handler())
+	defer srv.Close()
+	t.Setenv("GITFOLIO_API_URL", srv.URL)
 
 	remoteDir, repo := t.TempDir(), t.TempDir()
 	run := func(env []string, dir string, args ...string) string {
@@ -48,7 +53,9 @@ func TestHooksEndToEnd(t *testing.T) {
 	run(nil, repo, "git", "init", "-q", "-b", "main")
 	run(nil, repo, "git", "config", "user.email", "me@example.com")
 	run(nil, repo, "git", "config", "user.name", "me")
-	run(nil, repo, "git", "remote", "add", "origin", remoteDir)
+	// The fetch URL names a GitHub repository (its namespace is what aline.team gets); pushes go to remoteDir.
+	run(nil, repo, "git", "remote", "add", "origin", "https://github.com/me/demo.git")
+	run(nil, repo, "git", "remote", "set-url", "--push", "origin", remoteDir)
 	hooks := filepath.Join(repo, ".git", "hooks")
 	if err := os.WriteFile(filepath.Join(hooks, "pre-push"), []byte("#!/bin/sh\ntouch \"$(dirname \"$0\")/orig-ran\"\n"), 0o755); err != nil {
 		t.Fatal(err)
@@ -98,6 +105,19 @@ func TestHooksEndToEnd(t *testing.T) {
 	}
 	if got.CreationType != "HUMAN_CO_AI" || strings.Join(got.AIAgents, ",") != "claude-code" {
 		t.Errorf("agent change = %s %v, want HUMAN_CO_AI [claude-code]", got.CreationType, got.AIAgents)
+	}
+	sent := 0 // both commits: the one collected by add and the pushed one
+	for deadline := time.Now().Add(15 * time.Second); sent < 2 && time.Now().Before(deadline); time.Sleep(200 * time.Millisecond) {
+		f.mu.Lock()
+		sent = len(f.commits)
+		_, pushed := f.commits["GITHUB/me/demo/"+got.Hash]
+		f.mu.Unlock()
+		if sent == 2 && !pushed {
+			t.Fatal("the pushed commit is not among those sent")
+		}
+	}
+	if sent != 2 {
+		t.Fatalf("aline.team got %d commits after the push, want 2", sent)
 	}
 
 	run(nil, repo, "gitfolio", "remove", ".")
