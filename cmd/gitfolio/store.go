@@ -34,10 +34,11 @@ type FileStat struct {
 }
 
 type Commit struct {
-	Repo         string     `json:"repo"`                // Repo.ID locally, repository name in export
+	Repo         string     `json:"repo,omitempty"`      // Repo.ID locally, repository name in export, left out when sent
 	Provider     string     `json:"provider,omitempty"`  // filled in export only
 	Namespace    string     `json:"namespace,omitempty"` // filled in export only
 	Hash         string     `json:"hash"`
+	Branch       string     `json:"branch,omitempty"` // remote branch it is on (see remoteBranches), never masked
 	AuthorEmail  string     `json:"authorEmail"`
 	Date         string     `json:"date"`
 	Message      string     `json:"message"`
@@ -67,6 +68,8 @@ type Config struct {
 	DepsAsked bool     `json:"depsAsked,omitempty"` // init asked once; later changes go through `gitfolio deps`
 	Roots     []string `json:"roots,omitempty"`     // folders where the user keeps repositories (init)
 	APIURL    string   `json:"apiUrl,omitempty"`    // aline.team API root; empty = production (config api-url)
+	// AutoSyncOff stops sending right after git push; sync still sends (config autosync).
+	AutoSyncOff bool `json:"autoSyncOff,omitempty"`
 }
 
 func loadRepos(dir string) (repos []Repo, err error) {
@@ -233,6 +236,10 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// Commits stored before branches were recorded are collected once more, to get their branch.
+	if rng[0] == "--remotes" && slices.ContainsFunc(stored, func(c Commit) bool { return c.Repo == r.ID && c.Branch == "" }) {
+		rebuild = true
+	}
 	if rebuild {
 		kept := stored[:0]
 		for _, c := range stored {
@@ -269,6 +276,15 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 			m.commit(&c) // after AI detection in parseLog, before anything is written
 			fresh = append(fresh, c)
 			known[c.Hash] = true
+		}
+	}
+	if len(fresh) > 0 && rng[0] == "--remotes" {
+		branches, err := remoteBranches(r.Path)
+		if err != nil {
+			return 0, err
+		}
+		for i := range fresh {
+			fresh[i].Branch = branches[fresh[i].Hash] // as is, so aline.team matches it with its GitHub sync
 		}
 	}
 	if err := appendCommits(dir, fresh); err != nil {
