@@ -336,24 +336,28 @@ Allow reading which files? [all / none / 1,3] >
 ## 7. 명령어
 
 ```
-gitfolio init [경로...]        최초 설정 (7.2)
+gitfolio init [경로...]        최초 설정 (7.2): 데이터 정책 → aline.team 가입·로그인 → 저장소 찾기·선택
+gitfolio login                 aline.team 가입·로그인 (이메일 확인 코드 → 토큰 자동 저장)
+gitfolio logout                서버 토큰 폐기 요청 + 기기 토큰 삭제
+gitfolio whoami                로그인 계정·인증 이메일·서버 주소
 gitfolio add [경로]            저장소 1개 수동 등록 + 최초 수집 + 훅 설치
-gitfolio remove [경로]         등록 해제 + 훅 제거 (--purge: 로컬 삭제 + 서버 삭제 요청)
+gitfolio remove [경로]         등록 해제 + 훅 복원 (--purge: 로컬 삭제 + 서버 삭제 요청)
 gitfolio scan [경로]           증분 수집 (--all: 등록된 전체, --rebuild: 재수집). 네트워크 없음
-gitfolio list [--json]         등록 저장소, 커밋 수, 수집·전송 상태, 훅 상태, 확인 대기 파일
-gitfolio login                 aline.team 가입·로그인 (이메일 확인 → 기기 등록 → 토큰 자동 저장)
-gitfolio logout                기기 토큰 삭제 + 서버 폐기 요청
-gitfolio sync [--dry-run]      예약·수동 동기화 (--dry-run: 전송 내용 미리보기, --json: 앱용 출력)
-gitfolio schedule [HH:MM|off]  예약 동기화 설정·해제, 인자 없으면 현재 상태
-gitfolio deps on|off           의존성 분석 기능 켜기·끄기 (off: 로컬 삭제 + 서버 삭제 요청)
+gitfolio sync [--dry-run]      전체 증분 수집 후 미전송·변경분 전송 (--dry-run: 보낼 요청 그대로 출력)
+gitfolio list                  등록 저장소, 커밋 수, 훅 상태, 의존성 파일, 마지막 수집
+gitfolio export                로컬 데이터를 JSON으로 출력 (전송 형태와 같은 필드)
+gitfolio deps [on|off]         의존성 분석 상태 보기·켜기·끄기 (off: 로컬 삭제. 서버 전송·삭제는 서버 2차)
 gitfolio deps review [경로]    매니저 파일 승인·거절 변경, 확인 대기 처리
 gitfolio config                현재 설정 출력
-gitfolio config mask  add|rm <금지어>
-gitfolio config autosync on|off      push 동기화 켜기·끄기 (기본 on)
-gitfolio export                로컬 데이터 출력 (--format json|md, --since, -o 파일)
-gitfolio version
-gitfolio hook post-commit|pre-push   (내부용, 훅에서 호출)
+gitfolio config mask add|rm <금지어>   커밋 메시지에 적용
+gitfolio config api-url <url>|default  서버 주소 (GITFOLIO_API_URL이 우선)
+gitfolio config autosync on|off        push 직후 전송 켜기·끄기 (기본 on)
+gitfolio schedule [HH:MM|off]  예약 동기화 설정·해제, 인자 없으면 예약 시각·마지막 동기화 결과 (7.5)
+gitfolio version | help
+gitfolio hook post-commit|pre-push|push-wait   (내부용, 훅에서 호출)
 ```
+
+미구현 (데스크톱 앱·편의 기능, 필요할 때): `list --json`·`sync --json`(앱용 출력), `list`의 저장소별 미전송 수, `export --format md`·`--since`·`-o 파일`
 
 `[경로]` 생략 시 현재 디렉터리.
 
@@ -563,13 +567,16 @@ Enable dependency detection? [y/N]
 | `commits.jsonl` | 커밋 1건당 1줄 |
 | `agent-tags.jsonl` | `post-commit` 훅이 기록한 커밋 해시 → 에이전트 |
 | `deps.json` | 저장소·모듈별 의존성 (의존성 기능 사용 시에만 생성) |
-| `sync.json` | 전송한 계정, 레코드 ID(`provider/namespace/hash`)별 전송 지문(내용 해시), 저장소별 의존성 지문, 대기 중인 삭제 요청, 마지막 동기화 시각 |
+| `sync.json` | 전송한 계정, 레코드 ID(`provider/namespace/hash`)별 전송 지문(내용 해시), 대기 중인 저장소 삭제 요청, 마지막 동기화 시각·실패 사유 |
+| `schedule.log` | 예약 동기화 실행 기록 (macOS·cron) |
 
 커밋 레코드 예:
 
 ```json
-{"repo":"gitfolio","hash":"119fcfa…","date":"2026-09-27T10:00:00+09:00","message":"fix: [TICKET] 파서 수정","files":[{"name":"git.go","add":12,"del":3,"mod":"m1"}],"ai":{"class":"ai_assisted","agents":["claude-code"],"via":["env","trailer"]}}
+{"repo":"3f2a9c01b7de","hash":"119fcfa…","branch":"main","authorEmail":"me@example.com","date":"2026-09-27T10:00:00+09:00","message":"fix: [TICKET] 파서 수정","files":[{"name":"git.go","add":12,"del":3,"module":"m1"}],"creationType":"HUMAN_CO_AI","aiAgents":["claude-code"]}
 ```
+
+(`repo`는 로컬 저장소 ID, `module`은 로컬 전용. 전송할 때는 둘 다 빠지고 저장소는 요청 최상위 `provider`·`namespace`로 간다 — API.md 4.1)
 
 ## 9. 알려진 한계
 
