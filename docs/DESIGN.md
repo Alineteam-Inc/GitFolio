@@ -69,7 +69,6 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 | CLI 파싱 | 표준 라이브러리 `flag` | 서브커맨드 수가 적어 프레임워크 불필요 |
 | 로컬 저장 | JSON (설정), JSON Lines (커밋) | 표준 라이브러리로 처리, 사람이 읽을 수 있음 |
 | 서버 통신 | 표준 `net/http`, HTTPS 전용 | |
-| 기기 키 | 표준 `crypto/ed25519` | 기기 등록용 키 쌍 (6.1). 외부 의존 없음 |
 | 예약 실행 | macOS `launchd`, Linux `systemd --user` 타이머 (없으면 `crontab`) | OS 기본 스케줄러 사용, 상주 프로세스 없음 |
 | 화면 언어 | 영어 기본, 한국어·일본어 지원 (7.1) | 공개 배포 대상 |
 | 배포 | GitHub Releases + Homebrew tap + `install.sh` | GoReleaser로 자동화 |
@@ -192,7 +191,7 @@ Allow reading which files? [all / none / 1,3] >
 | 이메일 | 정규식 | `[EMAIL]` |
 | IP 주소 | 정규식 | `[IP]` |
 | 티켓 번호 | `ABC-123`, `#123` | `[TICKET]` |
-| 토큰·키 | 알려진 접두사 (`ghp_`, `github_pat_`, `sk-`, `AKIA`, `xox*-`, JWT, 개인 키 헤더, aline.team 토큰 `al-` 등) | `[SECRET]` |
+| 토큰·키 | 알려진 접두사 (`ghp_`, `github_pat_`, `sk-`, `AKIA`, `xox*-`, JWT, 개인 키 헤더, aline.team 토큰 `aln_cli_` 등) | `[SECRET]` |
 | 고객사명·내부 프로젝트명 | 사용자 등록 금지어 (대소문자 무시) | `[REDACTED]` |
 
 - 적용 순서: AI 판정(원문) → 토큰·키 → URL → 이메일 → IP → 티켓 번호 → 금지어. 결과를 다시 마스킹해도 달라지지 않음
@@ -249,51 +248,30 @@ Allow reading which files? [all / none / 1,3] >
 
 ### 6.1 가입·로그인
 
+> 서버와 합의한 계약: [API.md](API.md) 1장 (aline.team `feat/cli-token`, 2026-09-29)
+
 **aline.team 가입은 필수이며, 가입·로그인 전에는 GitFolio가 아무것도 수집하거나 동작하지 않는다.** 로그인 전에 허용되는 명령은 `init`, `login`, `version`, 도움말뿐이고, 훅도 로그인 전에는 아무 일도 하지 않는다.
 
 계정은 사용자가 직접 입력하고 소유를 확인한 이메일로만 만든다. `git config user.email`은 계정 생성·로그인에 사용하지 않는다 (누구나 임의의 값으로 바꿀 수 있음). 사용자가 토큰을 직접 복사·입력하는 일은 없다.
 
-1. **의사 확인**: `Do you have an aline.team account? [log in / sign up]`
-2. **국외 이전 동의** (6.3): 이메일을 서버로 보내기 전에 받음
-3. **이메일 입력**: 사용자가 직접 입력 (자동 채움 없음)
-4. **이메일 소유 확인**: 서버가 해당 이메일로 일회용 코드 발송 → CLI에 입력
-   - 가입: 계정 생성 / 로그인: 기존 계정 확인. 선택과 실제 상태가 다르면 알리고 올바른 절차로 안내
-5. **기기 등록**: `init` 때 생성한 기기 키(6.1.1)의 공개 키를 계정에 등록
-6. **토큰 발급**: 서버가 이 기기 전용 토큰(`al-…`)을 발급 → `credentials.json`(권한 0600)에 저장, 이후 요청에 `Authorization: Bearer <토큰>`으로 사용
+1. **고지**: 계정이 없으면 새로 가입되며, 가입하면 이용약관(https://aline.team/terms)과 개인정보처리방침(https://aline.team/privacy, 국외 이전 내용 포함)에 동의한 것으로 간주함을 이메일 입력 전에 안내 (웹 가입과 같은 방식, 별도 동의 단계·기록 없음)
+2. **이메일 입력**: 사용자가 직접 입력 (자동 채움 없음)
+3. **이메일 소유 확인**: 서버가 해당 이메일로 6자리 코드 발송 → CLI에 입력. 틀리면 재입력
+4. **가입 또는 로그인**: 미가입 이메일이면 서버가 가입 처리, 기존 계정이면 로그인 (가입 경로 ALINE·Google·GitHub·LinkedIn 무관). 웹에서 가입하고 이메일 인증을 안 한 계정은 거부되므로 웹 인증 먼저
+5. **토큰 발급**: 이 기기 전용 불투명 토큰(`aln_cli_…`)을 받아 `credentials.json`(권한 0600)에 저장, 이후 요청에 `Authorization: Bearer <토큰>`으로 사용. 기기 이름은 OS·아키텍처만 전송
 
 > ⚠️ git credential helper, `gh` 인증 정보 등 **다른 서비스의 인증 정보는 읽거나 전송하지 않는다.**
 
-#### 6.1.1 기기 키
-
-`init`을 처음 실행할 때 이 컴퓨터에서 생성하는 **이 기기 전용 키 쌍**이다. GitHub에 SSH 공개 키를 등록하는 것과 같은 방식이다.
-
-| 구성 | 설명 |
-|---|---|
-| 개인 키 | 이 컴퓨터의 `credentials.json`(권한 0600)에만 저장. **서버를 포함해 어디로도 전송하지 않음** |
-| 공개 키 | 가입·로그인 시 aline.team 계정에 등록 |
-| 기기 ID | 공개 키의 SHA-256 지문 앞부분 (예: `SHA256:3f9a…`). aline.team 기기 목록에서 기기를 구분하는 용도 |
-
-생성 로직:
-
-1. `init` 시작 시 `credentials.json`에 개인 키가 있는지 확인. 있으면 재사용
-2. 없으면 `crypto/ed25519.GenerateKey(crypto/rand.Reader)`로 생성 (표준 라이브러리)
-3. 파일 권한 0600으로 저장한 뒤 기기 ID를 화면에 표시
-4. `logout`하면 개인 키도 삭제. 다음 `init`·`login` 때 새로 생성
-
-쓰임:
-
-| 상황 | 동작 |
-|---|---|
-| 토큰 만료 | 서버가 보낸 임의 값에 개인 키로 서명 → 이메일 코드 없이 새 토큰 발급 |
-| 토큰 유출 | 토큰만으로는 재발급 불가 (개인 키가 없으므로). 서버가 토큰·기기 서명을 함께 요구하면 유출 토큰 단독 사용도 차단 |
-| 기기 분실·교체 | aline.team 기기 목록에서 해당 기기 ID만 폐기 |
-
-- 요청마다 서명할지, 토큰 재발급 때만 서명할지는 API 명세에 따른다
-
 | 규칙 | 내용 |
 |---|---|
-| 토큰 취급 | 사용자에게 표시하지 않음. 로그·에러 메시지·`--dry-run` 출력에도 표시하지 않음. 커밋 메시지에 섞이면 마스킹(`al-` 패턴) |
-| 만료·폐기 | 만료 시 기기 키 서명으로 자동 재발급. 기기가 폐기된 경우 `gitfolio login` 재인증 안내. `logout`은 로컬 토큰·기기 키 삭제 + 서버 폐기 요청 |
+| 토큰 취급 | 사용자에게 표시하지 않음. 로그·에러 메시지·`--dry-run` 출력에도 표시하지 않음. 커밋 메시지에 섞이면 마스킹(`aln_cli_` 패턴) |
+| 수명 | **활동 기반 슬라이딩 만료**: 인증된 호출(push 직후 전송·sync)이 있으면 연장, **일정 기간 비활동 시 서버가 폐기**. 평소 push하는 사용자는 로그인이 유지됨 |
+| 만료·폐기 | 서버가 `A001`로 거부하면 로컬 토큰을 삭제하고 `gitfolio login` 재로그인 안내. **자동 재발급 없음** |
+| 기기 분실·교체 | aline.team 웹의 CLI 토큰 목록에서 해당 토큰 폐기. 서버 API(`GET [internal]`, `DELETE …/{id}`)는 있고 **웹 화면은 추후** (2026-09-29 결정).  |
+| 로그아웃 | `logout`: 서버에 토큰 폐기 요청(실패해도 진행) + 로컬 토큰 삭제 |
+
+- **기기 키(ed25519) 방식은 채택하지 않음** (서버 결정, 2026-09-29): 개인 키와 토큰이 같은 `credentials.json`에 있어 보안 이득이 작다는 판단. 토큰 만료 시 재로그인
+
 #### 6.1.2 작업 이메일 추가 인증
 
 본인 커밋 식별(3.2)의 기본 이메일 외에, 회사·개인 등 **다른 작업 이메일을 인증받아 추가**할 수 있다.
@@ -343,29 +321,10 @@ Allow reading which files? [all / none / 1,3] >
 
 - 서버 데이터는 **미국, Google Cloud Platform**에 보관
 - **보관 기간**: 최초 가입일로부터 1년. 1년이 지난 시점에 계속 이용 중(동기화 호출이 지속적으로 발생)이면 **자동 연장**
-- 개인정보처리방침: https://aline.team/privacy
-- 한국 개인정보보호법상 국외 이전에 해당하므로, **가입·로그인 시 국외 이전 고지·동의**를 받는다
-- **동의하지 않으면**: 가입할 수 없으므로 GitFolio를 사용할 수 없음 (6.1)
-
-```
-[Cross-border data transfer]
- Recipient : Alineteam Inc. (aline.team)
- Location  : United States - Google Cloud Platform ([region])
- Items     : commit hashes, author emails, masked commit messages,
-             timestamps, file names, line counts, AI usage,
-             repository namespaces (owner/repo),
-             dependency names/versions (only if allowed)
- Purpose   : developer profile and resume analysis
- When/How  : after each successful git push, and on scheduled or
-             manual sync, over HTTPS
- Retention : 1 year from your sign-up date, renewed automatically
-             while you keep using GitFolio
- Details   : https://aline.team/privacy
- You may decline, but GitFolio cannot be used without this consent.
-Agree? [y/N]
-```
-
-- 고지 항목(이전 항목, 국가, 시기·방법, 받는 자, 목적, 보관 기간, 거부 방법)은 법무 검토 중 (11장)
+- 이용약관: https://aline.team/terms, 개인정보처리방침: https://aline.team/privacy
+- 국외 이전 내용은 개인정보처리방침에 공개되어 있고, **가입을 이용약관·개인정보처리방침 동의로 간주**한다 (서버 결정, 웹 가입과 동일). 별도 동의 화면·기록은 두지 않음
+- CLI는 시작 화면의 데이터 정책(7.2)과 `login`의 가입 고지(6.1)에서 미국 전송 사실과 두 문서 주소를 알린다
+- 개인정보처리방침에 국외 이전 내용 명시 작업 진행 중 (2026-09-29) — 출시 전 완료 필요 (ROADMAP 9)
 
 ### 6.4 데스크톱 앱 연계
 
@@ -413,8 +372,8 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
 
 | 단계 | 내용 |
 |---|---|
-| 0 | 시작 화면: 로고 · 라이선스 · 데이터 정책 → Enter → 기기 키 생성(6.1.1), 기기 ID 표시 |
-| 1 | **aline.team 가입·로그인 (필수)**: 국외 이전 동의 → 이메일 입력·확인 → 기기 등록. 완료하지 않으면 여기서 종료 |
+| 0 | 시작 화면: 로고 · 라이선스 · 데이터 정책 → Enter |
+| 1 | **aline.team 가입·로그인 (필수)**: 이용약관·개인정보처리방침 고지 → 이메일 입력 → 확인 코드 → 토큰 저장. 완료하지 않으면 여기서 종료 |
 | 2 | 저장소 모음 경로 입력 |
 | 3 | 본인 커밋 식별 이메일 확인 (기본 `git config user.email` + 작업 이메일 추가 인증) |
 | 4 | 의존성 분석 기능 동의 (y/N) |
@@ -478,7 +437,7 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
 - `init`과 `version`에서만 표시. 다른 명령과 훅에서는 표시하지 않음
 - 정책 문구는 실제 동작과 반드시 일치시킨다. 기능이 바뀌면 모든 언어의 문구를 함께 수정
 
-**1. aline.team 가입·로그인** (6.1, 필수): 계정 유무 확인(로그인 / 가입) → 국외 이전 동의(6.3) → 이메일 직접 입력 → 확인 코드 → 기기 공개 키 등록
+**1. aline.team 가입·로그인** (6.1, 필수): 이용약관·개인정보처리방침 고지(가입 시 동의로 간주) → 이메일 직접 입력 → 확인 코드 → 토큰 저장
 - 동의하지 않거나 인증을 마치지 않으면 `init`을 종료. 이후 단계는 진행하지 않음
 
 **2. 저장소 모음 경로 입력**
@@ -588,7 +547,7 @@ Enable dependency detection? [y/N]
 | 파일 | 내용 |
 |---|---|
 | `config.json` | 저장소 모음 경로, 인증된 작업 이메일 목록(서버 캐시), 금지어, 의존성 기능 동의, push 동기화 on/off, 예약 시각 |
-| `credentials.json` | 기기 개인 키(`init` 시 생성), 기기 토큰, 국외 이전 동의 시각 (권한 0600) |
+| `credentials.json` | aline.team CLI 토큰(`aln_cli_…`)·만료 시각·계정 이메일 (권한 0600) |
 | `repos.json` | 등록 저장소: 로컬 경로, 마스킹된 이름, 마지막 수집 정보, 매니저 파일 승인·거절·대기 목록 (**로컬 전용, 전송 안 함**) |
 | `commits.jsonl` | 커밋 1건당 1줄 |
 | `agent-tags.jsonl` | `post-commit` 훅이 기록한 커밋 해시 → 에이전트 |
@@ -628,7 +587,8 @@ Enable dependency detection? [y/N]
 
 | # | 항목 | 상태 | 필요한 것 | 막히는 단계 |
 |---|---|---|---|---|
-| 1 | aline.team API 명세 | 전달 예정 | 계정 존재 확인, 이메일 확인 코드 발송·검증, 작업 이메일 추가 인증·목록, 기기 공개 키 등록, 토큰 발급, namespace → `repositoryUid` 조회, 기기 서명 재발급, 레코드 스키마, 삭제·토큰 폐기 API | ROADMAP 6, 7 |
+| 1 | aline.team 데이터 API | 서버 다음 브랜치에서 합의 | 커밋 전송·의존성·작업 이메일 인증·삭제 API, namespace → `repositoryUid` 조회 (API.md 4장). 인증 API는 합의 완료 | ROADMAP 7 |
+| 1-1 | 개발·스테이징 서버 | 미정 | dev·로컬 프로파일은 본문 암호화([server filter])로 평문 CLI 호출 불가. 그전까지 가짜 서버로 개발 | ROADMAP 7 |
 | — | 국외 이전 고지 문구 | ✅ 완료 | 법무 검토 조항은 https://aline.team/privacy 에 반영됨. CLI 동의 화면은 이 방침과 일치시킴 | |
 | 2 | 개인정보처리방침 수집 항목 갱신 | aline.team 측 작업 | 커밋 해시, 작성자 이메일, AI 사용 여부, 저장소 namespace 추가 수집을 https://aline.team/privacy 에 반영 | ROADMAP 9 |
 | — | `repositoryUid` | ✅ 확정 | CLI는 namespace(`소유자/저장소`)를 보내고 aline.team 서버가 git 서비스 API로 조회 (3.1) | |
@@ -637,7 +597,7 @@ Enable dependency detection? [y/N]
 | — | 본인 커밋 식별 이메일 | ✅ 확정 | 기본 `git config user.email` + aline.team에서 인증한 작업 이메일 (3.2, 6.1.2) | |
 | — | 가입 전 동작 | ✅ 확정 | 가입·로그인 전에는 수집·동작 없음 (6.1) | |
 | — | 보관 기간 | ✅ 확정 | 가입일로부터 1년, 이용 중이면 자동 연장 (6.3) | |
-| — | 기기 인가 정보 | ✅ 확정 | `init` 시 생성하는 기기 키 (6.1.1) | |
+| — | 인증 방식 | ✅ 확정 (서버 결정) | 이메일 코드 로그인 + 불투명 토큰 `aln_cli_…`(활동 시 연장, 일정 기간 비활동 시 폐기). 기기 키 방식은 채택하지 않음 (6.1, API.md) | |
 | — | 계정 생성 | ✅ 확정 | 가입 필수, 직접 입력·확인한 이메일만. `git config user.email` 사용 안 함 | |
 | — | 개인정보처리방침 URL | ✅ 확정 | https://aline.team/privacy | |
 | — | 보관 지역 | ✅ 확정 | GCP [region] (미국) | |
