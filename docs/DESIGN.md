@@ -601,6 +601,7 @@ Enable dependency detection? [y/N]
 | — | 국외 이전 고지 문구 | ✅ 완료 | 법무 검토 조항은 https://aline.team/privacy 에 반영됨. CLI 동의 화면은 이 방침과 일치시킴 | |
 | 2 | 개인정보처리방침 수집 항목 갱신 | aline.team 측 작업 | 커밋 해시, 작성자 이메일, AI 사용 여부, 저장소 namespace 추가 수집을 https://aline.team/privacy 에 반영 | ROADMAP 9 |
 | — | `repositoryUid` | ✅ 확정 | CLI는 namespace(`소유자/저장소`)를 보내고 aline.team 서버가 git 서비스 API로 조회 (3.1) | |
+| 1-2 | 시각 파생 필드(`hour_of_day`·`day_of_week`·`is_after_hours`, 집중 시간 히트맵)가 UTC 기준 | 서버 별도 과제 (2026-09-29) | 사용자 시간대로 계산. CLI는 오프셋 포함 `date`를 계속 보내므로 변경 없음 (API.md 6장) | 서버 |
 | 3 | 데스크톱 앱 범위·일정 | 미정 | 앱이 CLI를 호출하는 방식(6.4)으로 갈지 | 이후 |
 | 4 | 일본어 문구 | 미정 | 원어민 검수 | ROADMAP 9 |
 | — | 본인 커밋 식별 이메일 | ✅ 확정 | 저장소별 `git config user.email`. 작업 이메일 인증은 서버 결정으로 제외, 서버는 `authorEmail`을 신뢰 (3.2, 6.1.2) | |
