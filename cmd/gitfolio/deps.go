@@ -452,7 +452,7 @@ func interactive() bool {
 var stdinClosed bool
 
 func prompt(q string) string {
-	fmt.Print(q)
+	fmt.Print(indent(q))
 	line, err := stdin.ReadString('\n')
 	if err != nil {
 		stdinClosed = true

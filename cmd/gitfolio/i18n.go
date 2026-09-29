@@ -1,6 +1,9 @@
 package main
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // detectLang picks the screen language from the environment (DESIGN 7.1): English by default,
 // Korean or Japanese when the system language says so. The first variable that is set wins.
@@ -20,6 +23,41 @@ func detectLang(getenv func(string) string) string {
 		return "en"
 	}
 	return "en"
+}
+
+// statusPrefix marks GitFolio's own result lines so they stand out among shell and git output.
+// Prompts carry no prefix (it would blur where to type); errors stay "gitfolio: …" on stderr.
+const statusPrefix = "== GitFolio == "
+
+// margin keeps GitFolio's interactive text off the terminal's left edge.
+const margin = "  "
+
+// indent puts the margin in front of every non-empty line of s.
+func indent(s string) string {
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		if l != "" {
+			lines[i] = margin + l
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+// say prints a translated result line with the GitFolio prefix; further lines are indented under it.
+func say(lang, key string, args ...any) {
+	under := strings.Repeat(" ", len(statusPrefix))
+	for i, line := range strings.Split(strings.TrimRight(fmt.Sprintf(tr(lang, key), args...), "\n"), "\n") {
+		if i == 0 {
+			fmt.Println(margin + statusPrefix + line)
+		} else {
+			fmt.Println(margin + under + line)
+		}
+	}
+}
+
+// section prints the separator that opens an interactive command.
+func section(lang, titleKey string) {
+	fmt.Printf("\n%s===== GitFolio · %s =====\n", margin, strings.TrimSpace(tr(lang, titleKey)))
 }
 
 // tr returns the message for lang, falling back to English.
@@ -155,9 +193,9 @@ var messages = map[string]map[string]string{
 		"ja": "\n完了しました。今後、選択したリポジトリで push するたびに自動で収集されます。\nリポジトリを追加するには、いつでも `gitfolio init` を再実行してください。\n",
 	},
 	"signupNotice": {
-		"en": "There is no aline.team account for %s, so a new one will be created.\nSigning up means you agree to\n  Terms of Service: https://aline.team/terms\n  Privacy Policy:   https://aline.team/privacy (includes the transfer to the United States)\n",
-		"ko": "%s(으)로 된 aline.team 계정이 없어 새 계정을 만듭니다.\n가입하면 아래 내용에 동의한 것으로 간주합니다.\n  이용약관: https://aline.team/terms\n  개인정보처리방침: https://aline.team/privacy (미국으로의 국외 이전 내용 포함)\n",
-		"ja": "%s の aline.team アカウントがないため、新しいアカウントを作成します。\n登録すると、以下に同意したものとみなされます。\n  利用規約: https://aline.team/terms\n  プライバシーポリシー: https://aline.team/privacy (米国への国外移転を含む)\n",
+		"en": "There is no aline.team account for %s, so a new one will be created.\nSigning up means you agree to\n  Terms of Service: https://aline.team/terms\n  Privacy Policy:   https://aline.team/privacy\n",
+		"ko": "%s(으)로 된 aline.team 계정이 없어 새 계정을 만듭니다.\n가입하면 아래 내용에 동의한 것으로 간주합니다.\n  이용약관: https://aline.team/terms\n  개인정보처리방침: https://aline.team/privacy\n",
+		"ja": "%s の aline.team アカウントがないため、新しいアカウントを作成します。\n登録すると、以下に同意したものとみなされます。\n  利用規約: https://aline.team/terms\n  プライバシーポリシー: https://aline.team/privacy\n",
 	},
 	"signupAsk": {
 		"en": "Create the account? (check the email for typos) [Y/n] > ",
@@ -189,6 +227,11 @@ var messages = map[string]map[string]string{
 		"ko": "%s(으)로 보낸 확인 코드를 입력하세요 > ",
 		"ja": "%s に送信した確認コードを入力してください > ",
 	},
+	"codeFormat": {
+		"en": "The code is %d digits. Please type it again.\n",
+		"ko": "확인 코드는 숫자 %d자리입니다. 다시 입력하세요.\n",
+		"ja": "確認コードは %d 桁の数字です。もう一度入力してください。\n",
+	},
 	"codeWrong": {
 		"en": "The code is not correct. Please try again.\n",
 		"ko": "확인 코드가 맞지 않습니다. 다시 입력하세요.\n",
@@ -213,6 +256,11 @@ var messages = map[string]map[string]string{
 		"en": "Logging in needs a terminal: run `gitfolio login` there.\n",
 		"ko": "로그인은 터미널에서 해야 합니다. 터미널에서 `gitfolio login`을 실행하세요.\n",
 		"ja": "ログインにはターミナルが必要です。ターミナルで `gitfolio login` を実行してください。\n",
+	},
+	"loginTitle": {
+		"en": "Log in",
+		"ko": "로그인",
+		"ja": "ログイン",
 	},
 	"notLoggedIn": {
 		"en": "Not logged in. Run `gitfolio login`.\n",

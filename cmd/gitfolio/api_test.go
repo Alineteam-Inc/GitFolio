@@ -145,7 +145,7 @@ func TestSignInMeLogout(t *testing.T) {
 	t.Setenv("GITFOLIO_LANG", "ko")       // sent as device.language "KO"
 	codes := []string{"000000", "123456"} // a wrong code (A008) first, then the right one
 	asked := false
-	res, err := c.signIn("dev@example.com", func() (bool, bool) { asked = true; return true, true }, func(retry bool) string {
+	res, err := c.signIn("dev@example.com", func() (bool, bool) { asked = true; return true, true }, func(retry bool, length int) string {
 		code := codes[0]
 		codes = codes[1:]
 		return code
@@ -202,7 +202,7 @@ func TestSignupConfirmation(t *testing.T) {
 			t.Fatal(err)
 		}
 		asked := false
-		_, err = c.signIn("dev@example.com", func() (bool, bool) { asked = true; return tc.confirm, true }, func(bool) string { return "123456" })
+		_, err = c.signIn("dev@example.com", func() (bool, bool) { asked = true; return tc.confirm, true }, func(bool, int) string { return "123456" })
 		srv.Close()
 		if asked != tc.wantAsked || f.verified != tc.wantVerify {
 			t.Errorf("exists=%v: notice shown %v, verify called %v (err %v)", tc.exists, asked, f.verified, err)
@@ -212,6 +212,14 @@ func TestSignupConfirmation(t *testing.T) {
 		}
 		if !tc.wantVerify && err != errSignupCancelled {
 			t.Errorf("declined sign-up returned %v, want errSignupCancelled", err)
+		}
+	}
+}
+
+func TestValidCode(t *testing.T) {
+	for code, want := range map[string]bool{"123456": true, "01293u1": false, "12345": false, "1234567": false, "12 456": false, "": false} {
+		if got := validCode(code, 6); got != want {
+			t.Errorf("validCode(%q) = %v, want %v", code, got, want)
 		}
 	}
 }
