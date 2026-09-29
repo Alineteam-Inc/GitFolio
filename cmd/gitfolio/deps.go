@@ -68,7 +68,7 @@ func manifestCandidates(repo string) []string {
 			continue
 		}
 		if len(files) == maxManifests {
-			fmt.Fprintf(os.Stderr, "gitfolio: more than %d package manager files; the rest are ignored\n", maxManifests)
+			warn(detectLang(os.Getenv), "tooManyManifests", maxManifests)
 			break
 		}
 		files = append(files, p)
@@ -495,27 +495,28 @@ func parseSelection(s string, n int) ([]int, error) {
 // reviewManifests asks which of r's package manager files may be read. It returns false when
 // the user kept the current decisions.
 func reviewManifests(r *Repo) (bool, error) {
+	lang := detectLang(os.Getenv)
 	files := manifestCandidates(r.Path)
 	if len(files) == 0 {
-		fmt.Printf("%s: no package manager files found\n", r.Name)
+		say(lang, "noManifests", r.Name)
 		return false, nil
 	}
-	fmt.Printf("Package manager files in %q. Selected files are read only to detect dependencies:\n", r.Name)
+	fmt.Print(indent(fmt.Sprintf(tr(lang, "manifestsTitle"), r.Name)))
 	for i, f := range files {
-		state := "new"
+		state := tr(lang, "manifestNew")
 		if ok, decided := r.Manifests[f]; decided {
-			state = map[bool]string{true: "allowed", false: "declined"}[ok]
+			state = tr(lang, map[bool]string{true: "manifestAllowed", false: "manifestDeclined"}[ok])
 		}
-		fmt.Printf("  %3d  %-8s  %s\n", i+1, state, f)
+		fmt.Printf("%s%3d  %-8s  %s\n", margin, i+1, state, f)
 	}
 	for {
-		answer := prompt("Allow reading which files? [all / none / 1,3,5-7 / Enter = keep as is] > ")
+		answer := prompt(tr(lang, "manifestsAsk"))
 		if answer == "" {
 			return false, nil
 		}
 		sel, err := parseSelection(answer, len(files))
 		if err != nil {
-			fmt.Println(err)
+			fmt.Print(indent(fmt.Sprintf(tr(lang, "badSelection"), len(files))))
 			continue
 		}
 		r.Manifests = map[string]bool{}
@@ -535,13 +536,14 @@ func cmdDeps(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
+	lang := detectLang(os.Getenv)
 	sub := ""
 	if len(args) > 0 {
 		sub = args[0]
 	}
 	switch sub {
 	case "":
-		fmt.Println("dependency detection:", map[bool]string{true: "on", false: "off"}[cfg.Deps])
+		msg := fmt.Sprintf(tr(lang, "depsStatus"), tr(lang, map[bool]string{true: "on", false: "off"}[cfg.Deps]))
 		for _, r := range repos {
 			allowed := 0
 			for _, ok := range r.Manifests {
@@ -549,17 +551,18 @@ func cmdDeps(dir string, args []string) error {
 					allowed++
 				}
 			}
-			fmt.Printf("  %s: %d allowed, %d waiting for review\n", r.Name, allowed, pendingManifests(r))
+			msg += fmt.Sprintf(tr(lang, "depsRepo"), r.Name, allowed, pendingManifests(r))
 		}
+		show(os.Stdout, msg)
 		return nil
 	case "on":
-		fmt.Print(tr(detectLang(os.Getenv), "depsNotice"))
+		fmt.Print(indent(tr(lang, "depsNotice")))
 		cfg.Deps, cfg.DepsAsked = true, true
 		if err := saveConfig(dir, cfg); err != nil {
 			return err
 		}
 		if !interactive() {
-			fmt.Println("Run `gitfolio deps review` in each repository to choose files.")
+			say(lang, "depsReviewLater")
 			return nil
 		}
 		for i := range repos {
@@ -591,7 +594,7 @@ func cmdDeps(dir string, args []string) error {
 		if err := writeCommits(dir, commits); err != nil {
 			return err
 		}
-		fmt.Println("dependency detection is off; collected dependencies were deleted")
+		say(lang, "depsOff")
 		return saveRepos(dir, repos)
 	case "review":
 		if !cfg.Deps {
@@ -624,6 +627,6 @@ func reviewAndRescan(dir string, r *Repo) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s: dependencies updated, %d commits collected again\n", r.Name, n)
+	say(detectLang(os.Getenv), "depsUpdated", r.Name, n)
 	return nil
 }

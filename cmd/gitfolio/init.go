@@ -21,8 +21,8 @@ const logo = `    _     _      ___  _   _  _____  _____  _____     _     __  __
 
 // header is the logo with version and license; shown by init and version only, never by hooks.
 func header() string {
-	return logo + fmt.Sprintf(" :: GitFolio :: %48s\n", "("+version+")") +
-		" MIT License - Copyright (c) 2026 Alineteam Inc.\n"
+	return indent(logo + fmt.Sprintf(" :: GitFolio :: %48s\n", "("+version+")") +
+		" MIT License - Copyright (c) 2026 Alineteam Inc.\n")
 }
 
 // Credentials live in their own file with owner-only permissions. Nothing here is ever printed.
@@ -45,11 +45,11 @@ func saveCredentials(dir string, c Credentials) error {
 // email, dependency consent and file approval in 6-3.
 func cmdInit(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
-	fmt.Print(header() + "\n" + tr(lang, "policy") + "\n")
+	fmt.Print(header() + "\n" + indent(tr(lang, "policy")) + "\n")
 	if interactive() {
 		prompt(tr(lang, "pressEnter"))
 	}
-	fmt.Print(tr(lang, "loginPending"))
+	say(lang, "loginPending")
 
 	cfg, err := loadConfig(dir)
 	if err != nil {
@@ -59,16 +59,16 @@ func cmdInit(dir string, args []string) error {
 
 	// Step 3: the email that identifies the user's commits (DESIGN 3.2).
 	if out, err := git(".", "config", "--global", "user.email"); err == nil && strings.TrimSpace(out) != "" {
-		fmt.Printf(tr(lang, "identityEmail"), strings.TrimSpace(out))
+		fmt.Print(indent(fmt.Sprintf(tr(lang, "identityEmail"), strings.TrimSpace(out))))
 	} else {
-		fmt.Print(tr(lang, "identityMissing"))
+		fmt.Print(indent(tr(lang, "identityMissing")))
 	}
 
 	// Step 4: dependency detection is off unless the user says yes, and is asked only once.
 	askDeps := !cfg.DepsAsked && interactive() && !stdinClosed
 	deps := cfg.Deps
 	if askDeps {
-		fmt.Print("\n" + tr(lang, "depsNotice"))
+		fmt.Print("\n" + indent(tr(lang, "depsNotice")))
 		answer := strings.ToLower(prompt(tr(lang, "depsAsk")))
 		deps = answer == "y" || answer == "yes"
 		askDeps = !stdinClosed // no real answer: ask again next time
@@ -84,7 +84,8 @@ func cmdInit(dir string, args []string) error {
 		return err
 	}
 
-	fmt.Print(tr(lang, "searching"))
+	fmt.Println()
+	say(lang, "searching")
 	repos, err := loadRepos(dir)
 	if err != nil {
 		return err
@@ -104,16 +105,16 @@ func cmdInit(dir string, args []string) error {
 		}
 	}
 	if len(cands) == 0 {
-		fmt.Print(tr(lang, "noCandidates"))
+		say(lang, "noCandidates")
 		return nil
 	}
 	fmt.Println()
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	for i, c := range cands {
-		fmt.Fprintf(w, "  %d\t%s\t%d\t%s\n", i+1, tildePath(c.path), c.commits, c.last)
+		fmt.Fprintf(w, "%s  %d\t%s\t%d\t%s\n", margin, i+1, tildePath(c.path), c.commits, c.last)
 	}
 	w.Flush()
-	fmt.Print("\n" + tr(lang, "companyNotice"))
+	fmt.Print("\n" + indent(tr(lang, "companyNotice")))
 	var sel []int
 	for interactive() && !stdinClosed {
 		answer := prompt(tr(lang, "selectRepos"))
@@ -123,23 +124,24 @@ func cmdInit(dir string, args []string) error {
 		if sel, err = parseSelection(answer, len(cands)); err == nil {
 			break
 		}
-		fmt.Println(err)
+		fmt.Print(indent(fmt.Sprintf(tr(lang, "badSelection"), len(cands))))
 	}
 	if len(sel) == 0 {
 		if stdinClosed || !interactive() {
-			fmt.Print(tr(lang, "chooseLater"))
+			say(lang, "chooseLater")
 		} else {
-			fmt.Print(tr(lang, "noneSelected"))
+			say(lang, "noneSelected")
 		}
 		return nil
 	}
 	for _, i := range sel {
 		p := cands[i-1].path
 		if err := withLock(dir, func() error { return registerRepo(dir, p) }); err != nil {
-			fmt.Fprintf(os.Stderr, "gitfolio: %s: %v\n", tildePath(p), err)
+			warn(lang, "repoFailed", tildePath(p), err)
 		}
 	}
-	fmt.Print(tr(lang, "initDone"))
+	fmt.Println()
+	say(lang, "initDone")
 	return nil
 }
 
@@ -188,13 +190,13 @@ func askRoots(lang string, saved, args []string) []string {
 		return fallback
 	}
 	for {
-		fmt.Print(tr(lang, "rootsAsk"))
+		fmt.Print(indent(tr(lang, "rootsAsk")))
 		if len(defaults) > 0 {
 			var shown []string
 			for _, d := range defaults {
 				shown = append(shown, tildePath(d))
 			}
-			fmt.Printf(tr(lang, "rootsFound"), strings.Join(shown, ", "))
+			fmt.Print(indent(fmt.Sprintf(tr(lang, "rootsFound"), strings.Join(shown, ", "))))
 		}
 		answer := prompt(tr(lang, "rootsPrompt"))
 		if answer == "" {
@@ -213,7 +215,7 @@ func askRoots(lang string, saved, args []string) []string {
 		if missing == "" {
 			return roots
 		}
-		fmt.Printf(tr(lang, "rootMissing"), missing)
+		fmt.Print(indent(fmt.Sprintf(tr(lang, "rootMissing"), missing)))
 	}
 }
 
