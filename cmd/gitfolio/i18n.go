@@ -134,10 +134,11 @@ var messages = map[string]map[string]string{
    AI usage, and repository namespaces (owner/repo).
  - Files are read only with your approval, and only package
    manager files, only to detect dependencies.
- - Data is masked on this computer and sent to aline.team
-   (Alineteam Inc., United States) after each git push and
-   when you sync. Kept for 1 year from sign-up, renewed
-   automatically while you keep using GitFolio.
+ - Sensitive parts of commit messages (tokens, URLs, emails,
+   ticket numbers, blocked words) are masked on this computer.
+   Data is sent to aline.team (Alineteam Inc., United States)
+   after each git push and when you sync. Kept for 1 year from
+   sign-up, renewed automatically while you keep using GitFolio.
  - An aline.team account is required.
  - Privacy policy: https://aline.team/privacy
 `,
@@ -147,8 +148,9 @@ var messages = map[string]map[string]string{
    파일명, 추가·삭제 줄 수, AI 사용 여부, 저장소 namespace(소유자/저장소)
  - 파일 읽기는 사용자가 승인한 패키지 매니저 파일에 한하며,
    의존성 파악에만 사용합니다.
- - 데이터는 이 컴퓨터에서 마스킹된 뒤, git push 직후와
-   동기화할 때 aline.team(Alineteam Inc., 미국)으로 전송되며
+ - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
+   이 컴퓨터에서 가립니다. 데이터는 git push 직후와 동기화할 때
+   aline.team(Alineteam Inc., 미국)으로 전송되며
    가입일로부터 1년간 보관됩니다. 계속 이용 중이면 자동 연장됩니다.
  - aline.team 가입이 필요합니다.
  - 개인정보처리방침: https://aline.team/privacy
@@ -160,9 +162,10 @@ var messages = map[string]map[string]string{
    追加・削除行数、AI の利用有無、リポジトリ(オーナー/リポジトリ)
  - ファイルの読み取りは、承認されたパッケージマネージャーの
    ファイルに限り、依存関係の把握にのみ使用します。
- - データはこのコンピューターでマスキングされた後、git push の
-   直後と同期時に aline.team(Alineteam Inc.、米国)へ送信され、
-   登録日から1年間保管されます。ご利用中は自動的に延長されます。
+ - コミットメッセージの機密部分(トークン・URL・メールアドレス・
+   チケット番号・ブロックワード)はこのコンピューターでマスキングします。
+   データは git push の直後と同期時に aline.team(Alineteam Inc.、米国)へ
+   送信され、登録日から1年間保管されます。ご利用中は自動的に延長されます。
  - aline.team のアカウントが必要です。
  - プライバシーポリシー: https://aline.team/privacy
 `,
@@ -228,9 +231,9 @@ var messages = map[string]map[string]string{
 		"ja": "あなたのコミットがある新しいリポジトリは見つかりませんでした。\n",
 	},
 	"companyNotice": {
-		"en": "Repositories with your commits are listed above (commits, latest date).\nFrom the chosen ones, only masked commit messages, file names and repository names are sent, never source code.\nHide customer or internal project names with `gitfolio config mask add <word>`.\n",
-		"ko": "위는 본인 커밋이 있는 저장소입니다. (커밋 수, 최근 커밋 날짜)\n선택한 저장소는 소스 코드 없이 커밋 메시지·파일명·저장소 이름만 마스킹해 전송합니다.\n고객사·사내 프로젝트명은 `gitfolio config mask add <단어>`로 가릴 수 있습니다.\n",
-		"ja": "上記はあなたのコミットがあるリポジトリです。(コミット数、最新コミット日)\n選択したリポジトリからは、ソースコードではなく、マスキングしたコミットメッセージ・ファイル名・リポジトリ名のみを送信します。\n顧客名や社内プロジェクト名は `gitfolio config mask add <単語>` で隠せます。\n",
+		"en": "Repositories with your commits are listed above (commits, latest date).\nFrom the chosen ones, commit information is sent, never source code; sensitive parts of commit messages are masked.\nHide customer or internal project names in commit messages with `gitfolio config mask add <word>`.\n",
+		"ko": "위는 본인 커밋이 있는 저장소입니다. (커밋 수, 최근 커밋 날짜)\n선택한 저장소는 소스 코드 없이 커밋 정보만 전송하며, 커밋 메시지의 민감한 부분은 가려서 보냅니다.\n커밋 메시지 속 고객사·사내 프로젝트명은 `gitfolio config mask add <단어>`로 가릴 수 있습니다.\n",
+		"ja": "上記はあなたのコミットがあるリポジトリです。(コミット数、最新コミット日)\n選択したリポジトリからは、ソースコードではなくコミット情報のみを送信し、コミットメッセージの機密部分はマスキングします。\nコミットメッセージ内の顧客名や社内プロジェクト名は `gitfolio config mask add <単語>` で隠せます。\n",
 	},
 	"selectRepos": {
 		"en": "Which repositories should GitFolio collect? [all / 1,3,5-7 / Enter = none] > ",

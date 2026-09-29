@@ -444,7 +444,7 @@ func cmdConfig(dir string, args []string) error {
 	return remask(dir, newMasker(cfg.Mask))
 }
 
-// remask applies m to everything already stored, so a newly blocked word disappears from past data too.
+// remask applies m to the stored commit messages, so a newly blocked word disappears from past data too.
 func remask(dir string, m masker) error {
 	commits, err := readCommits(dir)
 	if err != nil {
@@ -454,16 +454,6 @@ func remask(dir string, m masker) error {
 		m.commit(&commits[i])
 	}
 	if err := writeCommits(dir, commits); err != nil {
-		return err
-	}
-	repos, err := loadRepos(dir)
-	if err != nil {
-		return err
-	}
-	for i := range repos {
-		repos[i].Name = m.apply(filepath.Base(repos[i].Path))
-	}
-	if err := saveRepos(dir, repos); err != nil {
 		return err
 	}
 	say(detectLang(os.Getenv), "maskApplied", len(commits))
