@@ -216,11 +216,11 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 		return 0, err
 	}
 	m := newMasker(cfg.Mask)
-	r.Name = m.apply(filepath.Base(r.Path))
+	r.Name = filepath.Base(r.Path)
 	r.Provider, r.Namespace = remote(r.Path)
 	var modules map[string]string
 	if cfg.Deps {
-		if modules, err = refreshDeps(dir, r, m); err != nil {
+		if modules, err = refreshDeps(dir, r); err != nil {
 			return 0, err
 		}
 	}

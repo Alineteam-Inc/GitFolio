@@ -64,10 +64,6 @@ func (m masker) apply(s string) string {
 	return s
 }
 
-// commit masks the message and file names of c (not the branch, see remoteBranches). AI detection must already have run on the raw message.
-func (m masker) commit(c *Commit) {
-	c.Message = m.apply(c.Message)
-	for i := range c.Files {
-		c.Files[i].Name = m.apply(c.Files[i].Name)
-	}
-}
+// commit masks the sensitive parts of c's message, the only text GitFolio masks (DESIGN 4); file,
+// repository and branch names are kept as they are. AI detection must already have run on the raw message.
+func (m masker) commit(c *Commit) { c.Message = m.apply(c.Message) }
