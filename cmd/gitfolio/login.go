@@ -112,7 +112,7 @@ func cmdLogout(dir string) error {
 	}
 	if c.loggedIn() {
 		if err := c.call("POST", "/gitfolio/auth/logout", nil, nil); err != nil {
-			fmt.Fprintln(os.Stderr, "gitfolio: server logout failed, removing local credentials anyway:", err)
+			warn(detectLang(os.Getenv), "logoutServerFailed", err)
 		}
 	}
 	if err := saveCredentials(dir, Credentials{}); err != nil {
