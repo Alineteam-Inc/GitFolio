@@ -39,16 +39,16 @@ type syncPayload struct {
 }
 
 // commitBatch is one POST /cli/commits/batch request: one repository and its commits (docs/API.md 4.1).
+// The server knows the repository by provider and namespace; the local name is not sent.
 type commitBatch struct {
 	Provider  string   `json:"provider"`
 	Namespace string   `json:"namespace"`
-	Repo      string   `json:"repo"`
 	Commits   []Commit `json:"commits"`
 }
 
 // request builds the body for commits of one repository; the repository fields move to the top.
 func request(commits []Commit) commitBatch {
-	b := commitBatch{Provider: commits[0].Provider, Namespace: commits[0].Namespace, Repo: commits[0].Repo}
+	b := commitBatch{Provider: commits[0].Provider, Namespace: commits[0].Namespace}
 	for _, c := range commits {
 		c.Provider, c.Namespace, c.Repo = "", "", ""
 		b.Commits = append(b.Commits, c)
