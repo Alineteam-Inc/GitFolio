@@ -52,7 +52,8 @@ func TestParseRemote(t *testing.T) {
 	}
 }
 
-// webURL builds a repository address from provider and namespace the way aline.team does (docs/API.md 4).
+// webURL builds a repository address from provider and namespace the way aline.team does (docs/API.md 4,
+// confirmed by aline.team 2026-09-29): each path segment is percent-encoded, "/" stays a separator.
 func webURL(provider, namespace string) string {
 	seg := strings.Split(namespace, "/")
 	for i := range seg {
@@ -69,6 +70,7 @@ func webURL(provider, namespace string) string {
 		if len(seg) == 3 {
 			return "https://dev.azure.com/" + seg[0] + "/" + seg[1] + "/_git/" + seg[2]
 		}
+		return "https://dev.azure.com/" + strings.Join(seg, "/")
 	}
 	return "" // OTHER has no address
 }
@@ -87,6 +89,7 @@ func TestRemoteGivesWebURL(t *testing.T) {
 		"git@bitbucket.org:workspace/repo.git":                          "https://bitbucket.org/workspace/repo",
 		"https://user@bitbucket.org/workspace/repo.git":                 "https://bitbucket.org/workspace/repo",
 		"https://org@dev.azure.com/org/My%20Project/_git/repo":          "https://dev.azure.com/org/My%20Project/_git/repo",
+		"https://dev.azure.com/org/%ED%95%9C%EA%B8%80/_git/repo":        "https://dev.azure.com/org/%ED%95%9C%EA%B8%80/_git/repo",
 		"git@ssh.dev.azure.com:v3/org/My%20Project/repo":                "https://dev.azure.com/org/My%20Project/_git/repo",
 		"https://org.visualstudio.com/DefaultCollection/Proj/_git/repo": "https://dev.azure.com/org/Proj/_git/repo",
 		"org@vs-ssh.visualstudio.com:v3/org/Proj/repo":                  "https://dev.azure.com/org/Proj/_git/repo",
