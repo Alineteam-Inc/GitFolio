@@ -60,6 +60,13 @@ func TestHooksEndToEnd(t *testing.T) {
 	run(nil, repo, "git", "commit", "-q", "-m", "plain")
 	run(nil, repo, "git", "push", "-q", "-u", "origin", "main")
 
+	dir, err := dataDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := saveCredentials(dir, Credentials{Token: testToken}); err != nil { // nothing is collected before login
+		t.Fatal(err)
+	}
 	run(nil, repo, "gitfolio", "add", ".")
 	if b, _ := os.ReadFile(filepath.Join(hooks, "pre-push")); !strings.Contains(string(b), hookMarker) {
 		t.Fatal("pre-push hook not installed")
@@ -77,10 +84,6 @@ func TestHooksEndToEnd(t *testing.T) {
 		t.Error("the pre-existing pre-push hook did not run")
 	}
 
-	dir, err := dataDir()
-	if err != nil {
-		t.Fatal(err)
-	}
 	var got *Commit
 	for deadline := time.Now().Add(15 * time.Second); got == nil && time.Now().Before(deadline); time.Sleep(200 * time.Millisecond) {
 		commits, _ := readCommits(dir)
@@ -104,5 +107,26 @@ func TestHooksEndToEnd(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(hooks, "post-commit")); err == nil {
 		t.Error("post-commit hook left behind after remove")
+	}
+}
+
+// Before login nothing is collected: collecting commands fail with a hint and hooks do nothing,
+// while settings and cleanup still work (DESIGN 6.1).
+func TestLoginGate(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("CLAUDECODE", "1") // post-commit would record this tag if it ran
+	t.Chdir(t.TempDir())        // not a git repository: a hook that ran would fail
+	if err := run([]string{"scan"}); err == nil || !strings.Contains(err.Error(), "gitfolio login") {
+		t.Errorf("scan before login: %v, want a login hint", err)
+	}
+	if err := run([]string{"deps", "review"}); err == nil {
+		t.Error("deps review ran before login")
+	}
+	for _, args := range [][]string{{"hook", "post-commit"}, {"hook", "push-wait"}, {"config", "api-url", "default"}, {"deps", "off"}} {
+		if err := run(args); err != nil {
+			t.Errorf("%v before login: %v", args, err)
+		}
 	}
 }

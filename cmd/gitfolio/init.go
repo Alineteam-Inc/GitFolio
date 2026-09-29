@@ -41,15 +41,20 @@ func saveCredentials(dir string, c Credentials) error {
 	return saveJSON(filepath.Join(dir, "credentials.json"), c) // 0600
 }
 
-// cmdInit walks a new user through setup (DESIGN 7.2). Sign-up and login come in ROADMAP step 7;
-// email, dependency consent and file approval in 6-3.
+// cmdInit walks a new user through setup (DESIGN 7.2). Nothing after the login step runs until the
+// user is logged in to aline.team.
 func cmdInit(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
 	fmt.Print(header() + "\n" + indent(tr(lang, "policy")) + "\n")
 	if interactive() {
 		prompt(tr(lang, "pressEnter"))
 	}
-	say(lang, "loginPending")
+	if err := cmdLogin(dir); err != nil {
+		return err
+	}
+	if creds, err := loadCredentials(dir); err != nil || creds.Token == "" {
+		return err // sign-up declined: nothing is set up before login
+	}
 
 	cfg, err := loadConfig(dir)
 	if err != nil {
