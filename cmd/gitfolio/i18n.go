@@ -208,10 +208,55 @@ var messages = map[string]map[string]string{
 		"ko": "폴더를 찾을 수 없습니다: %s\n",
 		"ja": "フォルダーが見つかりません: %s\n",
 	},
-	"identityEmail": {
-		"en": "\nYour commits are identified by: %s (git config)\n",
-		"ko": "\n본인 커밋은 이 이메일로 식별합니다: %s (git config)\n",
-		"ja": "\nあなたのコミットはこのメールアドレスで識別します: %s (git config)\n",
+	"identityWork": {
+		"en": "Your commits are the ones by these work emails (and each repository's git email);\naline.team gets them all under the primary email ★.\n",
+		"ko": "아래 작업 이메일(과 저장소별 git 이메일)로 쓴 커밋을 본인 커밋으로 모으고,\naline.team에는 모두 ★ 대표 이메일로 보냅니다.\n",
+		"ja": "以下の作業用メールアドレス(とリポジトリごとの git のメールアドレス)のコミットをあなたのコミットとして集め、\naline.team にはすべて ★ 代表メールアドレスで送信します。\n",
+	},
+	"emailMoreAsk": {
+		"en": "Any other work emails? Their commits count as yours too.\n[comma-separated / Enter = none] > ",
+		"ko": "다른 작업 이메일이 있나요? 그 이메일로 쓴 커밋도 본인 커밋으로 모읍니다.\n[쉼표로 구분 / Enter = 없음] > ",
+		"ja": "他の作業用メールアドレスはありますか?そのアドレスのコミットもあなたのコミットとして集めます。\n[カンマ区切り / Enter = なし] > ",
+	},
+	"emailList": {
+		"en": "Work emails (★ primary)\n",
+		"ko": "작업 이메일 (★ 대표)\n",
+		"ja": "作業用メールアドレス (★ 代表)\n",
+	},
+	"emailNone": {
+		"en": "No work emails yet. Add one with `gitfolio email add <email>`.\n",
+		"ko": "등록한 작업 이메일이 없습니다. `gitfolio email add <이메일>`로 추가하세요.\n",
+		"ja": "作業用メールアドレスはまだありません。`gitfolio email add <メールアドレス>` で追加してください。\n",
+	},
+	"emailAdded": {
+		"en": "Added. The next scan also collects their commits.\n",
+		"ko": "추가했습니다. 다음 수집부터 이 이메일의 커밋도 모읍니다.\n",
+		"ja": "追加しました。次の収集からこのアドレスのコミットも集めます。\n",
+	},
+	"emailRemoved": {
+		"en": "Removed. Commits already collected stay.\n",
+		"ko": "삭제했습니다. 이미 모은 커밋은 그대로 둡니다.\n",
+		"ja": "削除しました。すでに集めたコミットはそのままです。\n",
+	},
+	"emailPrimary": {
+		"en": "Primary email is now %s.\n",
+		"ko": "대표 이메일을 %s(으)로 바꿨습니다.\n",
+		"ja": "代表メールアドレスを %s に変更しました。\n",
+	},
+	"emailBad": {
+		"en": "Not a valid email address: %s\n",
+		"ko": "올바른 이메일 주소가 아닙니다: %s\n",
+		"ja": "正しいメールアドレスではありません: %s\n",
+	},
+	"emailNotFound": {
+		"en": "Not one of your work emails: %s\n",
+		"ko": "등록된 작업 이메일이 아닙니다: %s\n",
+		"ja": "登録された作業用メールアドレスではありません: %s\n",
+	},
+	"emailRmPrimary": {
+		"en": "%s is the primary email. Make another one primary first: gitfolio email primary <email>\n",
+		"ko": "대표 이메일은 지울 수 없습니다: %s\n먼저 다른 이메일을 대표로 지정하세요: gitfolio email primary <이메일>\n",
+		"ja": "代表メールアドレスは削除できません: %s\n先に別のアドレスを代表に指定してください: gitfolio email primary <メールアドレス>\n",
 	},
 	"identityMissing": {
 		"en": "\ngit user.email is not set, so your commits cannot be identified.\nSet it with: git config --global user.email you@example.com\n",
@@ -264,9 +309,9 @@ var messages = map[string]map[string]string{
 		"ja": "ターミナルで `gitfolio init` を実行して選ぶか、`gitfolio add <パス>` で1件ずつ登録してください。\n",
 	},
 	"initDone": {
-		"en": "Setup is done.\nRepositories: %d\nSend right after git push: %s\nDependency detection: %s\nDaily sync: %s\nChange these any time by running `gitfolio init` again, or with `gitfolio config`, `deps` and `schedule`.\n",
-		"ko": "설정을 마쳤습니다.\n등록 저장소: %d개\npush 직후 자동 전송: %s\n의존성 분석: %s\n예약 동기화: %s\n언제든 `gitfolio init`을 다시 실행하거나 `gitfolio config`·`deps`·`schedule`로 바꿀 수 있습니다.\n",
-		"ja": "設定が完了しました。\n登録リポジトリ: %d 件\ngit push 直後の自動送信: %s\n依存関係の分析: %s\n予約同期: %s\nいつでも `gitfolio init` を再実行するか、`gitfolio config`・`deps`・`schedule` で変更できます。\n",
+		"en": "Setup is done.\nRepositories: %d\nPrimary email: %s\nSend right after git push: %s\nDependency detection: %s\nDaily sync: %s\nChange these any time by running `gitfolio init` again, or with `gitfolio config`, `email`, `deps` and `schedule`.\n",
+		"ko": "설정을 마쳤습니다.\n등록 저장소: %d개\n대표 이메일: %s\npush 직후 자동 전송: %s\n의존성 분석: %s\n예약 동기화: %s\n언제든 `gitfolio init`을 다시 실행하거나 `gitfolio config`·`email`·`deps`·`schedule`로 바꿀 수 있습니다.\n",
+		"ja": "設定が完了しました。\n登録リポジトリ: %d 件\n代表メールアドレス: %s\ngit push 直後の自動送信: %s\n依存関係の分析: %s\n予約同期: %s\nいつでも `gitfolio init` を再実行するか、`gitfolio config`・`email`・`deps`・`schedule` で変更できます。\n",
 	},
 	"signupNotice": {
 		"en": "There is no aline.team account for %s, so a new one will be created.\nSigning up means you agree to\n  Terms of Service: https://aline.team/terms\n  Privacy Policy:   https://aline.team/privacy\n",

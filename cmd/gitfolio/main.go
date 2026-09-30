@@ -49,6 +49,9 @@ commands:
                         the GITFOLIO_API_URL environment variable overrides it
   config autosync on|off
                         send to aline.team right after each git push (on by default)
+  email [add <email>... | rm <email> | primary <email>]
+                        your work emails: commits by any of them count as yours, and aline.team
+                        gets all of them under the primary one (the first, marked ★)
   schedule [HH:MM | off]
                         optional daily sync at a local time, for pushes the hooks missed
                         (launchd on macOS, systemd or cron on Linux); no argument: show it
@@ -121,6 +124,8 @@ func run(args []string) error {
 			return cmdDeps(dir, args[1:])
 		case "schedule":
 			return cmdSchedule(dir, args[1:])
+		case "email":
+			return cmdEmail(dir, args[1:])
 		}
 		return failure("unknownCommand", args[0])
 	})
@@ -184,6 +189,13 @@ func registerRepo(dir, top string) error {
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err
+	}
+	if len(cfg.Emails) == 0 { // the first repository's git email becomes the primary work email
+		if out, err := git(top, "config", "user.email"); err == nil && len(addEmails(&cfg, []string{out})) == 0 {
+			if err := saveConfig(dir, cfg); err != nil {
+				return err
+			}
+		}
 	}
 	if cfg.Deps && interactive() {
 		if _, err := reviewManifests(r); err != nil {
