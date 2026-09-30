@@ -3,7 +3,7 @@ name: ci
 # GitFolio runs on macOS, Linux and Windows, so every change is tested on all three.
 on:
   push:
-    branches: [main]
+    branches: [main, stage, prod]
   pull_request:
   workflow_dispatch:
   workflow_call: # release.yml runs this first
