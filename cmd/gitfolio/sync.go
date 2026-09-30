@@ -8,6 +8,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -22,6 +23,7 @@ type syncState struct {
 	Account   string            `json:"account,omitempty"`   // the aline.team account the records below were sent to
 	Commits   map[string]string `json:"commits,omitempty"`   // provider/namespace/hash → fingerprint of the record sent
 	Deletes   []deletion        `json:"deletes,omitempty"`   // repository deletions not yet accepted by the server
+	Changed   map[string]string `json:"changed,omitempty"`   // provider/namespace/path → modifiedAt sent (modifiedFiles)
 	LastSync  string            `json:"lastSync,omitempty"`  // last attempt, shown by `gitfolio schedule`
 	LastError string            `json:"lastError,omitempty"` // why it failed; empty when it went through
 }
@@ -35,24 +37,32 @@ type deletion struct {
 // syncPayload is what the next sync sends, in order. Dependencies are not sent yet: aline.team designs
 // that API in its second phase (docs/API.md 4).
 type syncPayload struct {
-	Deletes  []deletion `json:"deletes"`
-	Commits  []Commit   `json:"commits"`
-	noRemote int        // commits of repositories without a git service remote, never sent
+	Deletes  []deletion                `json:"deletes"`
+	Commits  []Commit                  `json:"commits"`
+	modified map[string][]modifiedFile // provider/namespace → first changes by others not sent yet
+	noRemote int                       // commits of repositories without a git service remote, never sent
+}
+
+// modifiedFile tells aline.team when someone else first changed a file the user created.
+type modifiedFile struct {
+	Name       string `json:"name"`
+	ModifiedAt string `json:"modifiedAt"`
 }
 
 // commitBatch is one POST /cli/commits/batch request: one repository and its commits (docs/API.md 4.1).
 // The server knows the repository by provider and namespace; the local name is not sent.
 type commitBatch struct {
-	Provider    string   `json:"provider"`
-	Namespace   string   `json:"namespace"`
-	AuthorEmail string   `json:"authorEmail"` // the primary work email, for all of the user's commits
-	Commits     []Commit `json:"commits"`
+	Provider      string         `json:"provider"`
+	Namespace     string         `json:"namespace"`
+	AuthorEmail   string         `json:"authorEmail"` // the primary work email, for all of the user's commits
+	Commits       []Commit       `json:"commits"`
+	ModifiedFiles []modifiedFile `json:"modifiedFiles,omitempty"` // first changes by others, at most maxModified
 }
 
 // request builds the body for commits of one repository: the repository fields and the author email
 // move to the top, and every commit goes under author, the primary work email.
-func request(commits []Commit, author string) commitBatch {
-	b := commitBatch{Provider: commits[0].Provider, Namespace: commits[0].Namespace, AuthorEmail: cmp.Or(author, commits[0].AuthorEmail)}
+func request(commits []Commit, author string, modified []modifiedFile) commitBatch {
+	b := commitBatch{Provider: commits[0].Provider, Namespace: commits[0].Namespace, AuthorEmail: cmp.Or(author, commits[0].AuthorEmail), ModifiedFiles: modified}
 	for _, c := range commits {
 		c.Provider, c.Namespace, c.Repo, c.AuthorEmail = "", "", "", ""
 		b.Commits = append(b.Commits, c)
@@ -65,7 +75,8 @@ const (
 	batchSize     = 500   // records per request
 	maxMessage    = 10000 // characters
 	maxFilesSent  = 1000
-	maxNamespace  = 200 // the server keys repositories by "[internal]"
+	maxModified   = 5000 // modifiedFiles per request
+	maxNamespace  = 200  // the server keys repositories by "[internal]"
 	syncStateFile = "sync.json"
 )
 
@@ -73,6 +84,9 @@ func loadSync(dir string) (st syncState, err error) {
 	err = loadJSON(filepath.Join(dir, syncStateFile), &st)
 	if st.Commits == nil {
 		st.Commits = map[string]string{}
+	}
+	if st.Changed == nil {
+		st.Changed = map[string]string{}
 	}
 	return st, err
 }
@@ -97,9 +111,11 @@ func queueDeletion(dir string, d deletion) error {
 	if err != nil {
 		return err
 	}
-	for k := range st.Commits {
-		if strings.HasPrefix(k, d.Provider+"/"+d.Namespace+"/") {
-			delete(st.Commits, k)
+	for _, m := range []map[string]string{st.Commits, st.Changed} {
+		for k := range m {
+			if strings.HasPrefix(k, d.Provider+"/"+d.Namespace+"/") {
+				delete(m, k)
+			}
 		}
 	}
 	if !slices.Contains(st.Deletes, d) {
@@ -111,7 +127,7 @@ func queueDeletion(dir string, d deletion) error {
 // pending works out what aline.team does not have yet. Records are the ones `gitfolio export` shows,
 // cut to the server's limits.
 func pending(dir string, st syncState) (syncPayload, error) {
-	p := syncPayload{Deletes: append([]deletion{}, st.Deletes...), Commits: []Commit{}}
+	p := syncPayload{Deletes: append([]deletion{}, st.Deletes...), Commits: []Commit{}, modified: map[string][]modifiedFile{}}
 	out, err := buildExport(dir)
 	if err != nil {
 		return p, err
@@ -131,7 +147,29 @@ func pending(dir string, st syncState) (syncPayload, error) {
 			p.Commits = append(p.Commits, c)
 		}
 	}
+	repos, err := loadRepos(dir)
+	if err != nil {
+		return p, err
+	}
+	for _, r := range repos {
+		key := r.Provider + "/" + r.Namespace
+		for _, name := range slices.Sorted(maps.Keys(r.Changed)) {
+			if at := r.Changed[name]; r.Namespace != "" && st.Changed[key+"/"+name] != at {
+				p.modified[key] = append(p.modified[key], modifiedFile{name, at})
+			}
+		}
+	}
 	return p, nil
+}
+
+// takeModified hands out the first changes of repository key for one request, at most maxModified.
+// aline.team takes them only in a request with commits, so a repository without new commits keeps them
+// for a later sync.
+func (p *syncPayload) takeModified(key string) []modifiedFile {
+	m := p.modified[key]
+	n := min(len(m), maxModified)
+	p.modified[key] = m[n:]
+	return m[:n]
 }
 
 // batches splits commits into requests of one repository each, at most batchSize records.
@@ -189,7 +227,7 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 	}
 	if st.Account != c.creds.Email {
 		if st.Account != "" { // another account: it has none of this device's records yet
-			st = syncState{Commits: map[string]string{}}
+			st = syncState{Commits: map[string]string{}, Changed: map[string]string{}}
 		}
 		st.Account = c.creds.Email
 	}
@@ -209,7 +247,7 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 			CommitBatches []commitBatch `json:"commitBatches"`
 		}{p.Deletes, []commitBatch{}}
 		for _, b := range batches(p.Commits) {
-			out.CommitBatches = append(out.CommitBatches, request(b, author))
+			out.CommitBatches = append(out.CommitBatches, request(b, author, p.takeModified(b[0].Provider+"/"+b[0].Namespace)))
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
@@ -227,10 +265,15 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 		n.deletes++
 	}
 	for _, batch := range batches(p.Commits) {
-		err := c.upsert(author, batch, func(x Commit, accepted bool) {
+		key := batch[0].Provider + "/" + batch[0].Namespace
+		err := c.upsert(author, batch, p.takeModified(key), func(x Commit, accepted bool) {
 			st.Commits[commitKey(x)] = fingerprint(x)
 			if accepted {
 				n.commits++
+			}
+		}, func(sent []modifiedFile) {
+			for _, f := range sent {
+				st.Changed[key+"/"+f.Name] = f.ModifiedAt
 			}
 		})
 		if serr := save(); err != nil || serr != nil {
@@ -243,8 +286,10 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 // upsert sends commits and calls done for each one the server has dealt with. A batch the server rejects
 // as malformed (C001) is split to find the bad records; those are skipped with a warning and marked done
 // (not accepted), so they are not sent on every push, until they change.
-func (c *client) upsert(author string, commits []Commit, done func(c Commit, accepted bool)) error {
-	err := c.call("POST", "/cli/commits/batch", request(commits, author), nil)
+// The first changes in modified go with the first part of a split batch; if that part is rejected they
+// are not marked sent and go with a later sync.
+func (c *client) upsert(author string, commits []Commit, modified []modifiedFile, done func(c Commit, accepted bool), sent func([]modifiedFile)) error {
+	err := c.call("POST", "/cli/commits/batch", request(commits, author, modified), nil)
 	var ae *apiError
 	if errors.As(err, &ae) && ae.Code == codeBadInput {
 		if len(commits) == 1 {
@@ -253,10 +298,10 @@ func (c *client) upsert(author string, commits []Commit, done func(c Commit, acc
 			return nil
 		}
 		h := len(commits) / 2
-		if err := c.upsert(author, commits[:h], done); err != nil {
+		if err := c.upsert(author, commits[:h], modified, done, sent); err != nil {
 			return err
 		}
-		return c.upsert(author, commits[h:], done)
+		return c.upsert(author, commits[h:], nil, done, sent)
 	}
 	if err != nil {
 		return err
@@ -264,6 +309,7 @@ func (c *client) upsert(author string, commits []Commit, done func(c Commit, acc
 	for _, x := range commits {
 		done(x, true)
 	}
+	sent(modified)
 	return nil
 }
 
