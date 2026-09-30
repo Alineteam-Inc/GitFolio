@@ -131,10 +131,14 @@ func schedule(dir, exe string, h, m int) (string, error) {
 	case "darwin":
 		return logFile, launchdSchedule(exe, logFile, h, m)
 	case "linux":
-		if err := systemdSchedule(exe, h, m); err == nil {
+		serr := systemdSchedule(exe, h, m)
+		if serr == nil {
 			return "journalctl --user -u " + systemdUnit, cronSchedule("", "", -1, -1) // no older cron line running too
 		}
 		removeSystemd() // half set up: leave nothing behind before falling back to cron
+		if _, err := exec.LookPath("crontab"); err != nil {
+			return "", failure("scheduleNoScheduler", serr)
+		}
 		return logFile, cronSchedule(exe, logFile, h, m)
 	}
 	return "", failure("scheduleUnsupported")
