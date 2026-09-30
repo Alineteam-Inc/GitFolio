@@ -128,15 +128,22 @@ func devopsNamespace(host, p string) string {
 	return strings.Join(parts, "/")
 }
 
-// myEmails returns the lowercased emails that identify the user's own commits in repo.
-func myEmails(repo string) (map[string]bool, error) {
-	out, err := git(repo, "config", "user.email")
-	email := strings.ToLower(strings.TrimSpace(out))
-	if err != nil || email == "" {
+// myEmails returns the lowercased emails that identify the user's own commits in repo:
+// the work emails registered with `gitfolio email` and the repository's git config user.email.
+func myEmails(repo string, work []string) (map[string]bool, error) {
+	mine := map[string]bool{}
+	for _, e := range work {
+		mine[strings.ToLower(e)] = true
+	}
+	if out, err := git(repo, "config", "user.email"); err == nil {
+		if e := strings.ToLower(strings.TrimSpace(out)); e != "" {
+			mine[e] = true
+		}
+	}
+	if len(mine) == 0 {
 		return nil, failure("noUserEmail")
 	}
-	// Verified work emails from aline.team are added here in ROADMAP step 7.
-	return map[string]bool{email: true}, nil
+	return mine, nil
 }
 
 // logRange picks what to read: pushed commits when the repository has remotes, otherwise HEAD.
