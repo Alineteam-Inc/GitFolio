@@ -15,11 +15,12 @@ import (
 // pre-push hook, then checks that an agent-made commit is collected and sent to aline.team (a fake
 // server) after git push, that the old hook still runs, and that remove restores it.
 func TestHooksEndToEnd(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("hook scripts need sh")
-	}
 	bin := t.TempDir()
-	if out, err := exec.Command("go", "build", "-o", filepath.Join(bin, "gitfolio"), ".").CombinedOutput(); err != nil {
+	exe := "gitfolio"
+	if runtime.GOOS == "windows" {
+		exe += ".exe" // hooks run under Git for Windows' sh, which finds gitfolio.exe on PATH
+	}
+	if out, err := exec.Command("go", "build", "-o", filepath.Join(bin, exe), ".").CombinedOutput(); err != nil {
 		t.Fatalf("go build: %v\n%s", err, out)
 	}
 	home := t.TempDir()
