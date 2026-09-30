@@ -28,10 +28,11 @@ type Repo struct {
 }
 
 type FileStat struct {
-	Name   string `json:"name"` // path in the repository, as git diff and log show it (e.g. "cmd/gitfolio/git.go")
-	Add    int    `json:"add"`
-	Del    int    `json:"del"`
-	Module string `json:"module,omitempty"` // local only: nearest approved manifest's directory, never exported
+	Name    string `json:"name"`              // path in the repository, as git diff and log show it (e.g. "cmd/gitfolio/git.go")
+	Created bool   `json:"created,omitempty"` // this commit added the file (git status A; a rename is not)
+	Add     int    `json:"add"`
+	Del     int    `json:"del"`
+	Module  string `json:"module,omitempty"` // local only: nearest approved manifest's directory, never exported
 }
 
 type Commit struct {
@@ -49,8 +50,9 @@ type Commit struct {
 	coAuthors    []string   // raw Co-authored-by emails, used for matching only, never stored
 }
 
-// repoFormat is the version of the stored commits: 2 records file paths in the repository, 1 only file names.
-const repoFormat = 2
+// repoFormat is the version of the stored commits: 3 also records which files a commit created, 2 file
+// paths in the repository, 1 only file names.
+const repoFormat = 3
 
 func dataDir() (string, error) {
 	base, err := os.UserConfigDir()
