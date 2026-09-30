@@ -241,9 +241,9 @@ var messages = map[string]map[string]string{
 		"ja": "削除しました。すでに集めたコミットはそのままです。\n",
 	},
 	"emailPrimary": {
-		"en": "Primary email is now %s.\n",
-		"ko": "대표 이메일을 %s(으)로 바꿨습니다.\n",
-		"ja": "代表メールアドレスを %s に変更しました。\n",
+		"en": "Primary email is now %s.\nRepositories already on aline.team stay under the email they started with; new ones use this one.\n",
+		"ko": "대표 이메일을 %s(으)로 바꿨습니다.\naline.team에 이미 있는 저장소는 처음 이메일로 그대로 집계되고, 새 저장소부터 이 이메일을 씁니다.\n",
+		"ja": "代表メールアドレスを %s に変更しました。\naline.team にすでにあるリポジトリは最初のアドレスのまま集計され、新しいリポジトリからこのアドレスを使います。\n",
 	},
 	"emailBad": {
 		"en": "Not a valid email address: %s\n",
