@@ -153,7 +153,11 @@ func cmdHook(dir string, args []string) error {
 		if err != nil {
 			return err
 		}
-		return exec.Command(exe, append([]string{"hook", "push-wait"}, args[1:]...)...).Start()
+		pid := ""
+		if len(args) > 1 {
+			pid = args[1]
+		}
+		return exec.Command(exe, "hook", "push-wait", strconv.Itoa(pushPID(pid))).Start()
 	case "push-wait":
 		signal.Ignore(syscall.SIGHUP) // keep going if the terminal closes right after the push
 		if len(args) > 1 {
@@ -190,18 +194,6 @@ func cmdHook(dir string, args []string) error {
 		})
 	}
 	return fmt.Errorf("unknown hook %q", args[0])
-}
-
-// waitExit waits until process pid (the git push that ran the hook) is gone, at most max.
-// ponytail: the signal-0 probe works on Unix only; on Windows it returns at once, so the scan may run
-// before the push lands and those commits wait for the next scan or sync.
-func waitExit(pid int, max time.Duration) {
-	for deadline := time.Now().Add(max); time.Now().Before(deadline); time.Sleep(200 * time.Millisecond) {
-		p, err := os.FindProcess(pid)
-		if err != nil || p.Signal(syscall.Signal(0)) != nil {
-			return
-		}
-	}
 }
 
 // withLock runs fn while holding gitfolio's data lock, so hooks and commands never write at the same time.
