@@ -11,15 +11,18 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf16"
 )
 
-// The daily sync is opt-in and a last resort for pushes the hooks never saw (--no-verify, other
-// machines, tools that skip hooks); it is never set up by init (DESIGN 7.5).
+// The daily sync collects and sends at a set time (DESIGN 7.5); init asks about it, off by default.
 const (
 	launchdLabel = "team.aline.gitfolio"
 	systemdUnit  = "gitfolio-sync"
 	cronMarker   = "# gitfolio-schedule"
 )
+
+// winTaskName is the Windows Task Scheduler task; a variable so the Windows test uses its own.
+var winTaskName = `GitFolio\Sync`
 
 // cmdSchedule shows, sets (HH:MM, local time) or removes the daily sync.
 func cmdSchedule(dir string, args []string) error {
@@ -140,6 +143,8 @@ func schedule(dir, exe string, h, m int) (string, error) {
 			return "", failure("scheduleNoScheduler", serr)
 		}
 		return logFile, cronSchedule(exe, logFile, h, m)
+	case "windows":
+		return logFile, taskSchedule(dir, exe, logFile, h, m)
 	}
 	return "", failure("scheduleUnsupported")
 }
@@ -156,6 +161,80 @@ func unschedule(dir string) error {
 	case "linux":
 		removeSystemd()
 		return cronSchedule("", "", -1, -1)
+	case "windows":
+		if exec.Command("schtasks", "/Query", "/TN", winTaskName).Run() != nil {
+			return nil // not registered
+		}
+		if out, err := exec.Command("schtasks", "/Delete", "/TN", winTaskName, "/F").CombinedOutput(); err != nil {
+			return fmt.Errorf("schtasks /Delete: %v %s", err, strings.TrimSpace(string(out)))
+		}
+	}
+	return nil
+}
+
+// taskXML is a Windows Task Scheduler task that runs `gitfolio sync` every day at h:m through cmd, so its
+// output goes to logFile; StartWhenAvailable runs a missed time at the next logon. It runs as the user,
+// only while logged on, so no password is stored.
+func taskXML(exe, logFile string, env [][2]string, h, m int, day time.Time) string {
+	e := html.EscapeString
+	set := ""
+	for _, kv := range env {
+		if kv[0] != "PATH" { // the task gets the user's own PATH
+			set += `set "` + kv[0] + "=" + kv[1] + `" & `
+		}
+	}
+	args := `/d /c "` + set + `"` + exe + `" sync >> "` + logFile + `" 2>&1"`
+	return `<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>GitFolio daily sync to aline.team</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>` + day.Format("2006-01-02") + fmt.Sprintf("T%02d:%02d:00", h, m) + `</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByDay>
+        <DaysInterval>1</DaysInterval>
+      </ScheduleByDay>
+    </CalendarTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>cmd.exe</Command>
+      <Arguments>` + e(args) + `</Arguments>
+    </Exec>
+  </Actions>
+</Task>
+`
+}
+
+// taskSchedule registers the task with schtasks, replacing an older one. schtasks reads UTF-16 XML.
+func taskSchedule(dir, exe, logFile string, h, m int) error {
+	x := utf16.Encode([]rune(taskXML(exe, logFile, scheduleEnv(), h, m, time.Now())))
+	b := []byte{0xFF, 0xFE} // little-endian byte order mark
+	for _, u := range x {
+		b = append(b, byte(u), byte(u>>8))
+	}
+	f := filepath.Join(dir, "schedule-task.xml")
+	if err := os.WriteFile(f, b, 0o600); err != nil {
+		return err
+	}
+	defer os.Remove(f)
+	if out, err := exec.Command("schtasks", "/Create", "/TN", winTaskName, "/XML", f, "/F").CombinedOutput(); err != nil {
+		return fmt.Errorf("schtasks /Create: %v %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }

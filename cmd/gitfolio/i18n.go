@@ -6,16 +6,14 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	"runtime"
 	"strings"
 	"sync"
 )
 
 // detectLang picks the screen language (DESIGN 7.1): GITFOLIO_LANG if set, else the device's language
 // (on macOS the first one GitFolio has in System Settings › Language & Region, because terminals often
-// set LANG to en_US whatever the device language is), else LC_ALL, LC_MESSAGES or LANG, else English.
-// ponytail: Windows needs an OS API call (GetUserDefaultUILanguage) once Windows is supported.
+// set LANG to en_US whatever the device language is; on Windows the display language), else LC_ALL,
+// LC_MESSAGES or LANG, else English.
 func detectLang(getenv func(string) string) string {
 	if v := strings.TrimSpace(getenv("GITFOLIO_LANG")); v != "" {
 		return cmp.Or(langOf(v), "en")
@@ -44,18 +42,9 @@ func langOf(v string) string {
 	return ""
 }
 
-// osLanguages returns the device's preferred languages, most preferred first, read once per run.
-// On Linux LANG and LC_* already are the device setting.
-var osLanguages = sync.OnceValue(func() []string {
-	if runtime.GOOS != "darwin" {
-		return nil
-	}
-	out, err := exec.Command("defaults", "read", "-g", "AppleLanguages").Output()
-	if err != nil {
-		return nil
-	}
-	return parseAppleLanguages(string(out))
-})
+// osLanguages returns the device's preferred languages, most preferred first, read once per run
+// (deviceLanguages is per OS: platform_unix.go, platform_windows.go).
+var osLanguages = sync.OnceValue(deviceLanguages)
 
 // parseAppleLanguages reads the output of `defaults read -g AppleLanguages`: ( "ko-KR", "en-US" ), one per line.
 func parseAppleLanguages(out string) []string {
