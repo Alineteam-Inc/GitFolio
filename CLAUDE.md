@@ -1,0 +1,46 @@
+# GitFolio — 작업 안내 (Claude Code)
+
+이 파일은 어느 기기에서든 이 저장소를 열면 먼저 읽힌다. 지금까지의 결정과 진행은 아래 문서에 있고, 이 파일은 그 입구다.
+
+## 먼저 할 것
+
+- **사용자에게는 항상 한국어로 답한다.** 상태 보고, 짧은 확인, 명령 결과 직후 답변도 한국어. 코드·식별자·커밋 메시지·CLI 출력 문구 원문은 영어 가능
+- 이어서 작업할 때 읽는 순서
+  1. [docs/REMAINING.md](docs/REMAINING.md) — 지금 멈춘 지점과 다음 순서(체크리스트)
+  2. [docs/ROADMAP.md](docs/ROADMAP.md) — 현재 주안점, 작업 현황, 단계별 체크리스트, 브랜치와 사양
+  3. [docs/API.md](docs/API.md) — aline.team 서버 계약(인증·데이터 API), dev 검증 기록
+  4. [docs/DESIGN.md](docs/DESIGN.md) — 설계와 결정 기록(날짜 포함). 설계가 바뀌면 이 문서를 먼저 고친다
+
+## 프로젝트
+
+- GitFolio: 본인이 작성·push한 커밋의 **메타데이터만** 모아(소스 코드 없음) Alineteam Inc.의 aline.team으로 보내 개발 프로필·이력서를 만드는 CLI
+- Go, 표준 라이브러리만, `CGO_ENABLED=0`, git은 명령 실행으로 사용. MIT (Alineteam Inc.). 바이너리 `cmd/gitfolio`
+- 대상 OS: **macOS·Linux·Windows** 모두 (amd64·arm64). 경로는 `filepath`, OS별 코드는 `platform_unix.go`·`platform_windows.go`
+- 서버는 별도 저장소 **aline.team**. 계약은 `docs/API.md`가 기준. 서버 상태(배포 여부 등)는 사용자에게 확인한다
+
+## 브랜치와 환경
+
+| 브랜치 | 환경 | 서버 | 역할 |
+|---|---|---|---|
+| `main` | prod | `https://aline.team/api` (CLI 기본값) | 확정 사양. 릴리스 태그(`v*`)와 설치 스크립트(`install.sh`·`install.ps1`) |
+| `stage` | dev | `https://[dev server]/api` (`gitfolio config api-url`) | 서버 새 계약 테스트. **v0.1.0은 `stage` 사양** |
+
+- 흐름: 기능 브랜치 → `stage`(세 OS CI + dev 실검증) → `main`(릴리스). 별도 `prod` 브랜치는 만들지 않는다
+- CI(`.github/workflows/ci.yml`): `main`·`stage` push와 PR마다 ubuntu·macos·windows에서 vet·test·설치 스크립트. 릴리스는 세 OS 통과 후
+
+## 작업 규칙
+
+- 커밋은 **기능별로 나눠** 만들고 push한다. 메시지는 영어
+- 확인: `gofmt -l ./cmd`, `for os in darwin linux windows; do GOOS=$os go vet ./...; done`, `go test ./...`
+- 화면 문구는 `cmd/gitfolio/i18n.go`에 en·ko·ja를 함께 넣는다 (`TestMessagesComplete`, `TestMessageVerbsMatch`). 출력 모양: 결과는 `GitFolio >>` 문단, 질문은 `? `, 안내문은 2칸 여백, 오류는 새 문단 (DESIGN 7.1)
+- **미병합 브랜치 빌드는 테스트용 HOME에서만 실행한다** (`HOME=<임시 폴더> GIT_CONFIG_GLOBAL=<임시 파일>`). `sync --dry-run` 같은 명령도 먼저 scan하므로 실제 설정의 로컬 데이터를 새 형식으로 바꿀 수 있다
+- 사용자의 실제 설정은 dev에 로그인돼 있고 push마다 dev로 자동 전송된다. 테스트 저장소·전송은 테스트용 HOME에서
+- 보안: 토큰(`aln_cli_…`)은 화면·로그·커밋에 절대 출력하지 않는다. 다른 서비스 인증 정보(git credential, `gh`)는 읽지도 보내지도 않는다. HTTPS만
+- 실기 확인: Linux는 colima Docker의 Ubuntu 컨테이너(systemd 컨테이너 포함), Windows는 GitHub Actions `windows-latest`
+
+## 주요 결정 (상세는 DESIGN·API)
+
+- 수집: 작성자가 본인인 커밋의 메타데이터. 마스킹은 **커밋 메시지만**. 브랜치 이름·저장소 안 파일 경로·저장소 이름은 원문
+- aline.team 로그인 필수(로그인 전 수집 없음). 기기 키·별도 동의 단계 없음(가입 = 약관·개인정보처리방침 동의)
+- 본인 판별: 작업 이메일(인증 없음, `gitfolio email`) + 저장소별 git 이메일. 전송은 대표 이메일 하나(`stage`)
+- 화면 언어: `GITFOLIO_LANG` → 기기 언어(macOS·Windows) → `LANG` 등. 원래 기기(Mac)는 영어 UI라 `GITFOLIO_LANG=ko`로 쓴다
