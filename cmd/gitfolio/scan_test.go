@@ -211,11 +211,12 @@ func TestScanRepo(t *testing.T) {
 		t.Errorf("rename authorEmail = %q", e)
 	}
 	fs := func(name string, add, del int) FileStat { return FileStat{Name: name, Add: add, Del: del} }
+	created := func(f FileStat) FileStat { f.Created = true; return f }
 	want := map[string][]FileStat{
-		"first\n\nbody line": {fs("logo.png", 0, 0), fs("src/a.go", 3, 0)}, // numstat lists paths sorted: logo.png < src/a.go
-		"rename":             {fs("src/b.go", 0, 0)},
-		side:                 {fs("c.txt", 1, 0)},
-		botWork:              {fs("d.txt", 1, 0)},
+		"first\n\nbody line": {created(fs("logo.png", 0, 0)), created(fs("src/a.go", 3, 0))}, // numstat lists paths sorted
+		"rename":             {fs("src/b.go", 0, 0)},                                         // a rename is not a created file
+		side:                 {created(fs("c.txt", 1, 0))},
+		botWork:              {created(fs("d.txt", 1, 0))},
 	}
 	for msg, files := range want {
 		c, ok := byMsg[msg]
