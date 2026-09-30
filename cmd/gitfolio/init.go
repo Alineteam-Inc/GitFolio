@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"text/tabwriter"
@@ -102,6 +103,9 @@ func cmdInit(dir string, args []string) error {
 			warn(lang, "failed", err) // the rest of the setup still stands
 		}
 	}
+	if len(chosen) > 0 {
+		blank()
+	}
 	for _, p := range chosen {
 		if err := withLock(dir, func() error { return registerRepo(dir, p) }); err != nil {
 			warn(lang, "repoFailed", tildePath(p), err)
@@ -133,7 +137,11 @@ func cmdInit(dir string, args []string) error {
 // collect. Nothing is chosen by default: company code is never collected unless the user picks it.
 func chooseRepos(lang, dir string, roots []string) ([]string, error) {
 	blank()
-	say(lang, "searching")
+	msg := tr(lang, "searching")
+	if runtime.GOOS == "darwin" {
+		msg += tr(lang, "searchingMac")
+	}
+	show(os.Stdout, msg)
 	repos, err := loadRepos(dir)
 	if err != nil {
 		return nil, err

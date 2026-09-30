@@ -65,7 +65,12 @@ main() {
 
 	case ":$PATH:" in
 	*":$dir:"*) ;;
-	*) echo "Note: $dir is not in your PATH. Add this line to your shell profile (e.g. ~/.zshrc):"
+	*) case "${SHELL:-}" in
+		*/zsh) profile="~/.zshrc" ;;
+		*/bash) profile="~/.bashrc" ;;
+		*) profile="~/.profile" ;;
+		esac
+		echo "Note: $dir is not in your PATH. Add this line to $profile:"
 		echo "  export PATH=\"$dir:\$PATH\"" ;;
 	esac
 	echo
