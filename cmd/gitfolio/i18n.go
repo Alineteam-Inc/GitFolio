@@ -143,8 +143,9 @@ var messages = map[string]map[string]string{
 		"en": ` [Data Policy]
  - Source code is never collected.
  - Collected: commit hashes, author emails, commit messages
-   (masked), branch names, timestamps, file names, lines
-   added/deleted, AI usage, and repository namespaces (owner/repo).
+   (masked), branch names, timestamps, file paths in the
+   repository, lines added/deleted, AI usage, and repository
+   namespaces (owner/repo).
  - Files are read only with your approval, and only package
    manager files, only to detect dependencies.
  - Sensitive parts of commit messages (tokens, URLs, emails,
@@ -158,7 +159,8 @@ var messages = map[string]map[string]string{
 		"ko": ` [데이터 정책]
  - 소스 코드는 수집하지 않습니다.
  - 수집 항목: 커밋 해시, 작성자 이메일, 커밋 메시지(마스킹), 브랜치 이름,
-   시점, 파일명, 추가·삭제 줄 수, AI 사용 여부, 저장소 namespace(소유자/저장소)
+   시점, 저장소 안 파일 경로, 추가·삭제 줄 수, AI 사용 여부,
+   저장소 namespace(소유자/저장소)
  - 파일 읽기는 사용자가 승인한 패키지 매니저 파일에 한하며,
    의존성 파악에만 사용합니다.
  - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
@@ -171,7 +173,7 @@ var messages = map[string]map[string]string{
 		"ja": ` [データポリシー]
  - ソースコードは収集しません。
  - 収集項目: コミットハッシュ、作成者のメールアドレス、
-   コミットメッセージ(マスキング済み)、ブランチ名、日時、ファイル名、
+   コミットメッセージ(マスキング済み)、ブランチ名、日時、リポジトリ内のファイルパス、
    追加・削除行数、AI の利用有無、リポジトリ(オーナー/リポジトリ)
  - ファイルの読み取りは、承認されたパッケージマネージャーの
    ファイルに限り、依存関係の把握にのみ使用します。
