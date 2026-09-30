@@ -9,7 +9,7 @@ builds:
     binary: gitfolio
     env:
       - CGO_ENABLED=0
-    goos: [darwin, linux]
+    goos: [darwin, linux, windows]
     goarch: [amd64, arm64]
     ldflags:
       - -s -w -X main.version={{ .Version }}
@@ -18,6 +18,9 @@ archives:
   # No version in the file name, so install.sh can use GitHub's releases/latest/download/<file> URL.
   - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     formats: [tar.gz]
+    format_overrides:
+      - goos: windows # install.ps1 unpacks it with Expand-Archive
+        formats: [zip]
     files: [LICENSE, README.md]
 
 checksum:
