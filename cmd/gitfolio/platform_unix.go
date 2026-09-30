@@ -4,10 +4,25 @@ package main
 
 import (
 	"os"
+	"os/exec"
+	"runtime"
 	"strconv"
 	"syscall"
 	"time"
 )
+
+// deviceLanguages returns the device's preferred languages, most preferred first: on macOS the list in
+// System Settings › Language & Region. On Linux LANG and LC_* already are the device setting.
+func deviceLanguages() []string {
+	if runtime.GOOS != "darwin" {
+		return nil
+	}
+	out, err := exec.Command("defaults", "read", "-g", "AppleLanguages").Output()
+	if err != nil {
+		return nil
+	}
+	return parseAppleLanguages(string(out))
+}
 
 // pushPID is the git push process the pre-push hook runs in; the hook script passes it as $PPID.
 func pushPID(arg string) int {
