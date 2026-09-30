@@ -64,3 +64,4 @@ jobs:
           & pwsh -NoProfile -File install.ps1
           if (-not $LASTEXITCODE) { throw 'tampered archive was installed' }
           if (Test-Path (Join-Path $env:GITFOLIO_INSTALL_DIR 'gitfolio.exe')) { throw 'tampered archive was installed' }
+          exit 0 # the refused install above left a non-zero exit code on purpose
