@@ -32,7 +32,7 @@ func cmdLogin(dir string) error {
 		}
 		// Catch typos (e.g. a leftover IME character and a space) here, before the server
 		// rejects the request and the whole login has to start over.
-		if strings.Count(email, "@") == 1 && !strings.ContainsAny(email, " \t") {
+		if validEmail(email) {
 			break
 		}
 		notice(tr(lang, "emailInvalid"))

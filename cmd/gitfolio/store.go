@@ -38,8 +38,8 @@ type Commit struct {
 	Provider     string     `json:"provider,omitempty"`  // filled in export only
 	Namespace    string     `json:"namespace,omitempty"` // filled in export only
 	Hash         string     `json:"hash"`
-	Branch       string     `json:"branch,omitempty"` // remote branch it is on (see remoteBranches), never masked
-	AuthorEmail  string     `json:"authorEmail"`
+	Branch       string     `json:"branch,omitempty"`      // remote branch it is on (see remoteBranches), never masked
+	AuthorEmail  string     `json:"authorEmail,omitempty"` // the real author; sent as the primary email
 	Date         string     `json:"date"`
 	Message      string     `json:"message"`
 	Files        []FileStat `json:"files"`
@@ -70,6 +70,9 @@ type Config struct {
 	APIURL    string   `json:"apiUrl,omitempty"`    // aline.team API root; empty = production (config api-url)
 	// AutoSyncOff stops sending right after git push; sync still sends (config autosync).
 	AutoSyncOff bool `json:"autoSyncOff,omitempty"`
+	// Emails are the user's work emails (gitfolio email); the first is the primary one, the author
+	// email aline.team gets for all of the user's commits.
+	Emails []string `json:"emails,omitempty"`
 	// Schedule is the daily sync time ("09:00", local) registered with the OS scheduler; empty = none.
 	Schedule string `json:"schedule,omitempty"`
 }
@@ -209,11 +212,11 @@ func readAgentTags(dir string) (map[string][]string, error) {
 // With rebuild, r's stored commits are dropped first and collected again. Callers hold the data lock.
 // ponytail: reads every pushed commit and dedupes by hash on each scan; pass push ranges if big repos get slow.
 func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
-	mine, err := myEmails(r.Path)
+	cfg, err := loadConfig(dir)
 	if err != nil {
 		return 0, err
 	}
-	cfg, err := loadConfig(dir)
+	mine, err := myEmails(r.Path, cfg.Emails)
 	if err != nil {
 		return 0, err
 	}

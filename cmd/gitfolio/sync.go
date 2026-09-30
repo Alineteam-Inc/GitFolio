@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -42,16 +43,18 @@ type syncPayload struct {
 // commitBatch is one POST /cli/commits/batch request: one repository and its commits (docs/API.md 4.1).
 // The server knows the repository by provider and namespace; the local name is not sent.
 type commitBatch struct {
-	Provider  string   `json:"provider"`
-	Namespace string   `json:"namespace"`
-	Commits   []Commit `json:"commits"`
+	Provider    string   `json:"provider"`
+	Namespace   string   `json:"namespace"`
+	AuthorEmail string   `json:"authorEmail"` // the primary work email, for all of the user's commits
+	Commits     []Commit `json:"commits"`
 }
 
-// request builds the body for commits of one repository; the repository fields move to the top.
-func request(commits []Commit) commitBatch {
-	b := commitBatch{Provider: commits[0].Provider, Namespace: commits[0].Namespace}
+// request builds the body for commits of one repository: the repository fields and the author email
+// move to the top, and every commit goes under author, the primary work email.
+func request(commits []Commit, author string) commitBatch {
+	b := commitBatch{Provider: commits[0].Provider, Namespace: commits[0].Namespace, AuthorEmail: cmp.Or(author, commits[0].AuthorEmail)}
 	for _, c := range commits {
-		c.Provider, c.Namespace, c.Repo = "", "", ""
+		c.Provider, c.Namespace, c.Repo, c.AuthorEmail = "", "", "", ""
 		b.Commits = append(b.Commits, c)
 	}
 	return b
@@ -194,6 +197,11 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 	if err != nil {
 		return n, err
 	}
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return n, err
+	}
+	author := primaryEmail(cfg)
 	n.noRemote = p.noRemote
 	if dryRun { // the requests exactly as they would be sent
 		out := struct {
@@ -201,7 +209,7 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 			CommitBatches []commitBatch `json:"commitBatches"`
 		}{p.Deletes, []commitBatch{}}
 		for _, b := range batches(p.Commits) {
-			out.CommitBatches = append(out.CommitBatches, request(b))
+			out.CommitBatches = append(out.CommitBatches, request(b, author))
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
@@ -219,7 +227,7 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 		n.deletes++
 	}
 	for _, batch := range batches(p.Commits) {
-		err := c.upsert(batch, func(x Commit, accepted bool) {
+		err := c.upsert(author, batch, func(x Commit, accepted bool) {
 			st.Commits[commitKey(x)] = fingerprint(x)
 			if accepted {
 				n.commits++
@@ -235,8 +243,8 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 // upsert sends commits and calls done for each one the server has dealt with. A batch the server rejects
 // as malformed (C001) is split to find the bad records; those are skipped with a warning and marked done
 // (not accepted), so they are not sent on every push, until they change.
-func (c *client) upsert(commits []Commit, done func(c Commit, accepted bool)) error {
-	err := c.call("POST", "/cli/commits/batch", request(commits), nil)
+func (c *client) upsert(author string, commits []Commit, done func(c Commit, accepted bool)) error {
+	err := c.call("POST", "/cli/commits/batch", request(commits, author), nil)
 	var ae *apiError
 	if errors.As(err, &ae) && ae.Code == codeBadInput {
 		if len(commits) == 1 {
@@ -245,10 +253,10 @@ func (c *client) upsert(commits []Commit, done func(c Commit, accepted bool)) er
 			return nil
 		}
 		h := len(commits) / 2
-		if err := c.upsert(commits[:h], done); err != nil {
+		if err := c.upsert(author, commits[:h], done); err != nil {
 			return err
 		}
-		return c.upsert(commits[h:], done)
+		return c.upsert(author, commits[h:], done)
 	}
 	if err != nil {
 		return err

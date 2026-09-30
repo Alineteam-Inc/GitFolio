@@ -59,6 +59,7 @@ gitfolio sync                    # send what aline.team does not have yet (pushe
 gitfolio config mask add acme    # hide a customer or internal project name in commit messages
 gitfolio remove ~/code/my-project --purge   # unregister, restore previous hooks, delete its data here and on aline.team
 gitfolio whoami | logout         # the account this device is logged in to / log out
+gitfolio email add me@work.com   # another work email of yours (email primary <e>: the one aline.team shows)
 gitfolio schedule 09:00          # optional daily sync for pushes the hooks missed (off: schedule off)
 ```
 
@@ -136,6 +137,7 @@ gitfolio sync                    # aline.team에 없는 것만 전송 (push하�
 gitfolio config mask add 고객사A  # 커밋 메시지 속 고객사·사내 프로젝트명을 가림
 gitfolio remove ~/code/my-project --purge   # 등록 해제, 기존 훅 복원, 이 컴퓨터와 aline.team의 데이터 삭제
 gitfolio whoami | logout         # 이 기기의 로그인 계정 확인 / 로그아웃
+gitfolio email add me@work.com   # 다른 작업 이메일 추가 (email primary <이메일>: aline.team에 보낼 대표 이메일)
 gitfolio schedule 09:00          # 훅이 놓친 push를 매일 보완하는 예약 동기화 (선택, 해제: schedule off)
 ```
 

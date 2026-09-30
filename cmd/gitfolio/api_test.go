@@ -154,18 +154,18 @@ func (f *fakeAline) handler() http.Handler {
 	}
 	mux.HandleFunc("POST /cli/commits/batch", data(func(w http.ResponseWriter, r *http.Request) {
 		var in commitBatch // one repository per request
-		if r.ContentLength > 100<<20 || json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" || len(in.Commits) == 0 || len(in.Commits) > batchSize {
+		if r.ContentLength > 100<<20 || json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" || in.AuthorEmail == "" || len(in.Commits) == 0 || len(in.Commits) > batchSize {
 			fail(w, 400, "C001")
 			return
 		}
 		for _, c := range in.Commits {
-			if c.Message == "bad" || c.Namespace != "" || c.Repo != "" || c.Hash == "" || c.Branch == "" || len(c.Files) > maxFilesSent {
+			if c.Message == "bad" || c.Namespace != "" || c.Repo != "" || c.AuthorEmail != "" || c.Hash == "" || c.Branch == "" || len(c.Files) > maxFilesSent {
 				fail(w, 400, "C001") // one bad record fails the whole batch
 				return
 			}
 		}
 		for _, c := range in.Commits {
-			c.Provider, c.Namespace = in.Provider, in.Namespace
+			c.Provider, c.Namespace, c.AuthorEmail = in.Provider, in.Namespace, in.AuthorEmail
 			f.commits[commitKey(c)] = c
 		}
 		f.batches++

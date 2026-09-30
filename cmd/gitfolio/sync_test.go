@@ -33,6 +33,7 @@ func TestSync(t *testing.T) {
 		}
 	}
 	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com"}))
+	must(saveConfig(dir, Config{Emails: []string{"me@primary.com", "dev@example.com"}}))
 	must(saveRepos(dir, []Repo{
 		{ID: "r1", Path: "/x/app", Name: "app", Provider: "GITHUB", Namespace: "me/app"},
 		{ID: "r2", Path: "/x/local", Name: "local"},                                                               // no remote: never sent
@@ -56,8 +57,8 @@ func TestSync(t *testing.T) {
 	if _, ok := f.commits["GITHUB/me/app/a3"]; !ok || len(f.commits) != 2 {
 		t.Fatalf("server has %v", f.commits)
 	}
-	if got := f.commits["GITHUB/me/app/a1"]; got.Repo != "" || got.Branch != "main" || got.Files[0].Module != "" {
-		t.Errorf("sent record %+v: want the branch, and no repository name or module ID", got)
+	if got := f.commits["GITHUB/me/app/a1"]; got.Repo != "" || got.Branch != "main" || got.Files[0].Module != "" || got.AuthorEmail != "me@primary.com" {
+		t.Errorf("sent record %+v: want the branch, the primary email as author, and no repository name or module ID", got)
 	}
 	batches := f.batches
 	sync(0, 0) // nothing new
