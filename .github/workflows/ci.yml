@@ -26,4 +26,5 @@ jobs:
       - name: Vet
         run: go vet ./...
       - name: Test
-        run: go test ./...
+        shell: bash # also on Windows (Git Bash), so the per-test lines look the same everywhere
+        run: go test -v ./... | grep -E '^(--- (PASS|FAIL|SKIP)|ok|FAIL|panic)'
