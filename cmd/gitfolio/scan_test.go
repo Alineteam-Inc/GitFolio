@@ -9,18 +9,21 @@ import (
 	"testing"
 )
 
-func TestBaseName(t *testing.T) {
+// Files are sent as git diff and log show them: the path in the repository, the new side of a rename.
+func TestNewPath(t *testing.T) {
 	for in, want := range map[string]string{
-		"src/a.go":           "a.go",
-		"src/{a.go => b.go}": "b.go",
-		"{src => lib}/x.go":  "x.go",
-		"{ => sub}/x.go":     "x.go",
+		"src/a.go":           "src/a.go",
+		"src/{a.go => b.go}": "src/b.go",
+		"{src => lib}/x.go":  "lib/x.go",
+		"{ => sub}/x.go":     "sub/x.go",
+		"{src => }/x.go":     "x.go",
+		"a/{b => }/c/x.go":   "a/c/x.go",
 		"old.go => new.go":   "new.go",
-		`"dir/tab\there.go"`: "tab\there.go",
-		"docs/한글.md":         "한글.md",
+		`"dir/tab\there.go"`: "dir/tab\there.go",
+		"docs/한글.md":         "docs/한글.md",
 	} {
-		if got := baseName(in); got != want {
-			t.Errorf("baseName(%q) = %q, want %q", in, got, want)
+		if got := newPath(in); got != want {
+			t.Errorf("newPath(%q) = %q, want %q", in, got, want)
 		}
 	}
 }
@@ -209,8 +212,8 @@ func TestScanRepo(t *testing.T) {
 	}
 	fs := func(name string, add, del int) FileStat { return FileStat{Name: name, Add: add, Del: del} }
 	want := map[string][]FileStat{
-		"first\n\nbody line": {fs("logo.png", 0, 0), fs("a.go", 3, 0)}, // numstat lists paths sorted: logo.png < src/a.go
-		"rename":             {fs("b.go", 0, 0)},
+		"first\n\nbody line": {fs("logo.png", 0, 0), fs("src/a.go", 3, 0)}, // numstat lists paths sorted: logo.png < src/a.go
+		"rename":             {fs("src/b.go", 0, 0)},
 		side:                 {fs("c.txt", 1, 0)},
 		botWork:              {fs("d.txt", 1, 0)},
 	}
@@ -249,5 +252,45 @@ func TestScanRepo(t *testing.T) {
 	}
 	if !remasked {
 		t.Errorf("mask add did not reach stored commits: %+v", stored)
+	}
+}
+
+// Commits stored by an older version, with file names only, are collected again once with their paths.
+func TestOldFormatRescanned(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	repo, data := t.TempDir(), t.TempDir()
+	git := func(args ...string) {
+		t.Helper()
+		if out, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	git("init", "-q", "-b", "main")
+	git("config", "user.email", "me@example.com")
+	git("config", "user.name", "me")
+	if err := os.MkdirAll(filepath.Join(repo, "cmd", "app"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "cmd", "app", "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	git("add", ".")
+	git("commit", "-q", "-m", "start")
+	r := newRepo(repo)
+	if _, err := scanRepo(data, &r, false); err != nil {
+		t.Fatal(err)
+	}
+	commits, _ := readCommits(data)
+	commits[0].Files[0].Name = "main.go" // as stored before paths were recorded
+	if err := writeCommits(data, commits); err != nil {
+		t.Fatal(err)
+	}
+	r.Format = 0
+	if _, err := scanRepo(data, &r, false); err != nil {
+		t.Fatal(err)
+	}
+	if commits, _ = readCommits(data); len(commits) != 1 || commits[0].Files[0].Name != "cmd/app/main.go" || r.Format != repoFormat {
+		t.Errorf("after rescan: %+v, format %d", commits, r.Format)
 	}
 }

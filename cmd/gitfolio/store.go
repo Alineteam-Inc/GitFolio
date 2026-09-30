@@ -20,17 +20,18 @@ type Repo struct {
 	Provider  string `json:"provider,omitempty"`  // GITHUB, GITLAB, ... or OTHER
 	Namespace string `json:"namespace,omitempty"` // owner/repo on the git service
 	LastScan  string `json:"last_scan,omitempty"`
+	// Format is the version of this repository's stored commits; older ones are collected again (repoFormat).
+	Format int `json:"format,omitempty"`
 	// Manifests records the user's decision per package manager file path: true = may be read.
 	// Local only, never exported or sent. Files missing here wait for approval.
 	Manifests map[string]bool `json:"manifests,omitempty"`
 }
 
 type FileStat struct {
-	Name   string `json:"name"`
+	Name   string `json:"name"` // path in the repository, as git diff and log show it (e.g. "cmd/gitfolio/git.go")
 	Add    int    `json:"add"`
 	Del    int    `json:"del"`
 	Module string `json:"module,omitempty"` // local only: nearest approved manifest's directory, never exported
-	path   string // full path, used for module lookup only, never stored
 }
 
 type Commit struct {
@@ -47,6 +48,9 @@ type Commit struct {
 	AIAgents     []string   `json:"aiAgents,omitempty"`
 	coAuthors    []string   // raw Co-authored-by emails, used for matching only, never stored
 }
+
+// repoFormat is the version of the stored commits: 2 records file paths in the repository, 1 only file names.
+const repoFormat = 2
 
 func dataDir() (string, error) {
 	base, err := os.UserConfigDir()
@@ -241,8 +245,8 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	// Commits stored before branches were recorded are collected once more, to get their branch.
-	if rng[0] == "--remotes" && slices.ContainsFunc(stored, func(c Commit) bool { return c.Repo == r.ID && c.Branch == "" }) {
+	// Commits stored before branches or file paths were recorded are collected once more.
+	if r.Format < repoFormat || (rng[0] == "--remotes" && slices.ContainsFunc(stored, func(c Commit) bool { return c.Repo == r.ID && c.Branch == "" })) {
 		rebuild = true
 	}
 	if rebuild {
@@ -276,7 +280,7 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 		if c.CreationType = creationType(c, mine); c.CreationType != "" {
 			c.Repo = r.ID
 			for i := range c.Files {
-				c.Files[i].Module = moduleOf(c.Files[i].path, modules)
+				c.Files[i].Module = moduleOf(c.Files[i].Name, modules)
 			}
 			m.commit(&c) // after AI detection in parseLog, before anything is written
 			fresh = append(fresh, c)
@@ -295,6 +299,6 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	if err := appendCommits(dir, fresh); err != nil {
 		return 0, err
 	}
-	r.LastScan = time.Now().Format(time.RFC3339)
+	r.LastScan, r.Format = time.Now().Format(time.RFC3339), repoFormat
 	return len(fresh), nil
 }

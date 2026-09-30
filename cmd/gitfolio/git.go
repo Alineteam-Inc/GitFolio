@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -219,8 +218,7 @@ func parseLog(out string) []Commit {
 			}
 			add, _ := strconv.Atoi(p[0]) // binary files report "-", counted as 0
 			del, _ := strconv.Atoi(p[1])
-			full := newPath(p[2])
-			c.Files = append(c.Files, FileStat{Name: path.Base(full), Add: add, Del: del, path: full})
+			c.Files = append(c.Files, FileStat{Name: newPath(p[2]), Add: add, Del: del})
 		}
 		commits = append(commits, c)
 	}
@@ -228,10 +226,8 @@ func parseLog(out string) []Commit {
 }
 
 // baseName returns the file name of a numstat path.
-func baseName(p string) string { return path.Base(newPath(p)) }
-
-// newPath returns the path of a numstat entry, taking the new side of a rename
-// ("dir/{old => new}/f.go" or "old.go => new.go").
+// newPath returns the repository-relative path of a numstat entry as git shows it, taking the new side of
+// a rename ("dir/{old => new}/f.go", "{src => }/f.go" or "old.go => new.go").
 func newPath(p string) string {
 	if strings.HasPrefix(p, `"`) {
 		if u, err := strconv.Unquote(p); err == nil {
@@ -241,7 +237,7 @@ func newPath(p string) string {
 	if i := strings.Index(p, " => "); i >= 0 {
 		l, r := strings.LastIndex(p[:i], "{"), strings.Index(p[i:], "}")
 		if l >= 0 && r >= 0 {
-			p = p[:l] + p[i+4:i+r] + p[i+r+1:]
+			p = strings.TrimPrefix(strings.ReplaceAll(p[:l]+p[i+4:i+r]+p[i+r+1:], "//", "/"), "/")
 		} else {
 			p = p[i+4:]
 		}
