@@ -610,9 +610,9 @@ Enable dependency detection? [y/N]
 | # | 항목 | 상태 | 필요한 것 | 막히는 단계 |
 |---|---|---|---|---|
 | 1 | aline.team 데이터 API | ✅ 합의 v3, 서버 1차 구현 중 | 1차 커밋 전송(`branch` 필수)·저장소 삭제, 2차 의존성, 작업 이메일 인증 제외 (API.md 4장). 브랜치 기록 방식 확인 중 | ROADMAP 7 |
-| 1-1 | 개발·스테이징 서버 | 미정 | dev·로컬 프로파일은 본문 암호화([server filter])로 평문 CLI 호출 불가. 그전까지 가짜 서버로 개발 | ROADMAP 7 |
+| — | 개발 서버 | ✅ 해결 | `https://[dev server]/api`, `/api/cli/`는 본문 암호화 제외 (2026-09-29 dev 배포, API.md 0장) | |
 | — | 국외 이전 고지 문구 | ✅ 완료 | 법무 검토 조항은 https://aline.team/privacy 에 반영됨. CLI 동의 화면은 이 방침과 일치시킴 | |
-| 2 | 개인정보처리방침 수집 항목 갱신 | aline.team 측 작업 | 커밋 해시, 작성자 이메일, AI 사용 여부, 저장소 namespace 추가 수집을 https://aline.team/privacy 에 반영 | ROADMAP 9 |
+| 2 | 개인정보처리방침 갱신 | aline.team 측 작업 | 국외(미국) 이전, 수집 항목(커밋 해시, 작성자 이메일, AI 사용 여부, 저장소 namespace, **브랜치 이름**), 마스킹은 커밋 메시지만 | ROADMAP 9 |
 | — | `repositoryUid` | ✅ 확정 | CLI는 namespace(`소유자/저장소`)를 보내고 aline.team 서버가 git 서비스 API로 조회 (3.1) | |
 | 1-2 | 시각 파생 필드(`hour_of_day`·`day_of_week`·`is_after_hours`, 집중 시간 히트맵)가 UTC 기준 | 서버 별도 과제 (2026-09-29) | 사용자 시간대로 계산. CLI는 오프셋 포함 `date`를 계속 보내므로 변경 없음 (API.md 6장) | 서버 |
 | 3 | 데스크톱 앱 범위·일정 | 미정 | 앱이 CLI를 호출하는 방식(6.4)으로 갈지 | 이후 |
