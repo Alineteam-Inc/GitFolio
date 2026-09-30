@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseHHMM(t *testing.T) {
@@ -65,5 +66,25 @@ func TestCronWith(t *testing.T) {
 	}
 	if got := shellQuote("it's"); got != `'it'\''s'` {
 		t.Errorf("shellQuote = %s", got)
+	}
+}
+
+func TestTaskXML(t *testing.T) {
+	day := time.Date(2026, 9, 30, 0, 0, 0, 0, time.Local)
+	x := taskXML(`C:\my apps\gitfolio.exe`, `C:\data\schedule.log`, [][2]string{{"PATH", `C:\bin`}, {"GITFOLIO_LANG", "ko"}}, 9, 5, day)
+	var task struct {
+		Start string `xml:"Triggers>CalendarTrigger>StartBoundary"`
+		Late  bool   `xml:"Settings>StartWhenAvailable"`
+		Cmd   string `xml:"Actions>Exec>Command"`
+		Args  string `xml:"Actions>Exec>Arguments"`
+	}
+	dec := xml.NewDecoder(strings.NewReader(x))
+	dec.CharsetReader = func(_ string, r io.Reader) (io.Reader, error) { return r, nil } // declared UTF-16, written as a Go string here
+	if err := dec.Decode(&task); err != nil {
+		t.Fatalf("task XML: %v\n%s", err, x)
+	}
+	want := `/d /c "set "GITFOLIO_LANG=ko" & "C:\my apps\gitfolio.exe" sync >> "C:\data\schedule.log" 2>&1"`
+	if task.Start != "2026-09-30T09:05:00" || !task.Late || task.Cmd != "cmd.exe" || task.Args != want {
+		t.Errorf("task = %+v\nwant args %s", task, want)
 	}
 }

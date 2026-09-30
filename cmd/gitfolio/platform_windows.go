@@ -10,6 +10,20 @@ import (
 	"unsafe"
 )
 
+// deviceLanguages returns the Windows display language (Settings › Time & language), as ko, ja or en.
+func deviceLanguages() []string {
+	id, _, _ := syscall.NewLazyDLL("kernel32.dll").NewProc("GetUserDefaultUILanguage").Call()
+	switch id & 0x3ff { // primary language ID
+	case 0x12:
+		return []string{"ko"}
+	case 0x11:
+		return []string{"ja"}
+	case 0x09:
+		return []string{"en"}
+	}
+	return nil
+}
+
 // pushPID finds the git push process the pre-push hook runs in. Git for Windows runs hooks under its own
 // sh, whose $PPID is not a Windows process ID, so this walks up from this process to the nearest git.exe.
 // It has to run while the hook is still running; 0 means not found.
