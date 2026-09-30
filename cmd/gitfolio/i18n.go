@@ -245,9 +245,14 @@ var messages = map[string]map[string]string{
 		"ja": "リポジトリは選択されませんでした。いつでも `gitfolio init` を再実行して選べます。\n",
 	},
 	"searching": {
-		"en": "Looking for git repositories (folder names only; macOS may ask for folder access)...\n",
-		"ko": "git 저장소를 찾는 중입니다. (폴더 이름만 확인하며, macOS가 폴더 접근 권한을 물을 수 있습니다)\n",
-		"ja": "git リポジトリを検索しています。(フォルダー名のみ確認します。macOS がフォルダーへのアクセス許可を求める場合があります)\n",
+		"en": "Looking for git repositories (folder names only)...\n",
+		"ko": "git 저장소를 찾는 중입니다. (폴더 이름만 확인합니다)\n",
+		"ja": "git リポジトリを検索しています。(フォルダー名のみ確認します)\n",
+	},
+	"searchingMac": {
+		"en": "macOS may ask for access to folders such as Documents.\n",
+		"ko": "macOS가 문서 등 폴더 접근 권한을 물을 수 있습니다.\n",
+		"ja": "macOS が書類などのフォルダーへのアクセス許可を求める場合があります。\n",
 	},
 	"noCandidates": {
 		"en": "No new repositories with your commits were found.\n",
@@ -670,6 +675,11 @@ var messages = map[string]map[string]string{
 		"en": "Daily sync: %s\nLast sync: %s\n",
 		"ko": "예약 동기화: %s\n마지막 동기화: %s\n",
 		"ja": "予約同期: %s\n前回の同期: %s\n",
+	},
+	"scheduleNoScheduler": {
+		"en": "There is no scheduler to use: systemd user timers failed (%v) and crontab is not installed.\nInstall cron, or run `gitfolio sync` yourself.\n",
+		"ko": "쓸 수 있는 예약 도구가 없습니다: systemd 사용자 타이머 실패(%v), crontab 없음.\ncron을 설치하거나 `gitfolio sync`를 직접 실행하세요.\n",
+		"ja": "使える予約ツールがありません: systemd ユーザータイマーが失敗(%v)し、crontab もありません。\ncron をインストールするか、`gitfolio sync` を直接実行してください。\n",
 	},
 	"scheduleUnsupported": {
 		"en": "Scheduling is not supported on this system yet; run `gitfolio sync` yourself.\n",
