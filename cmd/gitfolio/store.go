@@ -22,6 +22,8 @@ type Repo struct {
 	LastScan  string `json:"last_scan,omitempty"`
 	// Format is the version of this repository's stored commits; older ones are collected again (repoFormat).
 	Format int `json:"format,omitempty"`
+	// Changed maps each file the user created to when someone else first changed it (modifiedFiles).
+	Changed map[string]string `json:"changed,omitempty"`
 	// Manifests records the user's decision per package manager file path: true = may be read.
 	// Local only, never exported or sent. Files missing here wait for approval.
 	Manifests map[string]bool `json:"manifests,omitempty"`
@@ -272,7 +274,9 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 		known[c.Hash] = true
 	}
 	var fresh []Commit
-	for _, c := range parseLog(out) {
+	all := parseLog(out)
+	r.Changed = firstChanges(all, mine)
+	for _, c := range all {
 		if known[c.Hash] {
 			continue
 		}
