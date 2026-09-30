@@ -16,7 +16,8 @@
 - GitFolio: 본인이 작성·push한 커밋의 **메타데이터만** 모아(소스 코드 없음) Alineteam Inc.의 aline.team으로 보내 개발 프로필·이력서를 만드는 CLI
 - Go, 표준 라이브러리만, `CGO_ENABLED=0`, git은 명령 실행으로 사용. MIT (Alineteam Inc.). 바이너리 `cmd/gitfolio`
 - 대상 OS: **macOS·Linux·Windows** 모두 (amd64·arm64). 경로는 `filepath`, OS별 코드는 `platform_unix.go`·`platform_windows.go`
-- 서버는 별도 저장소 **aline.team**. 계약은 `docs/API.md`가 기준. 서버 상태(배포 여부 등)는 사용자에게 확인한다
+- 서버는 별도 저장소 **aline.team**. 계약은 `docs/API.md`가 기준. 
+- 서버 상태(배포 여부 등)는 두 세션이 함께 쓰는 인수인계 문서 [GitFolio CLI 서버 연동]((private shared doc))(Claude Docs)에서 확인한다. 읽고 고칠 때는 Claude Docs 커넥터를 쓴다(웹으로 가져오지 않는다). CLI 상태가 바뀌면(dev 검증 통과, `main` 병합, 릴리스) 그 문서 「경위」 표에 한 줄 추가하거나 댓글을 단다. 문서를 볼 수 없으면 사용자에게 확인한다
 
 ## 브랜치와 환경
 
