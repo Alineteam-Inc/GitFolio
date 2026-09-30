@@ -2,7 +2,7 @@
 
 **Your git history, turned into a verified developer portfolio — without sharing a line of code.**
 
-GitFolio is a command-line tool by [Alineteam Inc.](https://aline.team) for macOS and Linux.
+GitFolio is a command-line tool by [Alineteam Inc.](https://aline.team) for macOS, Linux and Windows.
 It collects metadata of the commits *you* authored and pushed — never file contents — and
 [aline.team](https://aline.team) turns it into your developer profile and resume: what you worked
 on, when, in which languages and frameworks, and how you used AI coding agents.
@@ -26,10 +26,16 @@ Available from the first release (v0.1.0).
 brew install Alineteam-Inc/tap/gitfolio
 ```
 
-**curl** — downloads over HTTPS and verifies the SHA-256 checksum before installing
+**curl** (macOS, Linux) — downloads over HTTPS and verifies the SHA-256 checksum before installing
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
+```
+
+**PowerShell** (Windows) — the same checks; installs to `%LOCALAPPDATA%\Programs\GitFolio` and adds it to your PATH
+
+```powershell
+irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
 ```
 
 Then run `gitfolio init`.
@@ -87,7 +93,7 @@ Your profile and resume are available at **[aline.team](https://aline.team)**.
 
 **git 활동 이력만으로, 코드 한 줄 공개하지 않고 검증된 개발 포트폴리오를 만듭니다.**
 
-GitFolio는 Alineteam Inc.가 만든 macOS·Linux용 CLI입니다. 내가 작성하고 push한 커밋의 메타데이터만
+GitFolio는 Alineteam Inc.가 만든 macOS·Linux·Windows용 CLI입니다. 내가 작성하고 push한 커밋의 메타데이터만
 수집하며(파일 내용은 수집하지 않음), [aline.team](https://aline.team)이 이를 개발 프로필과 이력서로
 만들어 줍니다. 어떤 작업을 언제 했는지, 어떤 언어·프레임워크를 썼는지, AI 코딩 에이전트를 어떻게
 활용했는지가 담깁니다.
@@ -103,9 +109,13 @@ GitFolio는 Alineteam Inc.가 만든 macOS·Linux용 CLI입니다. 내가 작성
 첫 릴리스(v0.1.0)부터 사용할 수 있습니다.
 
 - **Homebrew** (macOS, Linux): `brew install Alineteam-Inc/tap/gitfolio`
-- **curl** (HTTPS로 받고 SHA-256을 검증한 뒤 설치):
+- **curl** (macOS, Linux — HTTPS로 받고 SHA-256을 검증한 뒤 설치):
   ```sh
   curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
+  ```
+- **PowerShell** (Windows — 같은 검증 후 `%LOCALAPPDATA%\Programs\GitFolio`에 설치하고 PATH에 추가):
+  ```powershell
+  irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
   ```
 - 설치 후 `gitfolio init`을 실행하세요.
 - **소스에서 설치** (Go 1.27 이상):

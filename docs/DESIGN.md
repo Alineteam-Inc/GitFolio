@@ -69,10 +69,10 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 | CLI 파싱 | 표준 라이브러리 `flag` | 서브커맨드 수가 적어 프레임워크 불필요 |
 | 로컬 저장 | JSON (설정), JSON Lines (커밋) | 표준 라이브러리로 처리, 사람이 읽을 수 있음 |
 | 서버 통신 | 표준 `net/http`, HTTPS 전용 | |
-| 예약 실행 | macOS `launchd`, Linux `systemd --user` 타이머 (없으면 `crontab`) | OS 기본 스케줄러 사용, 상주 프로세스 없음 |
+| 예약 실행 | macOS `launchd`, Linux `systemd --user` 타이머 (없으면 `crontab`), Windows 작업 스케줄러(`schtasks`) | OS 기본 스케줄러 사용, 상주 프로세스 없음 |
 | 화면 언어 | 영어 기본, 한국어·일본어 지원 (7.1) | 공개 배포 대상 |
-| 배포 | GitHub Releases + Homebrew tap + `install.sh` | GoReleaser로 자동화 |
-| 대상 OS | darwin/linux × amd64/arm64 → 이후 Windows | |
+| 배포 | GitHub Releases + Homebrew tap(macOS·Linux) + `install.sh`(macOS·Linux) + `install.ps1`(Windows) | GoReleaser로 자동화. Windows는 zip |
+| 대상 OS | **macOS·Linux·Windows** × amd64/arm64 (2026-09-30 사용자 결정: 세 OS 모두 지원·테스트) | CI(`.github/workflows/ci.yml`)가 push마다 세 OS에서 vet·test·설치 스크립트를 실행하고, 릴리스는 세 OS 통과 후에만 진행 |
 
 ## 3. 수집 규칙
 
@@ -534,7 +534,7 @@ Enable dependency detection? [y/N]
 |---|---|
 | macOS | `~/Library/LaunchAgents/team.aline.gitfolio.plist` (`StartCalendarInterval`, 잠자기 중 놓친 실행은 깨어날 때 실행) |
 | Linux | `systemd --user` 타이머 (`Persistent=true`). systemd가 없으면 `crontab` 한 줄 |
-| Windows | 작업 스케줄러 (Windows 지원 시) |
+| Windows | 작업 스케줄러: `schtasks /Create /XML`(UTF-16)로 `GitFolio\Sync` 작업 등록. 매일 지정 시각, 로그온 중일 때 사용자 권한으로 실행(암호 저장 없음), 놓친 시각은 다음 로그온 때 실행(`StartWhenAvailable`). `cmd /c`로 실행해 출력은 `schedule.log`에 남김 |
 
 - `gitfolio schedule HH:MM`(현지 시각) 등록, `schedule off` 해제, 인자 없으면 예약 시각과 마지막 동기화 시각·결과(`sync.json`의 `lastSync`·`lastError`) 표시
 - 실행 명령은 PATH의 `gitfolio`(Homebrew 링크라 업그레이드 후에도 유지), 없으면 현재 실행 파일. 등록 시점 셸의 `PATH`와 `GITFOLIO_LANG`을 넘겨 git 경로·화면 언어를 터미널과 같게 함
