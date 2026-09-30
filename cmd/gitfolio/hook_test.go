@@ -26,6 +26,7 @@ func TestHooksEndToEnd(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home) // data dir comes from os.UserConfigDir
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("AppData", filepath.Join(home, "AppData")) // the data folder on Windows
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
@@ -137,8 +138,9 @@ func TestLoginGate(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-	t.Setenv("CLAUDECODE", "1") // post-commit would record this tag if it ran
-	t.Chdir(t.TempDir())        // not a git repository: a hook that ran would fail
+	t.Setenv("AppData", filepath.Join(home, "AppData")) // the data folder on Windows
+	t.Setenv("CLAUDECODE", "1")                         // post-commit would record this tag if it ran
+	t.Chdir(t.TempDir())                                // not a git repository: a hook that ran would fail
 	if err := run([]string{"scan"}); err == nil || !strings.Contains(err.Error(), "gitfolio login") {
 		t.Errorf("scan before login: %v, want a login hint", err)
 	}
