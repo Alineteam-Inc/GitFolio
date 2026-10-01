@@ -59,6 +59,7 @@ gitfolio sync                    # send what aline.team does not have yet (pushe
 gitfolio config mask add acme    # hide a customer or internal project name in commit messages
 gitfolio remove ~/code/my-project --purge   # unregister, restore previous hooks, delete its data here and on aline.team
 gitfolio whoami | logout         # the account this device is logged in to / log out
+gitfolio email add me@work.com   # another work email of yours (email primary <e>: the one aline.team shows)
 gitfolio schedule 09:00          # optional daily sync for pushes the hooks missed (off: schedule off)
 ```
 
@@ -69,8 +70,8 @@ Your profile and resume are available at **[aline.team](https://aline.team)**.
 | Collected | Never collected |
 |---|---|
 | Commit hash, author email, date | Source code and file contents |
-| Commit message (masked) and branch name | Full file paths |
-| File names and lines added/deleted per file | Remote URLs, hosts and credentials |
+| Commit message (masked) and branch name | Where the repository is on your computer |
+| File paths in the repository and lines added/deleted per file | Remote URLs, hosts and credentials |
 | Repository `owner/repo` and service (GitHub, GitLab, …) | Commits by other people |
 | Whether an AI agent took part (Claude Code, Codex, Cursor, Copilot, …) | |
 
@@ -136,6 +137,7 @@ gitfolio sync                    # aline.team에 없는 것만 전송 (push하�
 gitfolio config mask add 고객사A  # 커밋 메시지 속 고객사·사내 프로젝트명을 가림
 gitfolio remove ~/code/my-project --purge   # 등록 해제, 기존 훅 복원, 이 컴퓨터와 aline.team의 데이터 삭제
 gitfolio whoami | logout         # 이 기기의 로그인 계정 확인 / 로그아웃
+gitfolio email add me@work.com   # 다른 작업 이메일 추가 (email primary <이메일>: aline.team에 보낼 대표 이메일)
 gitfolio schedule 09:00          # 훅이 놓친 push를 매일 보완하는 예약 동기화 (선택, 해제: schedule off)
 ```
 
@@ -143,10 +145,10 @@ gitfolio schedule 09:00          # 훅이 놓친 push를 매일 보완하는 예
 
 ### 수집 항목
 
-- **수집:** 커밋 해시, 작성자 이메일, 시점, 커밋 메시지(마스킹), 브랜치 이름, 파일명과 파일별 추가·삭제 줄 수,
+- **수집:** 커밋 해시, 작성자 이메일, 시점, 커밋 메시지(마스킹), 브랜치 이름, 저장소 안 파일 경로와 파일별 추가·삭제 줄 수,
   저장소 `소유자/저장소`와 git 서비스, AI 에이전트 참여 여부
-- **수집하지 않음:** 소스 코드·파일 내용, 전체 경로, 원격 URL·호스트·인증 정보, 다른 사람의 커밋
-- 커밋 메시지 속 토큰·키, URL, 이메일, IP, 티켓 번호, 등록한 금지어는 **이 컴퓨터에서 가린 뒤** 저장·전송합니다. 파일명·저장소 이름은 그대로 둡니다.
+- **수집하지 않음:** 소스 코드·파일 내용, 내 컴퓨터의 폴더 위치(저장소 밖 경로), 원격 URL·호스트·인증 정보, 다른 사람의 커밋
+- 커밋 메시지 속 토큰·키, URL, 이메일, IP, 티켓 번호, 등록한 금지어는 **이 컴퓨터에서 가린 뒤** 저장·전송합니다. 파일 경로·저장소 이름은 그대로 둡니다.
 - 패키지 매니저 파일은 파일별로 승인한 경우에만, 의존성 파악 용도로만 읽습니다 (aline.team 전송은 추후).
 - 데이터는 aline.team(Alineteam Inc., Google Cloud, 미국)으로 전송되며, 가입일로부터 1년간
   보관되고 계속 이용 중이면 자동 연장됩니다. 개인정보처리방침: https://aline.team/privacy
