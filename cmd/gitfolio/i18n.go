@@ -382,19 +382,19 @@ var messages = map[string]map[string]string{
 		"ja": "すでに %s でログインしています。アカウントを切り替えるには先に `gitfolio logout` を実行してください。\n",
 	},
 	"loginNeedsTerminal": {
-		"en": "Logging in needs a terminal: run `gitfolio login` there.\n",
-		"ko": "로그인은 터미널에서 해야 합니다. 터미널에서 `gitfolio login`을 실행하세요.\n",
-		"ja": "ログインにはターミナルが必要です。ターミナルで `gitfolio login` を実行してください。\n",
+		"en": "Logging in or signing up needs a terminal: run `gitfolio login` there.\n",
+		"ko": "로그인·가입은 터미널에서 해야 합니다. 터미널에서 `gitfolio login`을 실행하세요.\n",
+		"ja": "ログイン・新規登録にはターミナルが必要です。ターミナルで `gitfolio login` を実行してください。\n",
 	},
 	"loginTitle": {
-		"en": "Log in",
-		"ko": "로그인",
-		"ja": "ログイン",
+		"en": "Log in / Sign up",
+		"ko": "로그인 / 가입",
+		"ja": "ログイン / 新規登録",
 	},
 	"notLoggedIn": {
-		"en": "Not logged in. Run `gitfolio login`.\n",
-		"ko": "로그인되어 있지 않습니다. `gitfolio login`을 실행하세요.\n",
-		"ja": "ログインしていません。`gitfolio login` を実行してください。\n",
+		"en": "Not logged in. Run `gitfolio login` to log in or sign up.\n",
+		"ko": "로그인되어 있지 않습니다. `gitfolio login`으로 로그인하거나 가입하세요.\n",
+		"ja": "ログインしていません。`gitfolio login` でログインまたは新規登録してください。\n",
 	},
 	"whoami": {
 		"en": "Logged in as %s\nVerified emails: %s\nServer: %s\n",
@@ -407,9 +407,9 @@ var messages = map[string]map[string]string{
 		"ja": "ログアウトしました。このデバイスのトークンを失効させ、削除しました。\n",
 	},
 	"loginFirst": {
-		"en": "Log in to aline.team first: gitfolio login\n",
-		"ko": "먼저 aline.team에 로그인하세요: gitfolio login\n",
-		"ja": "先に aline.team にログインしてください: gitfolio login\n",
+		"en": "Log in or sign up to aline.team first: gitfolio login\n",
+		"ko": "먼저 aline.team에 로그인하거나 가입하세요: gitfolio login\n",
+		"ja": "先に aline.team にログインまたは新規登録してください: gitfolio login\n",
 	},
 	"relogin": {
 		"en": "(run `gitfolio login`)",
