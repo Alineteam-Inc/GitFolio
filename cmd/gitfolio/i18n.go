@@ -667,6 +667,36 @@ var messages = map[string]map[string]string{
 		"ko": "git push 직후 자동 전송: %s\n",
 		"ja": "git push 直後の自動送信: %s\n",
 	},
+	"historyOff": {
+		"en": "The git command history is off. Turn it on: gitfolio config git-history on\n",
+		"ko": "git 명령 기록이 꺼져 있습니다. 켜기: gitfolio config git-history on\n",
+		"ja": "git コマンド履歴はオフです。オンにする: gitfolio config git-history on\n",
+	},
+	"historyEmpty": {
+		"en": "No git commands recorded yet.\n",
+		"ko": "아직 기록된 git 명령이 없습니다.\n",
+		"ja": "記録された git コマンドはまだありません。\n",
+	},
+	"historyShown": {
+		"en": "Showing the last %[1]d of %[2]d runs (--all: every run). git writes this record itself (GIT_TRACE): %[3]s, up to %[4]s, oldest runs removed first.\n",
+		"ko": "실행 %[2]d회 중 최근 %[1]d회를 보여 줍니다 (--all: 전부). 이 기록은 git이 직접 씁니다(GIT_TRACE): %[3]s, 최대 %[4]s, 오래된 실행부터 지웁니다.\n",
+		"ja": "実行 %[2]d 回のうち直近 %[1]d 回を表示しています(--all: すべて)。この記録は git 自身が書き込みます(GIT_TRACE): %[3]s、最大 %[4]s、古い実行から削除します。\n",
+	},
+	"historyTurnedOn": {
+		"en": "git command history: on. See it with gitfolio history.\n",
+		"ko": "git 명령 기록: 켬. gitfolio history로 볼 수 있습니다.\n",
+		"ja": "git コマンド履歴: オン。gitfolio history で確認できます。\n",
+	},
+	"historyTurnedOff": {
+		"en": "git command history: off. The record was deleted.\n",
+		"ko": "git 명령 기록: 끔. 기록을 삭제했습니다.\n",
+		"ja": "git コマンド履歴: オフ。記録を削除しました。\n",
+	},
+	"historySize": {
+		"en": "git command history keeps up to %s; the oldest runs are removed first.\n",
+		"ko": "git 명령 기록은 최대 %s까지 보관하고, 오래된 실행부터 지웁니다.\n",
+		"ja": "git コマンド履歴は最大 %s まで保存し、古い実行から削除します。\n",
+	},
 	"reposTitle": {
 		"en": "Repositories",
 		"ko": "저장소",

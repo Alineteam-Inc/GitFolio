@@ -83,6 +83,10 @@ type Config struct {
 	Emails []string `json:"emails,omitempty"`
 	// Schedule is the daily sync time ("09:00", local) registered with the OS scheduler; empty = none.
 	Schedule string `json:"schedule,omitempty"`
+	// GitHistoryOff stops keeping git's record of the commands gitfolio runs (history.go); GitHistoryMax
+	// is that record's size limit in bytes, 0 = 1 MB (config git-history, git-history-size).
+	GitHistoryOff bool  `json:"gitHistoryOff,omitempty"`
+	GitHistoryMax int64 `json:"gitHistoryMax,omitempty"`
 }
 
 func loadRepos(dir string) (repos []Repo, err error) {
