@@ -17,14 +17,15 @@ import (
 // defaultAPIBase is the aline.team API (docs/API.md, agreed with the aline.team server).
 const defaultAPIBase = "https://aline.team/api"
 
-// apiBase returns the API root: GITFOLIO_API_URL if set, else the one saved with
-// `gitfolio config api-url` (hooks started by GUI git clients do not see shell variables), else production.
+// apiBase returns the API root. Release builds always use production. Builds from source (version
+// "dev") may point elsewhere for testing: GITFOLIO_API_URL if set, else the one saved with
+// `gitfolio config api-url` (hooks started by GUI git clients do not see shell variables).
 func apiBase(configured string) (string, error) {
 	raw := os.Getenv("GITFOLIO_API_URL")
 	if raw == "" {
 		raw = configured
 	}
-	if raw == "" {
+	if raw == "" || version != "dev" {
 		return defaultAPIBase, nil
 	}
 	if err := checkAPIURL(raw); err != nil {

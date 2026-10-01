@@ -10,15 +10,14 @@ on, when, in which languages and frameworks, and how you used AI coding agents.
 Once set up it runs by itself: every `git push` from any tool (terminal, IDE, GUI client or AI agent)
 is picked up in the background, without slowing the push down.
 
-> **Status: early development.** Collection, sign-up and login, and syncing to aline.team work against
-> the development server. The first release (v0.1.0, Homebrew / curl) follows once the production
-> server is ready — see [docs/ROADMAP.md](docs/ROADMAP.md).
+> **Status:** the first release (v0.1.0) ships once the aline.team production server is ready —
+> see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 [한국어](#한국어)
 
 ## Install
 
-Available from the first release (v0.1.0).
+Requires `git`. Available from the first release (v0.1.0).
 
 **Homebrew** (macOS, Linux)
 
@@ -27,6 +26,7 @@ brew install Alineteam-Inc/tap/gitfolio
 ```
 
 **curl** (macOS, Linux) — downloads over HTTPS and verifies the SHA-256 checksum before installing
+(to `/usr/local/bin` if writable, else `~/.local/bin`)
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
@@ -38,9 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install
 irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
 ```
 
-Then run `gitfolio init`.
-
-**From source** (Go 1.27 or later)
+**From source** (Go 1.27 or later, for contributors)
 
 ```sh
 git clone https://github.com/Alineteam-Inc/GitFolio.git
@@ -48,7 +46,69 @@ cd GitFolio
 go install ./cmd/gitfolio      # installs to ~/go/bin
 ```
 
-## Usage
+## Get started
+
+```sh
+gitfolio init
+```
+
+`init` walks you through everything once:
+
+1. Shows the data policy (below).
+2. Signs you up or logs you in to aline.team with a code sent to your email.
+   Nothing is collected before you log in.
+3. Finds the git repositories under your code folders; you choose which ones to collect.
+4. Asks about optional dependency detection and a daily sync.
+5. Installs git hooks in the chosen repositories and sends their history to aline.team.
+
+From then on, each `git push` is sent automatically.
+
+## See your profile on aline.team
+
+1. Log in at **[aline.team](https://aline.team)** with the account you used in `gitfolio init`
+   (`gitfolio whoami` shows it).
+2. Signed up from the CLI? Set a website password first with the link emailed to you. It works once
+   within 24 hours; after that, use "Forgot password" on the website.
+3. Your profile and resume are built from what GitFolio sends. They update after aline.team's next
+   analysis run, not right after each push.
+
+- Commits appear under your **primary work email** (`gitfolio email`). Changing it applies to
+  repositories added after the change; repositories already on aline.team keep their first email.
+- If you also connected the same repository on the aline.team website, GitFolio's commits join that
+  repository.
+
+## Data policy
+
+**Only metadata of your own pushed commits, from repositories you chose, after you logged in.**
+"Your own" means commits by your work emails (`gitfolio email`) or the repository's git email.
+
+| Sent to aline.team | Never collected |
+|---|---|
+| Repository service (GitHub, GitLab, …) and `owner/repo` | Source code and file contents |
+| Your primary work email | Where the repository is on your computer |
+| Commit hash, branch name, time (with time zone offset) | Remote URLs, hosts and credentials (git, `gh`, …) |
+| Commit message, masked on your computer | Commits by other people |
+| File paths in the repository, lines added/deleted, whether the commit created the file | |
+| Whether an AI agent took part (Claude Code, Codex, Cursor, Copilot, …) | |
+| For files you created: when someone else first changed them (time only, not who) | |
+
+- **Masking:** before anything is stored or sent, commit messages lose tokens and keys, URLs, emails,
+  IP addresses, ticket numbers and words you block with `gitfolio config mask add`. File paths,
+  branch and repository names are kept as they are.
+- **Package manager files** (`package.json`, `pom.xml`, …) are read only with your per-file approval,
+  and only to detect dependencies. Dependencies are not sent yet.
+- **On your computer:** data and the login token are kept in your user config folder
+  (`~/Library/Application Support/gitfolio`, `~/.config/gitfolio` or `%AppData%\gitfolio`),
+  readable only by you. The token is never printed or logged.
+- **Transfer and retention:** HTTPS only, to aline.team (Alineteam Inc., Google Cloud,
+  United States). Kept for one year from sign-up, renewed while you keep using GitFolio.
+  Signing up means agreeing to the [Terms of Service](https://aline.team/terms) and the
+  [Privacy Policy](https://aline.team/privacy).
+- **You stay in control:** `gitfolio sync --dry-run` prints exactly what would be sent,
+  `gitfolio config autosync off` stops sending on push, and `gitfolio remove <path> --purge`
+  deletes a repository's data here and on aline.team.
+
+## Commands
 
 ```sh
 gitfolio init                    # data policy, aline.team sign-up or login, find and choose repositories
@@ -61,28 +121,8 @@ gitfolio remove ~/code/my-project --purge   # unregister, restore previous hooks
 gitfolio whoami | logout         # the account this device is logged in to / log out
 gitfolio email add me@work.com   # another work email of yours (email primary <e>: the one aline.team shows)
 gitfolio schedule 09:00          # optional daily sync for pushes the hooks missed (off: schedule off)
+gitfolio help                    # all commands
 ```
-
-Your profile and resume are available at **[aline.team](https://aline.team)**.
-
-## What is collected
-
-| Collected | Never collected |
-|---|---|
-| Commit hash, author email, date | Source code and file contents |
-| Commit message (masked) and branch name | Where the repository is on your computer |
-| File paths in the repository and lines added/deleted per file | Remote URLs, hosts and credentials |
-| Repository `owner/repo` and service (GitHub, GitLab, …) | Commits by other people |
-| Whether an AI agent took part (Claude Code, Codex, Cursor, Copilot, …) | |
-
-- **Masked in commit messages on your computer before anything is stored or sent:** tokens and keys,
-  URLs, emails, IP addresses, ticket numbers, and words you block with `gitfolio config mask add`.
-  File and repository names are kept as they are.
-- **Package manager files** (`package.json`, `pom.xml`, …) are read only with your per-file
-  approval, and only to detect dependencies (sending them to aline.team comes later).
-- Data is sent to aline.team (Alineteam Inc., Google Cloud, United States) and kept for one
-  year from sign-up, renewed while you keep using GitFolio.
-  Privacy policy: https://aline.team/privacy
 
 ## License
 
@@ -102,15 +142,14 @@ GitFolio는 Alineteam Inc.가 만든 macOS·Linux·Windows용 CLI입니다. 내�
 한 번 설정하면 터미널·IDE·GUI 클라이언트·AI 에이전트 등 어떤 도구로 `git push`를 하든 백그라운드에서
 자동으로 수집되며, push 속도에는 영향을 주지 않습니다.
 
-> **현재 상태: 초기 개발 중.** 수집, 가입·로그인, aline.team 동기화가 개발 서버에서 동작합니다.
-> 첫 릴리스(v0.1.0, Homebrew·curl 설치)는 운영 서버 준비 후 나옵니다 ([docs/ROADMAP.md](docs/ROADMAP.md)).
+> **현재 상태:** 첫 릴리스(v0.1.0)는 aline.team 운영 서버 준비 후 나옵니다 ([docs/ROADMAP.md](docs/ROADMAP.md)).
 
 ### 설치
 
-첫 릴리스(v0.1.0)부터 사용할 수 있습니다.
+`git`이 필요합니다. 첫 릴리스(v0.1.0)부터 사용할 수 있습니다.
 
 - **Homebrew** (macOS, Linux): `brew install Alineteam-Inc/tap/gitfolio`
-- **curl** (macOS, Linux — HTTPS로 받고 SHA-256을 검증한 뒤 설치):
+- **curl** (macOS, Linux — HTTPS로 받고 SHA-256을 검증한 뒤 `/usr/local/bin`, 쓸 수 없으면 `~/.local/bin`에 설치):
   ```sh
   curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
   ```
@@ -118,15 +157,69 @@ GitFolio는 Alineteam Inc.가 만든 macOS·Linux·Windows용 CLI입니다. 내�
   ```powershell
   irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
   ```
-- 설치 후 `gitfolio init`을 실행하세요.
-- **소스에서 설치** (Go 1.27 이상):
+- **소스에서 설치** (Go 1.27 이상, 기여자용):
   ```sh
   git clone https://github.com/Alineteam-Inc/GitFolio.git
   cd GitFolio
   go install ./cmd/gitfolio      # ~/go/bin 에 설치
   ```
 
-### 사용법
+### 시작하기
+
+```sh
+gitfolio init
+```
+
+`init` 한 번으로 설정이 끝납니다.
+
+1. 데이터 정책(아래)을 보여 줍니다.
+2. 이메일로 받은 확인 코드로 aline.team에 가입하거나 로그인합니다. 로그인 전에는 아무것도 수집하지 않습니다.
+3. 코드 폴더에서 git 저장소를 찾고, 수집할 저장소를 고릅니다.
+4. 의존성 분석과 예약 동기화(선택)를 묻습니다.
+5. 고른 저장소에 git 훅을 설치하고 지금까지의 이력을 aline.team에 보냅니다.
+
+이후에는 `git push`할 때마다 자동으로 전송됩니다.
+
+### aline.team에서 내 프로필 보기
+
+1. **[aline.team](https://aline.team)** 에 `gitfolio init`에서 쓴 계정으로 로그인합니다 (`gitfolio whoami`로 확인).
+2. CLI에서 가입했다면 먼저 메일로 받은 링크로 웹 비밀번호를 설정합니다. 링크는 24시간 안에 한 번 쓸 수 있고,
+   만료되면 웹의 "비밀번호 찾기"를 쓰세요.
+3. 프로필과 이력서는 GitFolio가 보낸 데이터로 만들어집니다. push 직후가 아니라 aline.team의 다음 분석 때 반영됩니다.
+
+- 커밋은 **대표 작업 이메일**(`gitfolio email`의 ★)로 집계됩니다. 대표 이메일을 바꾸면 그 뒤에 추가한 저장소부터
+  적용되고, aline.team에 이미 있는 저장소는 처음 이메일로 그대로 집계됩니다.
+- 같은 저장소를 aline.team 웹에서도 연동했다면 GitFolio의 커밋이 그 저장소로 합쳐집니다.
+
+### 데이터 정책
+
+**로그인한 뒤, 내가 고른 저장소에서, 내가 작성하고 push한 커밋의 메타데이터만** 수집합니다.
+"내 커밋"은 작업 이메일(`gitfolio email`) 또는 저장소의 git 이메일로 작성한 커밋입니다.
+
+| aline.team으로 보내는 것 | 수집하지 않는 것 |
+|---|---|
+| 저장소의 git 서비스(GitHub, GitLab 등)와 `소유자/저장소` | 소스 코드·파일 내용 |
+| 대표 작업 이메일 | 내 컴퓨터의 폴더 위치(저장소 밖 경로) |
+| 커밋 해시, 브랜치 이름, 시점(시간대 포함) | 원격 URL·호스트·인증 정보(git, `gh` 등) |
+| 커밋 메시지 (이 컴퓨터에서 마스킹) | 다른 사람의 커밋 |
+| 저장소 안 파일 경로, 추가·삭제 줄 수, 그 커밋에서 새로 만든 파일인지 | |
+| AI 에이전트 참여 여부 (Claude Code, Codex, Cursor, Copilot 등) | |
+| 내가 만든 파일을 다른 사람이 처음 고친 시각 (시각만, 누가 고쳤는지는 보내지 않음) | |
+
+- **마스킹:** 저장·전송 전에 커밋 메시지 속 토큰·키, URL, 이메일, IP, 티켓 번호, `gitfolio config mask add`로 등록한
+  금지어를 가립니다. 파일 경로·브랜치 이름·저장소 이름은 그대로 둡니다.
+- **패키지 매니저 파일**(`package.json`, `pom.xml` 등)은 파일별로 승인한 경우에만, 의존성 파악 용도로만 읽습니다.
+  의존성은 아직 전송하지 않습니다.
+- **이 컴퓨터에 저장되는 것:** 수집 데이터와 로그인 토큰은 사용자 설정 폴더
+  (`~/Library/Application Support/gitfolio`, `~/.config/gitfolio`, `%AppData%\gitfolio`)에 본인만 읽을 수 있게 저장합니다.
+  토큰은 화면·로그에 출력하지 않습니다.
+- **전송과 보관:** HTTPS로만 aline.team(Alineteam Inc., Google Cloud, 미국)에 보냅니다. 가입일로부터 1년간
+  보관되고, 계속 이용 중이면 자동 연장됩니다. 가입은 [이용약관](https://aline.team/terms)과
+  [개인정보처리방침](https://aline.team/privacy) 동의로 간주됩니다.
+- **직접 관리:** `gitfolio sync --dry-run`으로 보낼 내용을 그대로 미리 보고, `gitfolio config autosync off`로 push 직후
+  전송을 끄고, `gitfolio remove <경로> --purge`로 이 컴퓨터와 aline.team의 저장소 데이터를 지울 수 있습니다.
+
+### 명령
 
 ```sh
 gitfolio init                    # 데이터 정책, aline.team 가입·로그인, 저장소 찾기·선택
@@ -139,19 +232,8 @@ gitfolio remove ~/code/my-project --purge   # 등록 해제, 기존 훅 복원, 
 gitfolio whoami | logout         # 이 기기의 로그인 계정 확인 / 로그아웃
 gitfolio email add me@work.com   # 다른 작업 이메일 추가 (email primary <이메일>: aline.team에 보낼 대표 이메일)
 gitfolio schedule 09:00          # 훅이 놓친 push를 매일 보완하는 예약 동기화 (선택, 해제: schedule off)
+gitfolio help                    # 전체 명령
 ```
-
-내 프로필과 이력서는 **[aline.team](https://aline.team)** 에서 직접 확인할 수 있습니다.
-
-### 수집 항목
-
-- **수집:** 커밋 해시, 작성자 이메일, 시점, 커밋 메시지(마스킹), 브랜치 이름, 저장소 안 파일 경로와 파일별 추가·삭제 줄 수,
-  저장소 `소유자/저장소`와 git 서비스, AI 에이전트 참여 여부
-- **수집하지 않음:** 소스 코드·파일 내용, 내 컴퓨터의 폴더 위치(저장소 밖 경로), 원격 URL·호스트·인증 정보, 다른 사람의 커밋
-- 커밋 메시지 속 토큰·키, URL, 이메일, IP, 티켓 번호, 등록한 금지어는 **이 컴퓨터에서 가린 뒤** 저장·전송합니다. 파일 경로·저장소 이름은 그대로 둡니다.
-- 패키지 매니저 파일은 파일별로 승인한 경우에만, 의존성 파악 용도로만 읽습니다 (aline.team 전송은 추후).
-- 데이터는 aline.team(Alineteam Inc., Google Cloud, 미국)으로 전송되며, 가입일로부터 1년간
-  보관되고 계속 이용 중이면 자동 연장됩니다. 개인정보처리방침: https://aline.team/privacy
 
 ### 라이선스
 
