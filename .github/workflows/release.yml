@@ -14,6 +14,11 @@ jobs:
   release:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # upload release assets
+      id-token: write # sign the build provenance (Sigstore)
+      attestations: write
+      artifact-metadata: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -34,3 +39,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Private half of a deploy key with write access to Alineteam-Inc/homebrew-tap only.
           HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+
+      # Signed proof that each archive was built here from this tag's source; users check it with
+      # gh attestation verify <archive> -R Alineteam-Inc/GitFolio (README "Check it yourself").
+      - uses: actions/attest@v4
+        with:
+          subject-checksums: dist/checksums.txt
