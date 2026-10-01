@@ -126,16 +126,16 @@ push된 커밋마다 수집하는 내용: 커밋 메시지, 시점, 변경 파�
 **2단계 동의**
 
 1. **기능 동의** (`init` 또는 `gitfolio deps on`): 의존성 분석 기능 사용 여부. 기본값 **사용 안 함**
-2. **파일별 승인** (저장소마다): 발견된 매니저 파일 목록을 보여주고 사용자가 고른 파일만 읽음
+2. **파일별 승인**: 발견된 매니저 파일 목록을 보여주고 사용자가 고른 파일만 읽음. 여러 저장소를 한꺼번에 다룰 때(`init`, `deps on`)는 **한 목록으로 모아 한 번만** 묻는다 — 저장소별로 묶고 번호는 이어서 매김 (2026-10-01 사용자 결정: 저장소마다 묻는 것은 반복적)
 
 ```
-GitFolio found these package manager files in "gitfolio".
-Selected files are read only to detect dependencies.
-  1  go.mod
-  2  services/api/go.mod
-  3  web/package.json
-  4  web/admin/package.json
-Allow reading which files? [all / none / 1,3] >
+Package manager files. Selected files are read only to detect dependencies:
+my-api
+    1  new       build.gradle
+    2  new       api/build.gradle
+my-web
+    3  new       pom.xml
+? Allow reading which files? [all / none / 1,3,5-7 / Enter = keep as is] >
 ```
 
 | 규칙 | 내용 |
@@ -391,7 +391,7 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
 | 1 | `로그인` | **aline.team 가입·로그인 (필수)**: 이용약관·개인정보처리방침 고지 → 이메일 입력 → 확인 코드 → 토큰 저장. 완료하지 않으면 여기서 종료 |
 | 2 | `저장소` | 저장소 모음 경로 → 작업 이메일(git 이메일 자동 등록 = 대표, "다른 작업 이메일이 있나요?" 추가) → 탐색 → 후보 표시 → **등록할 저장소 선택** (Enter = 선택 안 함) |
 | 3 | `설정` | ① **의존성 분석** [y/N] (고지 후) ② **예약 동기화** [HH:MM / Enter = 안 함] — 정해진 시각의 자동 수집·전송. 예약하지 않으면 사용자가 `gitfolio sync`로 직접 실행 |
-| 4 | | 설정 적용 (의존성을 새로 켜면 이미 등록된 저장소의 매니저 파일도 승인, 끄면 수집분 삭제. 예약은 7.5 방식으로 등록·해제) → 선택한 저장소 등록 (의존성 분석이 켜져 있으면 저장소마다 매니저 파일 승인) |
+| 4 | | 설정 적용 (의존성을 새로 켜면 이미 등록된 저장소의 매니저 파일도 승인, 끄면 수집분 삭제. 예약은 7.5 방식으로 등록·해제) → 선택한 저장소 등록 (의존성 분석이 켜져 있으면 고른 저장소 전체의 매니저 파일을 한 번에 승인) |
 | 5 | `동기화` | 등록 저장소가 있으면 `sync` (첫 실행은 선택한 저장소의 이력 전송). 실패해도 다음 push·sync 때 전송 |
 | 6 | | 요약: 등록 저장소 수, push 직후 자동 전송(현재 값), 의존성 분석, 예약 동기화와 바꾸는 방법 |
 
@@ -502,7 +502,7 @@ Enable dependency detection? [y/N]
 - 번호 입력 (`1,3,5-7`, `all`, `none`) → 선택한 저장소마다 `add` 수행
 - 탐색 결과는 저장하지 않음. 선택한 저장소만 등록
 
-**7. 매니저 파일 승인**: 저장소마다 3.5의 파일별 승인 화면
+**7. 매니저 파일 승인**: 고른 저장소 전체를 3.5의 승인 화면 하나로
 
 **8. 첫 동기화**: 등록한 저장소의 첫 동기화 실행. 수집의 기본은 커밋·push 훅이므로 예약 동기화는 `init`에서 묻지 않는다. 훅을 거치지 않는 작업 방식이 많은 사용자만 `gitfolio schedule HH:MM`으로 직접 켠다
 

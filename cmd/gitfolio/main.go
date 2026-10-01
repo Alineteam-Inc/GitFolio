@@ -166,12 +166,14 @@ func cmdAdd(dir, path string) error {
 	if err != nil {
 		return err
 	}
-	return registerRepo(dir, top)
+	return registerRepo(dir, newRepo(top), true)
 }
 
-// registerRepo registers the repository at top (its git top-level), collects it and installs hooks.
+// registerRepo registers r (a git top-level), collects it and installs hooks. With ask, it first asks
+// which package manager files may be read; init asks for all chosen repositories at once instead.
 // Callers hold the data lock.
-func registerRepo(dir, top string) error {
+func registerRepo(dir string, repo Repo, ask bool) error {
+	top := repo.Path
 	repos, err := loadRepos(dir)
 	if err != nil {
 		return err
@@ -181,7 +183,7 @@ func registerRepo(dir, top string) error {
 			return failure("alreadyRegistered", tildePath(top))
 		}
 	}
-	repos = append(repos, newRepo(top))
+	repos = append(repos, repo)
 	r := &repos[len(repos)-1]
 	cfg, err := loadConfig(dir)
 	if err != nil {
@@ -194,8 +196,8 @@ func registerRepo(dir, top string) error {
 			}
 		}
 	}
-	if cfg.Deps && interactive() {
-		if _, err := reviewManifests(r); err != nil {
+	if ask && cfg.Deps && interactive() {
+		if _, err := reviewManifests(repos[len(repos)-1:]); err != nil {
 			return err
 		}
 	}

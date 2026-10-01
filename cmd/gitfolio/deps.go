@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -505,38 +506,69 @@ func parseSelection(s string, n int) ([]int, error) {
 	return slices.Compact(sel), nil
 }
 
-// reviewManifests asks which of r's package manager files may be read. It returns false when
-// the user kept the current decisions.
-func reviewManifests(r *Repo) (bool, error) {
+// reviewManifests asks once which package manager files of rs may be read: the files of all of them
+// in one list, grouped by repository and numbered across it. It updates rs in place and returns the
+// indexes of the repositories whose decisions changed; Enter keeps every decision as it is.
+func reviewManifests(rs []Repo) ([]int, error) {
 	lang := detectLang(os.Getenv)
-	files := manifestCandidates(r.Path)
-	if len(files) == 0 {
-		say(lang, "noManifests", r.Name)
-		return false, nil
-	}
-	notice(fmt.Sprintf(tr(lang, "manifestsTitle"), r.Name))
-	for i, f := range files {
-		state := tr(lang, "manifestNew")
-		if ok, decided := r.Manifests[f]; decided {
-			state = tr(lang, map[bool]string{true: "manifestAllowed", false: "manifestDeclined"}[ok])
+	files := make([][]string, len(rs))
+	var none []string
+	n := 0
+	for i, r := range rs {
+		files[i] = manifestCandidates(r.Path)
+		if len(files[i]) == 0 {
+			none = append(none, r.Name)
 		}
-		fmt.Printf("%s%3d  %-8s  %s\n", margin, i+1, state, f)
+		n += len(files[i])
+	}
+	if len(none) > 0 {
+		say(lang, "noManifests", strings.Join(none, ", "))
+	}
+	if n == 0 {
+		return nil, nil
+	}
+	notice(tr(lang, "manifestsTitle"))
+	k := 0
+	for i, r := range rs {
+		if len(files[i]) > 0 {
+			fmt.Printf("%s%s\n", margin, r.Name)
+		}
+		for _, f := range files[i] {
+			k++
+			state := tr(lang, "manifestNew")
+			if ok, decided := r.Manifests[f]; decided {
+				state = tr(lang, map[bool]string{true: "manifestAllowed", false: "manifestDeclined"}[ok])
+			}
+			fmt.Printf("%s  %3d  %-8s  %s\n", margin, k, state, f)
+		}
 	}
 	for {
 		answer := prompt(tr(lang, "manifestsAsk"))
 		if answer == "" {
-			return false, nil
+			return nil, nil
 		}
-		sel, err := parseSelection(answer, len(files))
+		sel, err := parseSelection(answer, n)
 		if err != nil {
-			notice(fmt.Sprintf(tr(lang, "badSelection"), len(files)))
+			notice(fmt.Sprintf(tr(lang, "badSelection"), n))
 			continue
 		}
-		r.Manifests = map[string]bool{}
-		for i, f := range files {
-			r.Manifests[f] = slices.Contains(sel, i+1)
+		var changed []int
+		k = 0
+		for i := range rs {
+			if len(files[i]) == 0 {
+				continue
+			}
+			m := map[string]bool{}
+			for _, f := range files[i] {
+				k++
+				m[f] = slices.Contains(sel, k)
+			}
+			if !maps.Equal(m, rs[i].Manifests) {
+				rs[i].Manifests = m
+				changed = append(changed, i)
+			}
 		}
-		return true, nil
+		return changed, nil
 	}
 }
 
@@ -578,10 +610,8 @@ func cmdDeps(dir string, args []string) error {
 			say(lang, "depsReviewLater")
 			return nil
 		}
-		for i := range repos {
-			if err := reviewAndRescan(dir, &repos[i]); err != nil {
-				return err
-			}
+		if err := reviewAndRescan(dir, repos); err != nil {
+			return err
 		}
 		return saveRepos(dir, repos)
 	case "off":
@@ -621,7 +651,7 @@ func cmdDeps(dir string, args []string) error {
 		if i < 0 {
 			return failure("notRegisteredAdd", tildePath(top))
 		}
-		if err := reviewAndRescan(dir, &repos[i]); err != nil {
+		if err := reviewAndRescan(dir, repos[i:i+1]); err != nil {
 			return err
 		}
 		return saveRepos(dir, repos)
@@ -629,17 +659,19 @@ func cmdDeps(dir string, args []string) error {
 	return failure("usage", "gitfolio deps [on|off|review [path]]")
 }
 
-// reviewAndRescan asks about r's manifest files and, when decisions changed, collects r again so
-// dependencies and module IDs match the new approvals.
-func reviewAndRescan(dir string, r *Repo) error {
-	changed, err := reviewManifests(r)
-	if err != nil || !changed {
-		return err
-	}
-	n, err := scanRepo(dir, r, true)
+// reviewAndRescan asks about the manifest files of rs in one list and collects again the repositories
+// whose decisions changed, so dependencies and module IDs match the new approvals.
+func reviewAndRescan(dir string, rs []Repo) error {
+	changed, err := reviewManifests(rs)
 	if err != nil {
 		return err
 	}
-	say(detectLang(os.Getenv), "depsUpdated", r.Name, n)
+	for _, i := range changed {
+		n, err := scanRepo(dir, &rs[i], true)
+		if err != nil {
+			return err
+		}
+		say(detectLang(os.Getenv), "depsUpdated", rs[i].Name, n)
+	}
 	return nil
 }
