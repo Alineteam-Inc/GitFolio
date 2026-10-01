@@ -104,23 +104,50 @@ func TestDepsInMonorepo(t *testing.T) {
 		t.Fatal(err)
 	}
 	// git itself logs every command gitfolio runs; this is how users can check it too (README).
-	trace := filepath.Join(t.TempDir(), "trace")
-	t.Setenv("GIT_TRACE", trace)
-	if _, err := scanRepo(data, &r, false); err != nil {
+	// read lists the files `git cat-file`, the only command that reads file contents, ran for.
+	read := func(do func() error) string {
+		t.Helper()
+		trace := filepath.Join(t.TempDir(), "trace")
+		t.Setenv("GIT_TRACE", trace)
+		if err := do(); err != nil {
+			t.Fatal(err)
+		}
+		t.Setenv("GIT_TRACE", "")
+		b, _ := os.ReadFile(trace)
+		var files []string
+		for _, line := range strings.Split(string(b), "\n") {
+			if _, args, ok := strings.Cut(line, "built-in: git cat-file "); ok {
+				files = append(files, args)
+			}
+		}
+		slices.Sort(files)
+		return strings.Join(files, ", ")
+	}
+	if got := read(func() error { _, err := scanRepo(data, &r, false); return err }); got != "" {
+		t.Errorf("scan read %q; collecting commits must not read package manager files", got)
+	}
+	if got := read(func() error { _, _, err := refreshDeps(data, &r); return err }); got != "-p HEAD:package.json, -p HEAD:services/api/go.mod" {
+		t.Errorf("deps scan read %q; only the approved files may be read, never the declined or undecided ones", got)
+	}
+	// sync reads them only as the daily run (GITFOLIO_SCHEDULED, set by the scheduler) with schedule deps on.
+	if err := saveRepos(data, []Repo{r}); err != nil {
 		t.Fatal(err)
 	}
-	b, err := os.ReadFile(trace)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var read []string // the only command that reads file contents
-	for _, line := range strings.Split(string(b), "\n") {
-		if _, args, ok := strings.Cut(line, "built-in: git cat-file "); ok {
-			read = append(read, args)
+	t.Setenv("GITFOLIO_API_URL", "http://127.0.0.1:9") // not logged in, offline: sync stops after collecting
+	for _, c := range []struct {
+		scheduled, on bool
+		want          string
+	}{{false, true, ""}, {true, false, ""}, {true, true, "-p HEAD:package.json, -p HEAD:services/api/go.mod"}} {
+		if err := saveConfig(data, Config{Deps: true, ScheduleDeps: c.on}); err != nil {
+			t.Fatal(err)
+		}
+		t.Setenv("GITFOLIO_SCHEDULED", map[bool]string{true: "1"}[c.scheduled])
+		if got := read(func() error { cmdSync(data, nil); return nil }); got != c.want {
+			t.Errorf("sync (daily run %v, schedule deps %v) read %q, want %q", c.scheduled, c.on, got, c.want)
 		}
 	}
-	if slices.Sort(read); strings.Join(read, ", ") != "-p HEAD:package.json, -p HEAD:services/api/go.mod" {
-		t.Errorf("git cat-file ran for %q; only the approved files may be read, never the declined or undecided ones", read)
+	if err := saveConfig(data, Config{Deps: true}); err != nil {
+		t.Fatal(err)
 	}
 
 	deps, err := loadDeps(data)

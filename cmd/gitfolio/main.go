@@ -41,6 +41,9 @@ commands:
                         dependency detection: show status, turn it on (you choose which
                         package manager files may be read) or off (collected dependencies
                         are deleted), or change the file choices of a repository
+  deps scan [path] [--all]
+                        read the approved package manager files again to update the
+                        dependencies (pushes, scan and sync never read them)
   config                show settings
   config mask add|rm <word>...
                         add or remove blocked words (customer or internal project names);
@@ -60,6 +63,8 @@ commands:
   schedule [HH:MM | off]
                         optional daily sync at a local time, for pushes the hooks missed
                         (launchd on macOS, systemd or cron on Linux); no argument: show it
+  schedule deps on|off  the daily sync also reads the approved package manager files
+                        (off by default)
   version               print version`
 
 func main() {
@@ -150,7 +155,7 @@ func collects(args []string) bool {
 	case "add", "scan", "sync", "hook":
 		return true
 	case "deps":
-		return len(args) > 1 && (args[1] == "on" || args[1] == "review")
+		return len(args) > 1 && (args[1] == "on" || args[1] == "review" || args[1] == "scan")
 	}
 	return false
 }

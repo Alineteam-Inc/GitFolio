@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"flag"
 	"fmt"
 	"maps"
 	"os"
@@ -111,11 +112,30 @@ func moduleOf(p string, modules map[string]string) string {
 	}
 }
 
-// refreshDeps reads only the approved manifest files of r (committed version, file contents are
-// parsed in memory and dropped), stores their dependencies and returns the module IDs by directory.
-// ponytail: re-reads every approved file on each scan; skip unchanged blobs if repos get many manifests.
-func refreshDeps(dir string, r *Repo) (map[string]string, error) {
+// manifestDir is the module directory of manifest file p ("" for the repository root).
+func manifestDir(p string) string {
+	if d := path.Dir(p); d != "." {
+		return d
+	}
+	return ""
+}
+
+// manifestModules maps the directories of r's approved manifest files to module IDs. It reads no file:
+// collecting commits only needs to know which module each changed file belongs to.
+func manifestModules(r Repo) map[string]string {
 	modules := map[string]string{}
+	for p, ok := range r.Manifests {
+		if ok {
+			modules[manifestDir(p)] = moduleID(manifestDir(p))
+		}
+	}
+	return modules
+}
+
+// refreshDeps reads only the approved manifest files of r (committed version, file contents are
+// parsed in memory and dropped) and stores their dependencies. It runs only when asked: `deps scan`,
+// right after approving files, and the daily sync when `schedule deps on` (never on push or scan).
+func refreshDeps(dir string, r *Repo) (files, deps int, err error) {
 	var found []Dependency
 	for p, ok := range r.Manifests {
 		if !ok {
@@ -125,24 +145,20 @@ func refreshDeps(dir string, r *Repo) (map[string]string, error) {
 		if err != nil {
 			continue // removed since it was approved
 		}
-		d := path.Dir(p)
-		if d == "." {
-			d = ""
-		}
-		modules[d] = moduleID(d)
+		files++
 		for _, x := range parseManifest(path.Base(p), content) {
-			found = append(found, Dependency{Repo: r.ID, Module: modules[d], Ecosystem: manifestNames[path.Base(p)], Name: x.name, Version: x.version})
+			found = append(found, Dependency{Repo: r.ID, Module: moduleID(manifestDir(p)), Ecosystem: manifestNames[path.Base(p)], Name: x.name, Version: x.version})
 		}
 	}
 	all, err := loadDeps(dir)
 	if err != nil {
-		return nil, err
+		return 0, 0, err
 	}
 	all = append(slices.DeleteFunc(all, func(x Dependency) bool { return x.Repo == r.ID }), found...)
 	slices.SortFunc(all, func(a, b Dependency) int {
 		return strings.Compare(a.Repo+a.Module+a.Ecosystem+a.Name, b.Repo+b.Module+b.Ecosystem+b.Name)
 	})
-	return modules, saveJSON(filepath.Join(dir, "deps.json"), all)
+	return files, len(found), saveJSON(filepath.Join(dir, "deps.json"), all)
 }
 
 // parseManifest extracts directly declared dependencies. Lock files, local paths, git and URL
@@ -655,8 +671,40 @@ func cmdDeps(dir string, args []string) error {
 			return err
 		}
 		return saveRepos(dir, repos)
+	case "scan":
+		if !cfg.Deps {
+			return failure("depsIsOff")
+		}
+		fs := flag.NewFlagSet("deps scan", flag.ContinueOnError)
+		all := fs.Bool("all", false, "every registered repository")
+		if err := fs.Parse(flagsFirst(args[1:])); err != nil {
+			return err
+		}
+		var top string
+		if !*all {
+			if top, err = topLevel(pathArg(fs.Args())); err != nil {
+				return err
+			}
+		}
+		matched := false
+		for i := range repos {
+			if !*all && repos[i].Path != top {
+				continue
+			}
+			matched = true
+			files, deps, err := refreshDeps(dir, &repos[i])
+			if err != nil {
+				warn(lang, "repoFailed", repos[i].Name, err)
+				continue
+			}
+			say(lang, "depsScanned", repos[i].Name, files, deps)
+		}
+		if !*all && !matched {
+			return failure("notRegisteredAdd", tildePath(top))
+		}
+		return nil
 	}
-	return failure("usage", "gitfolio deps [on|off|review [path]]")
+	return failure("usage", "gitfolio deps [on|off|review [path]|scan [path] [--all]]")
 }
 
 // reviewAndRescan asks about the manifest files of rs in one list and collects again the repositories
@@ -667,8 +715,11 @@ func reviewAndRescan(dir string, rs []Repo) error {
 		return err
 	}
 	for _, i := range changed {
-		n, err := scanRepo(dir, &rs[i], true)
+		n, err := scanRepo(dir, &rs[i], true) // module IDs of the new approvals
 		if err != nil {
+			return err
+		}
+		if _, _, err := refreshDeps(dir, &rs[i]); err != nil { // the files were just approved for this
 			return err
 		}
 		say(detectLang(os.Getenv), "depsUpdated", rs[i].Name, n)
