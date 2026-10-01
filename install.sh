@@ -61,6 +61,7 @@ main() {
 	mkdir -p "$dir"
 	# Copy next to the old binary, then rename over it, so a running gitfolio (an update, a push
 	# hook) keeps working instead of failing with "text file busy" or being killed.
+	updated=; [ -e "$dir/gitfolio" ] && updated=1
 	cp "$tmp/gitfolio" "$dir/.gitfolio.new"
 	chmod 0755 "$dir/.gitfolio.new"
 	mv -f "$dir/.gitfolio.new" "$dir/gitfolio"
@@ -76,8 +77,10 @@ main() {
 		echo "Note: $dir is not in your PATH. Add this line to $profile:"
 		echo "  export PATH=\"$dir:\$PATH\"" ;;
 	esac
-	echo
-	echo "Next: run  gitfolio init  to choose the repositories to collect."
+	if [ -z "$updated" ]; then
+		echo
+		echo "Next: run  gitfolio init  to choose the repositories to collect."
+	fi
 }
 
 download() {
