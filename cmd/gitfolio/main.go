@@ -18,9 +18,10 @@ var version = "dev"
 const usage = `usage: gitfolio <command> [arguments]
 
 commands:
-  init [folder...]      first-time setup: data policy, aline.team login, then find the repositories
+  init [folder...]      first-time setup: data policy, aline.team log in / sign up, then find the repositories
                         under your code folders and choose which ones to collect
-  login                 sign in or sign up to aline.team with an email code; registers this device
+  login                 log in / sign up to aline.team with an email code (an email without an
+                        account is signed up)
   logout                sign out: revoke and remove this device's token
   whoami                show the aline.team account this device is signed in to
   add [path]            register a repository, collect its commits and install git hooks
