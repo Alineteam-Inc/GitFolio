@@ -8,7 +8,7 @@
 - 이어서 작업할 때 읽는 순서
   1. [docs/REMAINING.md](docs/REMAINING.md) — 지금 멈춘 지점과 다음 순서(체크리스트)
   2. [docs/ROADMAP.md](docs/ROADMAP.md) — 현재 주안점, 작업 현황, 단계별 체크리스트, 브랜치와 사양
-  3. [docs/API.md](docs/API.md) — aline.team 서버 계약(인증·데이터 API), dev 검증 기록
+  3. 비공개 서버 문서 — 서버 계약(인증·데이터 API), dev 검증 기록, 서버 상태·경위. **비공개**: Claude Docs 커넥터로 읽는다(웹으로 가져오지 않음). 링크는 사용자의 Artifact 목록에서 제목으로 찾는다. 로컬 `docs/API.md`가 있어도 git에 올리지 않는다(`.gitignore`)
   4. [docs/DESIGN.md](docs/DESIGN.md) — 설계와 결정 기록(날짜 포함). 설계가 바뀌면 이 문서를 먼저 고친다
 
 ## 프로젝트
@@ -16,15 +16,15 @@
 - GitFolio: 본인이 작성·push한 커밋의 **메타데이터만** 모아(소스 코드 없음) Alineteam Inc.의 aline.team으로 보내 개발 프로필·이력서를 만드는 CLI
 - Go, 표준 라이브러리만, `CGO_ENABLED=0`, git은 명령 실행으로 사용. MIT (Alineteam Inc.). 바이너리 `cmd/gitfolio`
 - 대상 OS: **macOS·Linux·Windows** 모두 (amd64·arm64). 경로는 `filepath`, OS별 코드는 `platform_unix.go`·`platform_windows.go`
-- 서버는 별도 저장소 **aline.team**. 계약은 `docs/API.md`가 기준. 
-- 서버 상태(배포 여부 등)는 두 세션이 함께 쓰는 인수인계 문서 [GitFolio CLI 서버 연동]((private shared doc))(Claude Docs)에서 확인한다. 읽고 고칠 때는 Claude Docs 커넥터를 쓴다(웹으로 가져오지 않는다). CLI 상태가 바뀌면(dev 검증 통과, `main` 병합, 릴리스) 그 문서 「경위」 표에 한 줄 추가하거나 댓글을 단다. 문서를 볼 수 없으면 사용자에게 확인한다
+- 서버는 별도 비공개 저장소. 계약과 서버 상태는 위 비공개 문서가 기준. CLI 상태가 바뀌면(dev 검증 통과, `main` 병합, 릴리스) 그 문서 「경위」 표에 한 줄 추가하거나 댓글을 단다. 문서를 볼 수 없으면 사용자에게 확인한다
+- **이 저장소는 공개다.** 서버 내부 정보(dev 서버 주소, DB·검색 인덱스 이름, 배포 경위, 서버 커밋, 개인 이메일, 비공개 문서 링크)는 커밋하지 않고 비공개 문서에 쓴다 (2026-10-02 사용자 결정)
 
 ## 브랜치와 환경
 
 | 브랜치 | 환경 | 서버 | 역할 |
 |---|---|---|---|
 | `main` | prod | `https://aline.team/api` (CLI 기본값) | 확정 사양. 릴리스 태그(`v*`)와 설치 스크립트(`install.sh`·`install.ps1`) |
-| `stage` | dev | `https://[dev server]/api` (`gitfolio config api-url` — 소스 빌드에서만, 릴리스 바이너리는 항상 운영) | 서버 새 계약 테스트. 2026-10-01 `main`에 병합 |
+| `stage` | dev | dev 서버, 주소는 비공개 문서 (`gitfolio config api-url` — 소스 빌드에서만, 릴리스 바이너리는 항상 운영) | 서버 새 계약 테스트. 2026-10-01 `main`에 병합 |
 
 - 흐름: 기능 브랜치 → `stage`(세 OS CI + dev 실검증) → `main`(릴리스). 별도 `prod` 브랜치는 만들지 않는다
 - CI(`.github/workflows/ci.yml`): `main`·`stage` push와 PR마다 ubuntu·macos·windows에서 vet·test·설치 스크립트. 릴리스는 세 OS 통과 후
