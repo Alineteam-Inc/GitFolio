@@ -38,6 +38,15 @@ func TestAPIBase(t *testing.T) {
 	if got, _ := apiBase("https://staging.example.com/api"); got != "http://127.0.0.1:9" {
 		t.Errorf("env should override config, got %q", got)
 	}
+	// Release builds use production whatever is set, and refuse to change the server.
+	defer func(v string) { version = v }(version)
+	version = "1.0.0"
+	if got, _ := apiBase("https://staging.example.com/api"); got != defaultAPIBase {
+		t.Errorf("release build base = %q", got)
+	}
+	if err := cmdConfig(t.TempDir(), []string{"api-url", "https://staging.example.com/api"}); err == nil {
+		t.Error("release build accepted config api-url")
+	}
 }
 
 // fakeAline follows the aline.team contract in docs/API.md (ApiBody envelope, ErrorCode codes)
