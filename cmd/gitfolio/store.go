@@ -87,6 +87,8 @@ type Config struct {
 	// is that record's size limit in bytes, 0 = 1 MB (config git-history, git-history-size).
 	GitHistoryOff bool  `json:"gitHistoryOff,omitempty"`
 	GitHistoryMax int64 `json:"gitHistoryMax,omitempty"`
+	// ScheduleDeps makes the daily sync also read the approved package manager files (schedule deps).
+	ScheduleDeps bool `json:"scheduleDeps,omitempty"`
 }
 
 func loadRepos(dir string) (repos []Repo, err error) {
@@ -239,10 +241,8 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	r.Name = filepath.Base(r.Path)
 	r.Provider, r.Namespace = remote(r.Path)
 	var modules map[string]string
-	if cfg.Deps {
-		if modules, err = refreshDeps(dir, r); err != nil {
-			return 0, err
-		}
+	if cfg.Deps { // module IDs only: package manager files are read by `deps scan`, not here
+		modules = manifestModules(*r)
 	}
 	rng, err := logRange(r.Path)
 	if err != nil || rng == nil {
