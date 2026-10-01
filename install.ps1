@@ -44,7 +44,13 @@ function Install-GitFolio {
         Expand-Archive -Path (Join-Path $tmp $archive) -DestinationPath (Join-Path $tmp 'x')
         $dir = if ($env:GITFOLIO_INSTALL_DIR) { $env:GITFOLIO_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA 'Programs\GitFolio' }
         New-Item -ItemType Directory -Force -Path $dir | Out-Null
-        Copy-Item (Join-Path $tmp 'x\gitfolio.exe') (Join-Path $dir 'gitfolio.exe') -Force
+        $exe = Join-Path $dir 'gitfolio.exe'
+        if (Test-Path $exe) { # a running gitfolio.exe (an update, a push hook) cannot be overwritten, but it can be renamed
+            Remove-Item "$exe.old" -Force -ErrorAction SilentlyContinue
+            Move-Item $exe "$exe.old" -Force
+        }
+        Copy-Item (Join-Path $tmp 'x\gitfolio.exe') $exe -Force
+        Remove-Item "$exe.old" -Force -ErrorAction SilentlyContinue # still running: removed by the next install
         Write-Host "Installed to $dir\gitfolio.exe"
 
         $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
