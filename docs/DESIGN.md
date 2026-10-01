@@ -70,7 +70,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 | 로컬 저장 | JSON (설정), JSON Lines (커밋) | 표준 라이브러리로 처리, 사람이 읽을 수 있음 |
 | 서버 통신 | 표준 `net/http`, HTTPS 전용 | |
 | 예약 실행 | macOS `launchd`, Linux `systemd --user` 타이머 (없으면 `crontab`), Windows 작업 스케줄러(`schtasks`) | OS 기본 스케줄러 사용, 상주 프로세스 없음 |
-| 화면 언어 | 영어 기본, 한국어·일본어 지원 (7.1) | 공개 배포 대상 |
+| 화면 언어 | 영어 기본, 한국어·일본어 지원 (7.1). 그 밖의 언어(중국어 등)는 영어, 추가 계획 없음 (2026-10-01 사용자 결정) | 공개 배포 대상 |
 | 배포 | GitHub Releases + Homebrew tap(macOS·Linux) + `install.sh`(macOS·Linux) + `install.ps1`(Windows) | GoReleaser로 자동화. Windows는 zip |
 | 대상 OS | **macOS·Linux·Windows** × amd64/arm64 (2026-09-30 사용자 결정: 세 OS 모두 지원·테스트) | CI(`.github/workflows/ci.yml`)가 push마다 세 OS에서 vet·test·설치 스크립트를 실행하고, 릴리스는 세 OS 통과 후에만 진행 |
 
