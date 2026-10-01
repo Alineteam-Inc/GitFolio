@@ -69,8 +69,8 @@ From then on, each `git push` is sent automatically.
    (`gitfolio whoami` shows it).
 2. Signed up from the CLI? Set a website password first with the link emailed to you. It works once
    within 24 hours; after that, use "Forgot password" on the website.
-3. Your profile and resume are built from what GitFolio sends. They update after aline.team's next
-   analysis run, not right after each push.
+3. Open your profile at **[aline.team/profile](https://aline.team/profile)**. It and your resume are
+   built from what GitFolio sends, and update after aline.team's next analysis run, not right after each push.
 
 - Commits appear under your **primary work email** (`gitfolio email`). Changing it applies to
   repositories added after the change; repositories already on aline.team keep their first email.
@@ -185,7 +185,8 @@ gitfolio init
 1. **[aline.team](https://aline.team)** 에 `gitfolio init`에서 쓴 계정으로 로그인합니다 (`gitfolio whoami`로 확인).
 2. CLI에서 가입했다면 먼저 메일로 받은 링크로 웹 비밀번호를 설정합니다. 링크는 24시간 안에 한 번 쓸 수 있고,
    만료되면 웹의 "비밀번호 찾기"를 쓰세요.
-3. 프로필과 이력서는 GitFolio가 보낸 데이터로 만들어집니다. push 직후가 아니라 aline.team의 다음 분석 때 반영됩니다.
+3. **[aline.team/profile](https://aline.team/profile)** 에서 내 프로필을 봅니다. 프로필과 이력서는 GitFolio가 보낸 데이터로
+   만들어지며, push 직후가 아니라 aline.team의 다음 분석 때 반영됩니다.
 
 - 커밋은 **대표 작업 이메일**(`gitfolio email`의 ★)로 집계됩니다. 대표 이메일을 바꾸면 그 뒤에 추가한 저장소부터
   적용되고, aline.team에 이미 있는 저장소는 처음 이메일로 그대로 집계됩니다.
