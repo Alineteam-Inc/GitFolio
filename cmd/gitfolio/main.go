@@ -77,6 +77,9 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
+	if args[0] != "hook" && checkUpdate(dir) {
+		return nil // updated: the user runs the command again with the new binary
+	}
 	if collects(args) {
 		creds, err := loadCredentials(dir)
 		if err != nil {

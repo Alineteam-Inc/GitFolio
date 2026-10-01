@@ -38,6 +38,10 @@ curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install
 irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
 ```
 
+GitFolio checks for a new release once a day when you run it in a terminal and asks before
+updating. To update by hand: `brew update && brew upgrade --cask gitfolio`, or run the curl /
+PowerShell command again.
+
 **From source** (Go 1.27 or later, for contributors)
 
 ```sh
@@ -157,6 +161,8 @@ GitFolio는 Alineteam Inc.가 만든 macOS·Linux·Windows용 CLI입니다. 내�
   ```powershell
   irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
   ```
+- **업데이트:** 터미널에서 실행하면 하루 한 번 새 버전을 확인하고, 업데이트할지 묻습니다. 직접 하려면
+  `brew update && brew upgrade --cask gitfolio`, 또는 curl·PowerShell 명령을 다시 실행하세요.
 - **소스에서 설치** (Go 1.27 이상, 기여자용):
   ```sh
   git clone https://github.com/Alineteam-Inc/GitFolio.git
