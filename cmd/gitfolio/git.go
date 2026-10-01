@@ -24,6 +24,7 @@ func git(dir string, args ...string) (string, error) {
 			cmd.Env = append(cmd.Env, kv)
 		}
 	}
+	cmd.Env = append(cmd.Env, traceEnv()...) // git command history (history.go)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
