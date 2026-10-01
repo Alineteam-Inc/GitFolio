@@ -24,7 +24,7 @@
 | 브랜치 | 환경 | 서버 | 역할 |
 |---|---|---|---|
 | `main` | prod | `https://aline.team/api` (CLI 기본값) | 확정 사양. 릴리스 태그(`v*`)와 설치 스크립트(`install.sh`·`install.ps1`) |
-| `stage` | dev | `https://[dev server]/api` (`gitfolio config api-url`) | 서버 새 계약 테스트. 2026-10-01 `main`에 병합 |
+| `stage` | dev | `https://[dev server]/api` (`gitfolio config api-url` — 소스 빌드에서만, 릴리스 바이너리는 항상 운영) | 서버 새 계약 테스트. 2026-10-01 `main`에 병합 |
 
 - 흐름: 기능 브랜치 → `stage`(세 OS CI + dev 실검증) → `main`(릴리스). 별도 `prod` 브랜치는 만들지 않는다
 - CI(`.github/workflows/ci.yml`): `main`·`stage` push와 PR마다 ubuntu·macos·windows에서 vet·test·설치 스크립트. 릴리스는 세 OS 통과 후
