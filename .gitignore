@@ -1,2 +1,5 @@
 /gitfolio
 /dist
+
+# aline.team server contract and dev notes: kept private (service internals)
+/docs/API.md
