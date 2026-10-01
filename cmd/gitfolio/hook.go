@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"os"
@@ -197,15 +198,23 @@ func cmdHook(dir string, args []string) error {
 		if err != nil {
 			return err
 		}
-		pid := ""
+		arg := ""
 		if len(args) > 1 {
-			pid = args[1]
+			arg = args[1]
 		}
-		return exec.Command(exe, "hook", "push-wait", strconv.Itoa(pushPID(pid))).Start()
+		wait := strconv.Itoa(pushPID(arg))
+		if wait == "0" {
+			// The push process can't be found: Git for Windows runs husky's `#!/usr/bin/env sh` stubs
+			// through env, whose exec leaves no parent link. Wait for the push to update the refs instead.
+			wait = "refs:" + remoteRefs(".")
+		}
+		return exec.Command(exe, "hook", "push-wait", wait).Start()
 	case "push-wait":
 		signal.Ignore(syscall.SIGHUP) // keep going if the terminal closes right after the push
 		if len(args) > 1 {
-			if pid, err := strconv.Atoi(args[1]); err == nil {
+			if refs, ok := strings.CutPrefix(args[1], "refs:"); ok {
+				waitRefs(refs, 10*time.Minute)
+			} else if pid, err := strconv.Atoi(args[1]); err == nil {
 				waitExit(pid, 10*time.Minute)
 			}
 		}
@@ -238,6 +247,26 @@ func cmdHook(dir string, args []string) error {
 		})
 	}
 	return fmt.Errorf("unknown hook %q", args[0])
+}
+
+// remoteRefs fingerprints the repository's remote-tracking refs, which git updates when a push succeeds.
+func remoteRefs(repo string) string {
+	out, _ := git(repo, "for-each-ref", "--format=%(objectname) %(refname)", "refs/remotes")
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(out)))[:16]
+}
+
+// waitRefs waits until the remote-tracking refs differ from before and have stopped changing, at most
+// max. A push that is rejected or updates no remote-tracking ref waits the whole time; the scan after
+// it then finds nothing new.
+func waitRefs(before string, max time.Duration) {
+	last := before
+	for deadline := time.Now().Add(max); time.Now().Before(deadline); time.Sleep(500 * time.Millisecond) {
+		now := remoteRefs(".")
+		if now != before && now == last {
+			return
+		}
+		last = now
+	}
 }
 
 // withLock runs fn while holding gitfolio's data lock, so hooks and commands never write at the same time.
