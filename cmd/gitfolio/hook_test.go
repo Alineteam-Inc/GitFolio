@@ -13,7 +13,8 @@ import (
 
 // TestHooksEndToEnd installs the hooks with the real binary in a repository that already has a
 // pre-push hook, then checks that an agent-made commit is collected and sent to aline.team (a fake
-// server) after git push, that the old hook still runs, and that remove restores it.
+// server) after git push, that the old hook still runs, and that remove restores it. It does so for
+// git's own hooks folder and for husky 9's (core.hooksPath = .husky/_).
 func TestHooksEndToEnd(t *testing.T) {
 	bin := t.TempDir()
 	exe := "gitfolio"
@@ -23,6 +24,22 @@ func TestHooksEndToEnd(t *testing.T) {
 	if out, err := exec.Command("go", "build", "-o", filepath.Join(bin, exe), ".").CombinedOutput(); err != nil {
 		t.Fatalf("go build: %v\n%s", err, out)
 	}
+	t.Run("git hooks", func(t *testing.T) { hooksEndToEnd(t, bin, false) })
+	t.Run("husky", func(t *testing.T) { hooksEndToEnd(t, bin, true) })
+}
+
+// huskyStub and huskyH are what husky 9 generates in .husky/_ (h trimmed to what matters here):
+// each hook runs h, which runs the project's .husky/<hook> with git's arguments and stdin.
+const huskyStub = "#!/usr/bin/env sh\n. \"$(dirname \"$0\")/h\""
+const huskyH = `#!/usr/bin/env sh
+n=$(basename "$0")
+s=$(dirname "$(dirname "$0")")/$n
+[ ! -f "$s" ] && exit 0
+sh -e "$s" "$@"
+exit $?
+`
+
+func hooksEndToEnd(t *testing.T, bin string, husky bool) {
 	home := t.TempDir()
 	t.Setenv("HOME", home) // data dir comes from os.UserConfigDir
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
@@ -58,10 +75,29 @@ func TestHooksEndToEnd(t *testing.T) {
 	// The fetch URL names a GitHub repository (its namespace is what aline.team gets); pushes go to remoteDir.
 	run(nil, repo, "git", "remote", "add", "origin", "https://github.com/me/demo.git")
 	run(nil, repo, "git", "remote", "set-url", "--push", "origin", remoteDir)
-	hooks := filepath.Join(repo, ".git", "hooks")
-	if err := os.WriteFile(filepath.Join(hooks, "pre-push"), []byte("#!/bin/sh\ntouch \"$(dirname \"$0\")/orig-ran\"\n"), 0o755); err != nil {
-		t.Fatal(err)
+	write := func(p, body string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
 	}
+	// orig is the pre-push hook that was there before gitfolio; it leaves orig-ran next to itself.
+	hooks := filepath.Join(repo, ".git", "hooks")
+	orig, origScript := filepath.Join(hooks, "pre-push"), "#!/bin/sh\ntouch \"$(dirname \"$0\")/orig-ran\"\n"
+	if husky { // the project's own hook; reading a line checks that git's stdin still reaches it
+		hooks, orig = filepath.Join(repo, ".husky", "_"), filepath.Join(repo, ".husky", "pre-push")
+		origScript = "read line\ntouch \"$(dirname \"$0\")/orig-ran\"\n"
+		write(filepath.Join(hooks, "h"), huskyH)
+		write(filepath.Join(hooks, ".gitignore"), "*")
+		write(filepath.Join(hooks, "pre-push"), huskyStub)
+		write(filepath.Join(hooks, "post-commit"), huskyStub)
+		run(nil, repo, "git", "config", "core.hooksPath", ".husky/_")
+	}
+	write(orig, origScript)
+	ran := filepath.Join(filepath.Dir(orig), "orig-ran")
 	if err := os.WriteFile(filepath.Join(repo, "a.txt"), []byte("a\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +116,14 @@ func TestHooksEndToEnd(t *testing.T) {
 	if b, _ := os.ReadFile(filepath.Join(hooks, "pre-push")); !strings.Contains(string(b), hookMarker) {
 		t.Fatal("pre-push hook not installed")
 	}
-	os.Remove(filepath.Join(hooks, "orig-ran"))
+	if husky { // npm install makes husky write its files again; the next scan puts gitfolio's lines back
+		write(filepath.Join(hooks, "pre-push"), huskyStub)
+		run(nil, repo, "gitfolio", "scan", ".")
+		if b, _ := os.ReadFile(filepath.Join(hooks, "pre-push")); !strings.Contains(string(b), hookMarker) {
+			t.Fatal("scan did not put the hook back into husky's pre-push")
+		}
+	}
+	os.Remove(ran)
 
 	// A commit made from an AI agent's shell: no trailer, only the agent's environment variable.
 	if err := os.WriteFile(filepath.Join(repo, "b.txt"), []byte("b\n"), 0o644); err != nil {
@@ -89,7 +132,7 @@ func TestHooksEndToEnd(t *testing.T) {
 	run(nil, repo, "git", "add", ".")
 	run([]string{"CLAUDECODE=1"}, repo, "git", "commit", "-q", "-m", "agent change")
 	run(nil, repo, "git", "push", "-q", "origin", "main")
-	if _, err := os.Stat(filepath.Join(hooks, "orig-ran")); err != nil {
+	if _, err := os.Stat(ran); err != nil {
 		t.Error("the pre-existing pre-push hook did not run")
 	}
 
@@ -123,6 +166,14 @@ func TestHooksEndToEnd(t *testing.T) {
 	}
 
 	run(nil, repo, "gitfolio", "remove", ".")
+	if husky {
+		for _, name := range []string{"pre-push", "post-commit"} {
+			if b, _ := os.ReadFile(filepath.Join(hooks, name)); string(b) != huskyStub {
+				t.Errorf("remove did not restore husky's %s:\n%s", name, b)
+			}
+		}
+		return
+	}
 	b, _ := os.ReadFile(filepath.Join(hooks, "pre-push"))
 	if strings.Contains(string(b), hookMarker) || !strings.Contains(string(b), "orig-ran") {
 		t.Errorf("remove did not restore the original pre-push hook:\n%s", b)
