@@ -87,8 +87,9 @@ type Config struct {
 	// is that record's size limit in bytes, 0 = 1 MB (config git-history, git-history-size).
 	GitHistoryOff bool  `json:"gitHistoryOff,omitempty"`
 	GitHistoryMax int64 `json:"gitHistoryMax,omitempty"`
-	// ScheduleDeps makes the daily sync also read the approved package manager files (schedule deps).
-	ScheduleDeps bool `json:"scheduleDeps,omitempty"`
+	// DepsAuto makes scan and sync, the daily one included, also read the approved package manager
+	// files (deps auto); off, they are read only by deps scan and right after approving.
+	DepsAuto bool `json:"depsAuto,omitempty"`
 }
 
 func loadRepos(dir string) (repos []Repo, err error) {

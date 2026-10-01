@@ -266,9 +266,9 @@ var messages = map[string]map[string]string{
 		"ja": "\ngit の user.email が設定されていないため、あなたのコミットを識別できません。\n設定方法: git config --global user.email you@example.com\n",
 	},
 	"depsNotice": {
-		"en": "Dependency detection reads the package manager files you select (package.json, go.mod,\npom.xml, build.gradle, ...) in each repository, only to detect dependencies.\nOnly dependency names and versions are kept; file contents and paths are never stored or sent.\nThey are read only when you ask: right after you approve them, with `gitfolio deps scan`,\nor by the daily sync if you turn that on (`gitfolio schedule deps on`). Pushes never read them.\n",
-		"ko": "의존성 분석은 저장소마다 사용자가 고른 패키지 매니저 파일(package.json, go.mod,\npom.xml, build.gradle 등)만, 의존성 파악 용도로만 읽습니다.\n의존성 이름과 버전만 남기며, 파일 원문과 경로는 저장하지도 전송하지도 않습니다.\n읽는 때는 요청할 때뿐입니다: 승인한 직후, `gitfolio deps scan` 실행 시, 켜 두었다면 예약 동기화 때\n(`gitfolio schedule deps on`). push 때는 읽지 않습니다.\n",
-		"ja": "依存関係の分析では、リポジトリごとにあなたが選んだパッケージマネージャーのファイル\n(package.json、go.mod、pom.xml、build.gradle など)のみを、依存関係の把握のためだけに読み取ります。\n依存関係の名前とバージョンのみを保持し、ファイルの内容とパスは保存も送信もしません。\n読むのは求められたときだけです: 承認した直後、`gitfolio deps scan` の実行時、オンにした場合は予約同期のとき\n(`gitfolio schedule deps on`)。push のときは読みません。\n",
+		"en": "Dependency detection reads the package manager files you select (package.json, go.mod,\npom.xml, build.gradle, ...) in each repository, only to detect dependencies.\nOnly dependency names and versions are kept; file contents and paths are never stored or sent.\nThey are read only when you ask: right after you approve them, with `gitfolio deps scan`,\nor by scan, sync and the daily sync if you turn that on (`gitfolio deps auto on`). Pushes never read them.\n",
+		"ko": "의존성 분석은 저장소마다 사용자가 고른 패키지 매니저 파일(package.json, go.mod,\npom.xml, build.gradle 등)만, 의존성 파악 용도로만 읽습니다.\n의존성 이름과 버전만 남기며, 파일 원문과 경로는 저장하지도 전송하지도 않습니다.\n읽는 때는 요청할 때뿐입니다: 승인한 직후, `gitfolio deps scan` 실행 시, 켜 두었다면 scan·sync·예약 동기화 때\n(`gitfolio deps auto on`). push 때는 읽지 않습니다.\n",
+		"ja": "依存関係の分析では、リポジトリごとにあなたが選んだパッケージマネージャーのファイル\n(package.json、go.mod、pom.xml、build.gradle など)のみを、依存関係の把握のためだけに読み取ります。\n依存関係の名前とバージョンのみを保持し、ファイルの内容とパスは保存も送信もしません。\n読むのは求められたときだけです: 承認した直後、`gitfolio deps scan` の実行時、オンにした場合は scan・sync・予約同期のとき\n(`gitfolio deps auto on`)。push のときは読みません。\n",
 	},
 	"depsAsk": {
 		"en": "Turn on dependency detection? You will choose the files per repository.",
@@ -753,14 +753,19 @@ var messages = map[string]map[string]string{
 		"ja": "予約同期を解除しました。\n",
 	},
 	"scheduleStatus": {
-		"en": "Daily sync: %s\nLast sync: %s\nReads package manager files too: %s (gitfolio schedule deps on|off)\n",
-		"ko": "예약 동기화: %s\n마지막 동기화: %s\n패키지 매니저 파일도 읽기: %s (gitfolio schedule deps on|off)\n",
-		"ja": "予約同期: %s\n前回の同期: %s\nパッケージマネージャーのファイルも読む: %s (gitfolio schedule deps on|off)\n",
+		"en": "Daily sync: %s\nLast sync: %s\n",
+		"ko": "예약 동기화: %s\n마지막 동기화: %s\n",
+		"ja": "予約同期: %s\n前回の同期: %s\n",
 	},
-	"scheduleDeps": {
-		"en": "The daily sync reads the approved package manager files too: %s\n",
-		"ko": "예약 동기화 때 승인한 패키지 매니저 파일도 읽기: %s\n",
-		"ja": "予約同期で承認したパッケージマネージャーのファイルも読む: %s\n",
+	"depsAuto": {
+		"en": "scan, sync and the daily sync read the approved package manager files too: %s\n",
+		"ko": "scan·sync·예약 동기화 때 승인한 패키지 매니저 파일도 읽기: %s\n",
+		"ja": "scan・sync・予約同期で承認したパッケージマネージャーのファイルも読む: %s\n",
+	},
+	"depsAutoStatus": {
+		"en": "Read with scan, sync and the daily sync: %s (gitfolio deps auto on|off)\n",
+		"ko": "scan·sync·예약 동기화 때 읽기: %s (gitfolio deps auto on|off)\n",
+		"ja": "scan・sync・予約同期で読む: %s (gitfolio deps auto on|off)\n",
 	},
 	"depsScanned": {
 		"en": "%s: read %d approved package manager file(s), %d dependencies.\n",
