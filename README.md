@@ -100,7 +100,9 @@ From then on, each `git push` is sent automatically.
   IP addresses, ticket numbers and words you block with `gitfolio config mask add`. File paths,
   branch and repository names are kept as they are.
 - **Package manager files** (`package.json`, `pom.xml`, …) are read only with your per-file approval,
-  and only to detect dependencies. Dependencies are not sent yet.
+  only to detect dependencies, and only when you ask: right after you approve them, with
+  `gitfolio deps scan`, or by the daily sync if you turn that on (`gitfolio schedule deps on`).
+  Pushes never read them. Dependencies are not sent yet.
 - **On your computer:** data and the login token are kept in your user config folder
   (`~/Library/Application Support/gitfolio`, `~/.config/gitfolio` or `%AppData%\gitfolio`),
   readable only by you. The token is never printed or logged.
@@ -126,10 +128,10 @@ You don't have to take our word for it.
   `gitfolio config git-history off` stops and deletes the record; `config git-history-size 4MB`
   changes the limit. To keep a trace of your own instead:
   ```sh
-  GIT_TRACE=$PWD/git-trace.txt gitfolio scan --all
+  GIT_TRACE=$PWD/git-trace.txt gitfolio deps scan --all
   grep cat-file git-trace.txt
   ```
-  On Windows PowerShell: `$env:GIT_TRACE="$PWD\git-trace.txt"; gitfolio scan --all; Select-String cat-file git-trace.txt`,
+  On Windows PowerShell: `$env:GIT_TRACE="$PWD\git-trace.txt"; gitfolio deps scan --all; Select-String cat-file git-trace.txt`,
   then `Remove-Item Env:GIT_TRACE`. To see every file GitFolio opens, use `strace -f -e trace=openat`
   (Linux), `sudo fs_usage -w -f filesys gitfolio` (macOS) or Process Monitor (Windows).
 - **What it sends.** `gitfolio sync --dry-run` prints the requests exactly as they would be sent.
@@ -151,6 +153,7 @@ gitfolio remove ~/code/my-project --purge   # unregister, restore previous hooks
 gitfolio whoami | logout         # the account this device is logged in to / log out
 gitfolio email add me@work.com   # another work email of yours (email primary <e>: the one aline.team shows)
 gitfolio schedule 09:00          # optional daily sync for pushes the hooks missed (off: schedule off)
+gitfolio deps scan --all         # read the approved package manager files again (dependencies)
 gitfolio history                 # the git commands gitfolio ran, as git itself recorded them
 gitfolio help                    # all commands
 ```
@@ -242,8 +245,9 @@ gitfolio init
 
 - **마스킹:** 저장·전송 전에 커밋 메시지 속 토큰·키, URL, 이메일, IP, 티켓 번호, `gitfolio config mask add`로 등록한
   금지어를 가립니다. 파일 경로·브랜치 이름·저장소 이름은 그대로 둡니다.
-- **패키지 매니저 파일**(`package.json`, `pom.xml` 등)은 파일별로 승인한 경우에만, 의존성 파악 용도로만 읽습니다.
-  의존성은 아직 전송하지 않습니다.
+- **패키지 매니저 파일**(`package.json`, `pom.xml` 등)은 파일별로 승인한 경우에만, 의존성 파악 용도로만,
+  요청할 때만 읽습니다: 승인한 직후, `gitfolio deps scan` 실행 시, 켜 두었다면 예약 동기화 때(`gitfolio schedule deps on`).
+  push 때는 읽지 않습니다. 의존성은 아직 전송하지 않습니다.
 - **이 컴퓨터에 저장되는 것:** 수집 데이터와 로그인 토큰은 사용자 설정 폴더
   (`~/Library/Application Support/gitfolio`, `~/.config/gitfolio`, `%AppData%\gitfolio`)에 본인만 읽을 수 있게 저장합니다.
   토큰은 화면·로그에 출력하지 않습니다.
@@ -266,10 +270,10 @@ GitFolio의 말을 믿지 않아도 직접 확인할 수 있습니다.
   `gitfolio config git-history off`로 기록을 끄고 지우며, `config git-history-size 4MB`로 상한을 바꿉니다.
   직접 따로 기록하려면:
   ```sh
-  GIT_TRACE=$PWD/git-trace.txt gitfolio scan --all
+  GIT_TRACE=$PWD/git-trace.txt gitfolio deps scan --all
   grep cat-file git-trace.txt
   ```
-  Windows PowerShell: `$env:GIT_TRACE="$PWD\git-trace.txt"; gitfolio scan --all; Select-String cat-file git-trace.txt`
+  Windows PowerShell: `$env:GIT_TRACE="$PWD\git-trace.txt"; gitfolio deps scan --all; Select-String cat-file git-trace.txt`
   뒤 `Remove-Item Env:GIT_TRACE`. GitFolio가 여는 파일 전체는 `strace -f -e trace=openat`(Linux),
   `sudo fs_usage -w -f filesys gitfolio`(macOS), Process Monitor(Windows)로 볼 수 있습니다.
 - **무엇을 보내는지:** `gitfolio sync --dry-run`이 보낼 요청을 그대로 출력합니다.
@@ -291,6 +295,7 @@ gitfolio remove ~/code/my-project --purge   # 등록 해제, 기존 훅 복원, 
 gitfolio whoami | logout         # 이 기기의 로그인 계정 확인 / 로그아웃
 gitfolio email add me@work.com   # 다른 작업 이메일 추가 (email primary <이메일>: aline.team에 보낼 대표 이메일)
 gitfolio schedule 09:00          # 훅이 놓친 push를 매일 보완하는 예약 동기화 (선택, 해제: schedule off)
+gitfolio deps scan --all         # 승인한 패키지 매니저 파일을 다시 읽어 의존성 갱신
 gitfolio history                 # gitfolio가 실행한 git 명령 (git이 직접 남긴 기록)
 gitfolio help                    # 전체 명령
 ```
