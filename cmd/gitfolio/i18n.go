@@ -562,9 +562,9 @@ var messages = map[string]map[string]string{
 		"ja": "%s: パッケージマネージャーのファイルはありません。\n",
 	},
 	"manifestsTitle": {
-		"en": "Package manager files in %s. Selected files are read only to detect dependencies:\n",
-		"ko": "%s의 패키지 매니저 파일입니다. 고른 파일은 의존성 파악에만 읽습니다.\n",
-		"ja": "%s のパッケージマネージャーのファイルです。選んだファイルは依存関係の把握にのみ読み取ります。\n",
+		"en": "Package manager files. Selected files are read only to detect dependencies:\n",
+		"ko": "패키지 매니저 파일입니다. 고른 파일은 의존성 파악에만 읽습니다.\n",
+		"ja": "パッケージマネージャーのファイルです。選んだファイルは依存関係の把握にのみ読み取ります。\n",
 	},
 	// The three states have the same width within each language, so the file list stays aligned.
 	"manifestNew": {
