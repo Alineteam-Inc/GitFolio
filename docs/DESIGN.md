@@ -72,6 +72,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 | 예약 실행 | macOS `launchd`, Linux `systemd --user` 타이머 (없으면 `crontab`), Windows 작업 스케줄러(`schtasks`) | OS 기본 스케줄러 사용, 상주 프로세스 없음 |
 | 화면 언어 | 영어 기본, 한국어·일본어 지원 (7.1) | 공개 배포 대상 |
 | 배포 | GitHub Releases + Homebrew tap(macOS·Linux) + `install.sh`(macOS·Linux) + `install.ps1`(Windows) | GoReleaser로 자동화. Windows는 zip |
+| 업데이트 확인 | 릴리스 빌드가 터미널에서 실행될 때 하루 한 번 `github.com/…/releases/latest` 리다이렉트로 최신 태그 확인 → 더 새 버전이면 "지금 업데이트할까요? [Y/n]" → 설치 방법대로 실행: Homebrew cask(`Caskroom` 경로)는 `brew update && brew upgrade --cask gitfolio`, Windows는 `install.ps1`, 그 밖은 `install.sh`(같은 폴더·그 버전). 성공하면 명령을 멈추고 다시 실행하게 한다. 훅·예약 실행·출력 리디렉션·소스 빌드에서는 확인하지 않음 (2026-10-01 사용자 요청) | API 호출 한도 없음, 설치 스크립트의 SHA-256 검증 재사용. 설치 스크립트는 실행 중인 바이너리를 덮어쓰지 않고 바꿔치기(이름 변경) |
 | 대상 OS | **macOS·Linux·Windows** × amd64/arm64 (2026-09-30 사용자 결정: 세 OS 모두 지원·테스트) | CI(`.github/workflows/ci.yml`)가 push마다 세 OS에서 vet·test·설치 스크립트를 실행하고, 릴리스는 세 OS 통과 후에만 진행 |
 
 ## 3. 수집 규칙

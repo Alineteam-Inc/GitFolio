@@ -59,8 +59,11 @@ main() {
 		if [ -w /usr/local/bin ]; then dir=/usr/local/bin; else dir="$HOME/.local/bin"; fi
 	fi
 	mkdir -p "$dir"
-	cp "$tmp/gitfolio" "$dir/gitfolio"
-	chmod 0755 "$dir/gitfolio"
+	# Copy next to the old binary, then rename over it, so a running gitfolio (an update, a push
+	# hook) keeps working instead of failing with "text file busy" or being killed.
+	cp "$tmp/gitfolio" "$dir/.gitfolio.new"
+	chmod 0755 "$dir/.gitfolio.new"
+	mv -f "$dir/.gitfolio.new" "$dir/gitfolio"
 	echo "Installed to $dir/gitfolio"
 
 	case ":$PATH:" in

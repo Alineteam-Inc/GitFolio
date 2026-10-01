@@ -486,6 +486,21 @@ var messages = map[string]map[string]string{
 		"ko": "훅 폴더가 .git 밖에 있어(%s, 예: 공유 core.hooksPath·husky 5–8) 훅을 바꾸지 않았습니다.\n아래 줄을 직접 추가하세요:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
 		"ja": "フックが .git の外にあるため(%s、例: 共有の core.hooksPath・husky 5–8)、変更していません。\n次の行をご自身で追加してください:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
 	},
+	"updateAsk": {
+		"en": "GitFolio %s is available (you have %s). Update now? [Y/n] > ",
+		"ko": "GitFolio %s 버전이 나왔습니다 (지금 %s). 지금 업데이트할까요? [Y/n] > ",
+		"ja": "GitFolio %s が公開されています(現在 %s)。今すぐ更新しますか? [Y/n] > ",
+	},
+	"updated": {
+		"en": "Updated GitFolio to %s. Run the command again.\n",
+		"ko": "GitFolio를 %s(으)로 업데이트했습니다. 명령을 다시 실행하세요.\n",
+		"ja": "GitFolio を %s に更新しました。もう一度コマンドを実行してください。\n",
+	},
+	"updateFailed": {
+		"en": "Could not update (%v). Update by hand:\n  %s\n",
+		"ko": "업데이트하지 못했습니다(%v). 직접 업데이트하세요:\n  %s\n",
+		"ja": "更新できませんでした(%v)。手動で更新してください:\n  %s\n",
+	},
 	"hooksBothExist": {
 		"en": "Both %[1]s and %[1]s.gitfolio-orig exist; merge them by hand.\n",
 		"ko": "기존 훅과 백업이 모두 있어 직접 하나로 합쳐야 합니다: %[1]s, %[1]s.gitfolio-orig\n",
