@@ -134,7 +134,7 @@ func manifestModules(r Repo) map[string]string {
 
 // refreshDeps reads only the approved manifest files of r (committed version, file contents are
 // parsed in memory and dropped) and stores their dependencies. It runs only when asked: `deps scan`,
-// right after approving files, and the daily sync when `schedule deps on` (never on push or scan).
+// right after approving files, and scan and sync with `deps auto on` (never on push).
 func refreshDeps(dir string, r *Repo) (files, deps int, err error) {
 	var found []Dependency
 	for p, ok := range r.Manifests {
@@ -605,6 +605,7 @@ func cmdDeps(dir string, args []string) error {
 	switch sub {
 	case "":
 		msg := fmt.Sprintf(tr(lang, "depsStatus"), tr(lang, map[bool]string{true: "on", false: "off"}[cfg.Deps]))
+		msg += fmt.Sprintf(tr(lang, "depsAutoStatus"), tr(lang, map[bool]string{true: "on", false: "off"}[cfg.DepsAuto]))
 		for _, r := range repos {
 			allowed := 0
 			for _, ok := range r.Manifests {
@@ -671,6 +672,19 @@ func cmdDeps(dir string, args []string) error {
 			return err
 		}
 		return saveRepos(dir, repos)
+	case "auto":
+		if len(args) != 2 || (args[1] != "on" && args[1] != "off") {
+			break
+		}
+		cfg.DepsAuto = args[1] == "on"
+		if err := saveConfig(dir, cfg); err != nil {
+			return err
+		}
+		say(lang, "depsAuto", tr(lang, args[1]))
+		if cfg.DepsAuto && !cfg.Deps {
+			say(lang, "depsIsOff")
+		}
+		return nil
 	case "scan":
 		if !cfg.Deps {
 			return failure("depsIsOff")
@@ -704,7 +718,7 @@ func cmdDeps(dir string, args []string) error {
 		}
 		return nil
 	}
-	return failure("usage", "gitfolio deps [on|off|review [path]|scan [path] [--all]]")
+	return failure("usage", "gitfolio deps [on|off|review [path]|scan [path] [--all]|auto on|off]")
 }
 
 // reviewAndRescan asks about the manifest files of rs in one list and collects again the repositories

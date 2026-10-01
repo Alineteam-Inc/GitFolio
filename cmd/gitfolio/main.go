@@ -43,7 +43,9 @@ commands:
                         are deleted), or change the file choices of a repository
   deps scan [path] [--all]
                         read the approved package manager files again to update the
-                        dependencies (pushes, scan and sync never read them)
+                        dependencies
+  deps auto on|off      scan, sync and the daily sync also read the approved package
+                        manager files (off by default; pushes never read them)
   config                show settings
   config mask add|rm <word>...
                         add or remove blocked words (customer or internal project names);
@@ -63,8 +65,6 @@ commands:
   schedule [HH:MM | off]
                         optional daily sync at a local time, for pushes the hooks missed
                         (launchd on macOS, systemd or cron on Linux); no argument: show it
-  schedule deps on|off  the daily sync also reads the approved package manager files
-                        (off by default)
   version               print version`
 
 func main() {
@@ -327,6 +327,12 @@ func cmdScan(dir string, args []string) error {
 			continue
 		}
 		msg := fmt.Sprintf(tr(lang, "scanned"), r.Name, n)
+		if cfg.Deps && cfg.DepsAuto {
+			if _, _, err := refreshDeps(dir, r); err != nil {
+				warn(lang, "repoFailed", r.Name, err)
+				failed = true
+			}
+		}
 		if cfg.Deps {
 			if n := pendingManifests(*r); n > 0 {
 				msg += fmt.Sprintf(tr(lang, "depsPending"), n, r.Path)

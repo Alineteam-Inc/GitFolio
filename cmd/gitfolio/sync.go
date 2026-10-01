@@ -329,13 +329,12 @@ func cmdSync(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
-	depsToo := cfg.Deps && cfg.ScheduleDeps && os.Getenv("GITFOLIO_SCHEDULED") == "1" // schedule deps on
 	for i := range repos {
 		if _, err := scanRepo(dir, &repos[i], false); err != nil {
 			warn(lang, "repoFailed", repos[i].Name, err)
 			continue
 		}
-		if depsToo {
+		if cfg.Deps && cfg.DepsAuto { // deps auto on: the daily sync runs this too
 			if _, _, err := refreshDeps(dir, &repos[i]); err != nil {
 				warn(lang, "repoFailed", repos[i].Name, err)
 			}
