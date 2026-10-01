@@ -64,7 +64,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 | 항목 | 결정 | 이유 |
 |---|---|---|
 | 언어 | Go | 크로스 컴파일, 단일 바이너리 |
-| 라이선스 | MIT (Alineteam Inc.) | 파생물 고지·공개 의무 없음 |
+| 라이선스 | MIT (Alineteam Inc.). 파생판 허용 | 통제는 라이선스가 아니라 이름·로고("GitFolio"·"aline.team", 파생판은 다른 이름·로고)와 aline.team API 이용약관으로 한다 (2026-10-02 사용자 결정, GPL-3.0·PolyForm Shield 검토 후 MIT 유지) |
 | git 연동 | `git` 명령 실행 후 출력 파싱 | 라이브러리(go-git) 불필요, 사용자 환경의 git 설정(mailmap, includeIf) 그대로 반영 |
 | CLI 파싱 | 표준 라이브러리 `flag` | 서브커맨드 수가 적어 프레임워크 불필요 |
 | 로컬 저장 | JSON (설정), JSON Lines (커밋) | 표준 라이브러리로 처리, 사람이 읽을 수 있음 |
