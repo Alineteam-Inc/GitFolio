@@ -144,14 +144,14 @@ my-web
 | 후보 찾기 | `git ls-tree -r --name-only HEAD`의 파일 **이름**만 보고 지원 목록과 일치하는 것 선택. 이 단계에서 내용은 읽지 않음 |
 | 후보 제외 | `node_modules/`, `vendor/`, `third_party/`, `examples/`, `testdata/`, `fixtures/` 하위 (남의 코드·샘플) |
 | 개수 상한 | 저장소당 후보 200개. 초과분은 표시하지 않고 경고 |
-| 읽는 위치 | 승인된 파일의 `HEAD` 커밋 버전만 (`git show HEAD:<경로>`). 작업 중·미추적 파일은 읽지 않음 |
+| 읽는 위치 | 승인된 파일의 `HEAD` 커밋 버전만 (`git cat-file -p HEAD:<경로>`). 작업 중·미추적 파일은 읽지 않음 |
 | 사용 범위 | 의존성 이름·버전 추출에만 사용. 파일 원문은 메모리에서 파싱 후 즉시 버림 |
 | 저장 내용 | 모듈별 생태계, 의존성 이름, 선언된 버전. **파일 원문과 경로는 저장·전송하지 않음** (모듈은 `m1`, `m2` 같은 불투명 ID) |
 | 제외 의존성 | lock 파일(간접 의존성), 로컬 경로·git URL·사설 저장소 URL로 선언된 의존성 |
 | 마스킹 | 의존성 이름은 마스킹하지 않음 (커밋 메시지만 마스킹, 4장) |
 | 결정 기록 | 승인·거절은 로컬 `repos.json`에만 기록, 서버로 전송하지 않음. 거절한 파일은 다시 묻지 않음 |
 | 새 파일 | 훅 실행 중(비대화형) 새로 발견된 파일은 읽지 않고 **확인 대기**. 다음 대화형 명령 실행 시 알림, `gitfolio deps review`로 처리 |
-| 갱신 | 승인된 파일이 바뀐 경우에만 scan 때 다시 읽음 |
+| 읽는 시점 | 요청할 때만: 파일을 승인한 직후(`init`·`deps on`·`deps review`), `gitfolio deps scan [경로] [--all]`, 예약 동기화(`schedule deps on`, 기본 off, 예약 실행은 `GITFOLIO_SCHEDULED=1`로 구분). push 직후·`scan`·`add`·수동 `sync`는 읽지 않고, 승인 경로로 모듈 ID만 정함(내용 미열람) (2026-10-01 사용자 결정) |
 | 철회 | `deps off` → 로컬 의존성 데이터와 승인 기록 삭제, 다음 sync 때 서버 삭제 요청. `deps review`에서 개별 파일 승인 취소 가능 |
 
 **1차 지원 파일**
@@ -350,6 +350,7 @@ gitfolio list                  등록 저장소, 커밋 수, 훅 상태, 의존�
 gitfolio export                로컬 데이터를 JSON으로 출력 (전송 형태와 같은 필드)
 gitfolio deps [on|off]         의존성 분석 상태 보기·켜기·끄기 (off: 로컬 삭제. 서버 전송·삭제는 서버 2차)
 gitfolio deps review [경로]    매니저 파일 승인·거절 변경, 확인 대기 처리
+gitfolio deps scan [경로] [--all]  승인한 매니저 파일을 다시 읽어 의존성 갱신 (push·scan·sync는 읽지 않음, 3.5)
 gitfolio config                현재 설정 출력
 gitfolio config mask add|rm <금지어>   커밋 메시지에 적용
 gitfolio config api-url <url>|default  서버 주소 (GITFOLIO_API_URL이 우선). 개발 전용: help에 없고, 릴리스 빌드는 거부·무시하고 항상 운영 주소 (2026-10-01 사용자 결정)
@@ -359,6 +360,7 @@ gitfolio config git-history-size <크기> git 명령 기록 최대 크기 (기�
 gitfolio history [--all]       gitfolio가 실행한 git 명령, 실행별 (기본 최근 20회) (7.8)
 gitfolio email [add|rm|primary <이메일>]  작업 이메일 목록·대표 이메일(★, 첫 번째) 관리 (3.2)
 gitfolio schedule [HH:MM|off]  예약 동기화 설정·해제, 인자 없으면 예약 시각·마지막 동기화 결과 (7.5)
+gitfolio schedule deps on|off  예약 동기화 때 승인한 매니저 파일도 읽기 (기본 off, 7.5)
 gitfolio version | help
 gitfolio hook post-commit|pre-push|push-wait   (내부용, 훅에서 호출)
 ```
@@ -552,6 +554,7 @@ Enable dependency detection? [y/N]
 - macOS: `~/Documents`·`~/Desktop` 등에 있는 저장소는 첫 예약 실행 때 macOS가 폴더 접근 허용을 묻는다 (실측: 응답까지 실행이 멈춤, 한 번 허용하면 이후 바로 실행). 등록 시 안내
 - 예약 실행은 비대화형: 확인이 필요한 항목은 건너뜀 (지금은 sync에 확인 단계 없음). 로그인이 만료되면 게이트로 실패하고 다음 대화형 명령에서 재로그인 안내
 - `remove`로 마지막 저장소를 해제하거나 `schedule off` 시 스케줄러 항목 삭제
+- `schedule deps on|off`(기본 off): 켜면 예약 실행이 승인한 매니저 파일도 읽어 의존성을 갱신한다. 스케줄러 환경에 `GITFOLIO_SCHEDULED=1`을 넣어 수동 `sync`와 구분하고, 이 값이 없던 기존 등록은 이 명령 때 다시 등록한다. 의존성 기능(`deps`)이 꺼져 있으면 효과 없음
 
 ### 7.6 `remove`
 
