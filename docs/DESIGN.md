@@ -351,7 +351,7 @@ gitfolio deps [on|off]         의존성 분석 상태 보기·켜기·끄기 (o
 gitfolio deps review [경로]    매니저 파일 승인·거절 변경, 확인 대기 처리
 gitfolio config                현재 설정 출력
 gitfolio config mask add|rm <금지어>   커밋 메시지에 적용
-gitfolio config api-url <url>|default  서버 주소 (GITFOLIO_API_URL이 우선)
+gitfolio config api-url <url>|default  서버 주소 (GITFOLIO_API_URL이 우선). 개발 전용: help에 없고, 릴리스 빌드는 거부·무시하고 항상 운영 주소 (2026-10-01 사용자 결정)
 gitfolio config autosync on|off        push 직후 전송 켜기·끄기 (기본 on)
 gitfolio email [add|rm|primary <이메일>]  작업 이메일 목록·대표 이메일(★, 첫 번째) 관리 (3.2)
 gitfolio schedule [HH:MM|off]  예약 동기화 설정·해제, 인자 없으면 예약 시각·마지막 동기화 결과 (7.5)
