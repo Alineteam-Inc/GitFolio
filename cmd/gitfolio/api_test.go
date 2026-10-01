@@ -49,7 +49,7 @@ func TestAPIBase(t *testing.T) {
 	}
 }
 
-// fakeAline follows the aline.team contract in docs/API.md (ApiBody envelope, ErrorCode codes)
+// fakeAline follows the aline.team server contract (ApiBody envelope, ErrorCode codes)
 // closely enough to check what the CLI sends and how it handles the answers.
 type fakeAline struct {
 	token    string
@@ -59,7 +59,7 @@ type fakeAline struct {
 
 	startDeviceShown bool // start carried a device the code email can show
 
-	// Data API (docs/API.md 4, proposal). The handler holds mu; tests lock it to read.
+	// Data API. The handler holds mu; tests lock it to read.
 	mu       sync.Mutex
 	commits  map[string]Commit // provider/namespace/hash → record
 	modified map[string]string // provider/namespace/name → modifiedAt
@@ -71,7 +71,7 @@ var emailDeviceName = regexp.MustCompile(`^(macOS|Linux|Windows) [A-Za-z0-9_]{1,
 
 const testToken = "aln_cli_AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_abcde"
 
-// testAccountID has the real server's shape: a UUID string, not a number (seen on [dev server]).
+// testAccountID has the real server's shape: a UUID string, not a number (seen on the dev server).
 const testAccountID = "d3bbee5d-84fc-422b-97fc-a021db3f7f66"
 
 func (f *fakeAline) handler() http.Handler {

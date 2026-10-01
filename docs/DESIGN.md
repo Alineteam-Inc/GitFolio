@@ -250,7 +250,7 @@ my-web
 
 ### 6.1 가입·로그인
 
-> 서버와 합의한 계약: [API.md](API.md) 1장 (2026-09-29)
+> 서버와 합의한 계약: 비공개 서버 문서 (2026-09-29)
 
 **aline.team 가입은 필수이며, 가입·로그인 전에는 GitFolio가 아무것도 수집하거나 동작하지 않는다.** 로그인 전에는 저장소를 읽는 명령(`add`, `scan`, `deps on|review`)이 "먼저 로그인" 안내와 함께 거부되고, 훅은 아무 일도 하지 않는다. 보기·정리·설정 명령(`list`, `export`, `remove`, `deps`, `deps off`, `config`, `whoami`, `logout`, `version`, 도움말)은 동작한다 — 로그아웃한 사용자도 서버 주소를 바꾸거나(`config api-url`) 저장소 등록 해제·의존성 삭제를 할 수 있어야 하므로. `init`은 1단계 로그인을 마쳐야 다음 단계로 진행한다.
 
@@ -603,7 +603,7 @@ Enable dependency detection? [y/N]
 {"repo":"3f2a9c01b7de","hash":"119fcfa…","branch":"main","authorEmail":"me@example.com","date":"2026-09-27T10:00:00+09:00","message":"fix: [TICKET] 파서 수정","files":[{"name":"cmd/gitfolio/git.go","add":12,"del":3,"module":"m1"}],"creationType":"HUMAN_CO_AI","aiAgents":["claude-code"]}
 ```
 
-(`repo`는 로컬 저장소 ID, `module`은 로컬 전용. 전송할 때는 둘 다 빠지고 저장소는 요청 최상위 `provider`·`namespace`로 간다 — API.md 4.1)
+(`repo`는 로컬 저장소 ID, `module`은 로컬 전용. 전송할 때는 둘 다 빠지고 저장소는 요청 최상위 `provider`·`namespace`로 간다)
 
 ## 9. 알려진 한계
 
@@ -632,7 +632,7 @@ Enable dependency detection? [y/N]
 
 | # | 항목 | 상태 | 필요한 것 | 막히는 단계 |
 |---|---|---|---|---|
-| 1 | aline.team 데이터 API | ✅ 합의 v3, 서버 1차 구현 중 | 1차 커밋 전송(`branch` 필수)·저장소 삭제, 2차 의존성, 작업 이메일 인증 제외 (API.md 4장). 브랜치 기록 방식 확인 중 | ROADMAP 7 |
+| 1 | aline.team 데이터 API | ✅ 합의 v3, 서버 1차 구현 중 | 1차 커밋 전송(`branch` 필수)·저장소 삭제, 2차 의존성, 작업 이메일 인증 제외. 브랜치 기록 방식 확인 중 | ROADMAP 7 |
 | — | 국외 이전 고지 문구 | ✅ 완료 | 법무 검토 조항은 https://aline.team/privacy 에 반영됨. CLI 동의 화면은 이 방침과 일치시킴 | |
 | — | 저장소 | ✅ 확정 | CLI는 namespace(`소유자/저장소`)를 보내고 aline.team 서버가 git 서비스 API로 조회 (3.1) | |
 | 3 | 데스크톱 앱 범위·일정 | 미정 | 앱이 CLI를 호출하는 방식(6.4)으로 갈지 | 이후 |
@@ -640,7 +640,7 @@ Enable dependency detection? [y/N]
 | — | 본인 커밋 식별 이메일 | ✅ 확정 | 저장소별 `git config user.email`. 작업 이메일 인증은 제외 (3.2, 6.1.2) | |
 | — | 가입 전 동작 | ✅ 확정 | 가입·로그인 전에는 수집·동작 없음 (6.1) | |
 | — | 보관 기간 | ✅ 확정 | 가입일로부터 1년, 이용 중이면 자동 연장 (6.3) | |
-| — | 인증 방식 | ✅ 확정 (서버 결정) | 이메일 코드 로그인 + 불투명 토큰 `aln_cli_…`(활동 시 연장, 일정 기간 비활동 시 폐기). 기기 키 방식은 채택하지 않음 (6.1, API.md) | |
+| — | 인증 방식 | ✅ 확정 (서버 결정) | 이메일 코드 로그인 + 불투명 토큰 `aln_cli_…`(활동 시 연장, 일정 기간 비활동 시 폐기). 기기 키 방식은 채택하지 않음 (6.1) | |
 | — | 계정 생성 | ✅ 확정 | 가입 필수, 직접 입력·확인한 이메일만. `git config user.email` 사용 안 함 | |
 | — | 개인정보처리방침 URL | ✅ 확정 | https://aline.team/privacy | |
 | — | 보관 지역 | ✅ 확정 | GCP, 미국 (리전은 표기하지 않음, 2026-10-01) | |
