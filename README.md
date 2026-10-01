@@ -112,6 +112,25 @@ From then on, each `git push` is sent automatically.
   `gitfolio config autosync off` stops sending on push, and `gitfolio remove <path> --purge`
   deletes a repository's data here and on aline.team.
 
+### Check it yourself
+
+You don't have to take our word for it.
+
+- **What it reads.** GitFolio reads your repositories only by running `git`, and reads file contents
+  only with `git cat-file`. git itself can log every command it runs:
+  ```sh
+  GIT_TRACE=$PWD/git-trace.txt gitfolio scan --all
+  grep cat-file git-trace.txt    # only the package manager files you approved
+  ```
+  On Windows PowerShell: `$env:GIT_TRACE="$PWD\git-trace.txt"; gitfolio scan --all; Select-String cat-file git-trace.txt`,
+  then `Remove-Item Env:GIT_TRACE`. To see every file GitFolio opens, use `strace -f -e trace=openat`
+  (Linux), `sudo fs_usage -w -f filesys gitfolio` (macOS) or Process Monitor (Windows).
+- **What it sends.** `gitfolio sync --dry-run` prints the requests exactly as they would be sent.
+- **What you installed.** Releases after v0.1.0 carry signed build provenance.
+  `gh attestation verify gitfolio_darwin_arm64.tar.gz -R Alineteam-Inc/GitFolio` proves that the
+  archive was built by this repository's release workflow from the tagged public source. That source
+  passed CI on macOS, Linux and Windows, including a test that fails if a file you did not approve is read.
+
 ## Commands
 
 ```sh
@@ -225,6 +244,25 @@ gitfolio init
   [개인정보처리방침](https://aline.team/privacy) 동의로 간주됩니다.
 - **직접 관리:** `gitfolio sync --dry-run`으로 보낼 내용을 그대로 미리 보고, `gitfolio config autosync off`로 push 직후
   전송을 끄고, `gitfolio remove <경로> --purge`로 이 컴퓨터와 aline.team의 저장소 데이터를 지울 수 있습니다.
+
+#### 직접 확인하기
+
+GitFolio의 말을 믿지 않아도 직접 확인할 수 있습니다.
+
+- **무엇을 읽는지:** GitFolio는 저장소를 `git` 명령으로만 읽고, 파일 내용은 `git cat-file`로만 읽습니다.
+  git이 실행한 명령을 git 스스로 기록하게 할 수 있습니다:
+  ```sh
+  GIT_TRACE=$PWD/git-trace.txt gitfolio scan --all
+  grep cat-file git-trace.txt    # 승인한 패키지 매니저 파일만 나와야 합니다
+  ```
+  Windows PowerShell: `$env:GIT_TRACE="$PWD\git-trace.txt"; gitfolio scan --all; Select-String cat-file git-trace.txt`
+  뒤 `Remove-Item Env:GIT_TRACE`. GitFolio가 여는 파일 전체는 `strace -f -e trace=openat`(Linux),
+  `sudo fs_usage -w -f filesys gitfolio`(macOS), Process Monitor(Windows)로 볼 수 있습니다.
+- **무엇을 보내는지:** `gitfolio sync --dry-run`이 보낼 요청을 그대로 출력합니다.
+- **무엇을 설치했는지:** v0.1.0 이후 릴리스에는 서명된 빌드 증명이 붙습니다.
+  `gh attestation verify gitfolio_darwin_arm64.tar.gz -R Alineteam-Inc/GitFolio`로 그 파일이 이 저장소의 릴리스
+  워크플로에서 태그된 공개 소스로 빌드됐음을 확인할 수 있습니다. 그 소스는 macOS·Linux·Windows CI를 통과했고,
+  승인하지 않은 파일을 읽으면 실패하는 테스트도 거쳤습니다.
 
 ### 명령
 
