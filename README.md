@@ -117,10 +117,17 @@ From then on, each `git push` is sent automatically.
 You don't have to take our word for it.
 
 - **What it reads.** GitFolio reads your repositories only by running `git`, and reads file contents
-  only with `git cat-file`. git itself can log every command it runs:
+  only with `git cat-file`. git itself records every command GitFolio runs (`GIT_TRACE`, on by
+  default, up to 1 MB with the oldest runs removed first):
+  ```sh
+  gitfolio history               # per run: the gitfolio command, then each git command
+  gitfolio history --all | grep cat-file    # only the package manager files you approved
+  ```
+  `gitfolio config git-history off` stops and deletes the record; `config git-history-size 4MB`
+  changes the limit. To keep a trace of your own instead:
   ```sh
   GIT_TRACE=$PWD/git-trace.txt gitfolio scan --all
-  grep cat-file git-trace.txt    # only the package manager files you approved
+  grep cat-file git-trace.txt
   ```
   On Windows PowerShell: `$env:GIT_TRACE="$PWD\git-trace.txt"; gitfolio scan --all; Select-String cat-file git-trace.txt`,
   then `Remove-Item Env:GIT_TRACE`. To see every file GitFolio opens, use `strace -f -e trace=openat`
@@ -144,6 +151,7 @@ gitfolio remove ~/code/my-project --purge   # unregister, restore previous hooks
 gitfolio whoami | logout         # the account this device is logged in to / log out
 gitfolio email add me@work.com   # another work email of yours (email primary <e>: the one aline.team shows)
 gitfolio schedule 09:00          # optional daily sync for pushes the hooks missed (off: schedule off)
+gitfolio history                 # the git commands gitfolio ran, as git itself recorded them
 gitfolio help                    # all commands
 ```
 
@@ -250,10 +258,16 @@ gitfolio init
 GitFolio의 말을 믿지 않아도 직접 확인할 수 있습니다.
 
 - **무엇을 읽는지:** GitFolio는 저장소를 `git` 명령으로만 읽고, 파일 내용은 `git cat-file`로만 읽습니다.
-  git이 실행한 명령을 git 스스로 기록하게 할 수 있습니다:
+  GitFolio가 실행하는 git 명령은 git이 직접 기록합니다(`GIT_TRACE`, 기본 켜짐, 최대 1MB, 오래된 실행부터 삭제):
+  ```sh
+  gitfolio history               # 실행마다 gitfolio 명령과 그때 실행한 git 명령
+  gitfolio history --all | grep cat-file    # 승인한 패키지 매니저 파일만 나와야 합니다
+  ```
+  `gitfolio config git-history off`로 기록을 끄고 지우며, `config git-history-size 4MB`로 상한을 바꿉니다.
+  직접 따로 기록하려면:
   ```sh
   GIT_TRACE=$PWD/git-trace.txt gitfolio scan --all
-  grep cat-file git-trace.txt    # 승인한 패키지 매니저 파일만 나와야 합니다
+  grep cat-file git-trace.txt
   ```
   Windows PowerShell: `$env:GIT_TRACE="$PWD\git-trace.txt"; gitfolio scan --all; Select-String cat-file git-trace.txt`
   뒤 `Remove-Item Env:GIT_TRACE`. GitFolio가 여는 파일 전체는 `strace -f -e trace=openat`(Linux),
@@ -277,6 +291,7 @@ gitfolio remove ~/code/my-project --purge   # 등록 해제, 기존 훅 복원, 
 gitfolio whoami | logout         # 이 기기의 로그인 계정 확인 / 로그아웃
 gitfolio email add me@work.com   # 다른 작업 이메일 추가 (email primary <이메일>: aline.team에 보낼 대표 이메일)
 gitfolio schedule 09:00          # 훅이 놓친 push를 매일 보완하는 예약 동기화 (선택, 해제: schedule off)
+gitfolio history                 # gitfolio가 실행한 git 명령 (git이 직접 남긴 기록)
 gitfolio help                    # 전체 명령
 ```
 
