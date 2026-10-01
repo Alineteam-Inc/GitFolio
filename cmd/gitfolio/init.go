@@ -67,22 +67,37 @@ func cmdInit(dir string, args []string) error {
 	// Repositories: where they are, whose commits count, which ones to collect.
 	section(lang, "reposTitle")
 	roots := askRoots(lang, cfg.Roots, args)
-	if out, err := git(".", "config", "--global", "user.email"); err == nil && strings.TrimSpace(out) != "" {
-		notice(fmt.Sprintf(tr(lang, "identityEmail"), strings.TrimSpace(out)))
-	} else {
+	// Whose commits count: the git email is the first work email (the primary) unless there are some
+	// already; more can be added here or later with `gitfolio email add`.
+	if len(cfg.Emails) == 0 {
+		if out, err := git(".", "config", "--global", "user.email"); err == nil {
+			addEmails(&cfg, []string{out})
+		}
+	}
+	if len(cfg.Emails) == 0 {
 		notice(tr(lang, "identityMissing"))
+	} else {
+		notice("\n" + tr(lang, "identityWork") + emailList(lang, cfg))
+	}
+	for interactive() && !stdinClosed {
+		answer := prompt(tr(lang, "emailMoreAsk"))
+		bad := addEmails(&cfg, strings.Split(answer, ","))
+		if len(bad) == 0 {
+			break
+		}
+		notice(fmt.Sprintf(tr(lang, "emailBad"), strings.Join(bad, ", ")) + "\n")
 	}
 	if err := withLock(dir, func() error {
 		c, err := loadConfig(dir)
 		if err != nil {
 			return err
 		}
-		c.Roots = roots
+		c.Roots, c.Emails = roots, cfg.Emails
 		return saveConfig(dir, c)
 	}); err != nil {
 		return err
 	}
-	chosen, err := chooseRepos(lang, dir, roots)
+	chosen, err := chooseRepos(lang, dir, roots, cfg.Emails)
 	if err != nil {
 		return err
 	}
@@ -129,13 +144,13 @@ func cmdInit(dir string, args []string) error {
 	onOff := func(b bool) string { return tr(lang, map[bool]string{true: "on", false: "off"}[b]) }
 	daily := cmp.Or(cfg.Schedule, tr(lang, "off"))
 	blank()
-	say(lang, "initDone", len(repos), onOff(!cfg.AutoSyncOff), onOff(cfg.Deps), daily)
+	say(lang, "initDone", len(repos), primaryEmail(cfg), onOff(!cfg.AutoSyncOff), onOff(cfg.Deps), daily)
 	return nil
 }
 
 // chooseRepos finds unregistered repositories with the user's commits under roots and asks which to
 // collect. Nothing is chosen by default: company code is never collected unless the user picks it.
-func chooseRepos(lang, dir string, roots []string) ([]string, error) {
+func chooseRepos(lang, dir string, roots, work []string) ([]string, error) {
 	blank()
 	msg := tr(lang, "searching")
 	if runtime.GOOS == "darwin" {
@@ -156,7 +171,7 @@ func chooseRepos(lang, dir string, roots []string) ([]string, error) {
 	}
 	var cands []candidate
 	for _, p := range findRepos(roots, 5) {
-		if n, last := ownCommits(p); n > 0 && !registered[p] {
+		if n, last := ownCommits(p, work); n > 0 && !registered[p] {
 			cands = append(cands, candidate{p, last, n})
 		}
 	}
@@ -399,8 +414,8 @@ func findRepos(roots []string, maxDepth int) []string {
 
 // ownCommits counts the user's commits in repo over the same range scan reads, and returns the date
 // of the latest one (YYYY-MM-DD).
-func ownCommits(repo string) (n int, last string) {
-	mine, err := myEmails(repo)
+func ownCommits(repo string, work []string) (n int, last string) {
+	mine, err := myEmails(repo, work)
 	if err != nil {
 		return 0, ""
 	}
