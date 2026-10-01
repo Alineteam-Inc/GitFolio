@@ -10,14 +10,14 @@ on, when, in which languages and frameworks, and how you used AI coding agents.
 Once set up it runs by itself: every `git push` from any tool (terminal, IDE, GUI client or AI agent)
 is picked up in the background, without slowing the push down.
 
-> **Status:** the first release (v0.1.0) ships once the aline.team production server is ready —
-> see [docs/ROADMAP.md](docs/ROADMAP.md).
+> **Status:** first release, [v0.1.0](https://github.com/Alineteam-Inc/GitFolio/releases/tag/v0.1.0) —
+> see [docs/ROADMAP.md](docs/ROADMAP.md) for what comes next.
 
 [한국어](#한국어)
 
 ## Install
 
-Requires `git`. Available from the first release (v0.1.0).
+Requires `git`.
 
 **Homebrew** (macOS, Linux)
 
@@ -142,11 +142,11 @@ GitFolio는 Alineteam Inc.가 만든 macOS·Linux·Windows용 CLI입니다. 내�
 한 번 설정하면 터미널·IDE·GUI 클라이언트·AI 에이전트 등 어떤 도구로 `git push`를 하든 백그라운드에서
 자동으로 수집되며, push 속도에는 영향을 주지 않습니다.
 
-> **현재 상태:** 첫 릴리스(v0.1.0)는 aline.team 운영 서버 준비 후 나옵니다 ([docs/ROADMAP.md](docs/ROADMAP.md)).
+> **현재 상태:** 첫 릴리스 [v0.1.0](https://github.com/Alineteam-Inc/GitFolio/releases/tag/v0.1.0) — 이후 계획은 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ### 설치
 
-`git`이 필요합니다. 첫 릴리스(v0.1.0)부터 사용할 수 있습니다.
+`git`이 필요합니다.
 
 - **Homebrew** (macOS, Linux): `brew install Alineteam-Inc/tap/gitfolio`
 - **curl** (macOS, Linux — HTTPS로 받고 SHA-256을 검증한 뒤 `/usr/local/bin`, 쓸 수 없으면 `~/.local/bin`에 설치):
