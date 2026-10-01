@@ -45,7 +45,8 @@ function Install-GitFolio {
         $dir = if ($env:GITFOLIO_INSTALL_DIR) { $env:GITFOLIO_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA 'Programs\GitFolio' }
         New-Item -ItemType Directory -Force -Path $dir | Out-Null
         $exe = Join-Path $dir 'gitfolio.exe'
-        if (Test-Path $exe) { # a running gitfolio.exe (an update, a push hook) cannot be overwritten, but it can be renamed
+        $updated = Test-Path $exe
+        if ($updated) { # a running gitfolio.exe (an update, a push hook) cannot be overwritten, but it can be renamed
             Remove-Item "$exe.old" -Force -ErrorAction SilentlyContinue
             Move-Item $exe "$exe.old" -Force
         }
@@ -59,8 +60,10 @@ function Install-GitFolio {
             [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
             Write-Host "Added $dir to your user PATH. Open a new terminal to use gitfolio."
         }
-        Write-Host ''
-        Write-Host 'Next: run  gitfolio init  to choose the repositories to collect.'
+        if (-not $updated) {
+            Write-Host ''
+            Write-Host 'Next: run  gitfolio init  to choose the repositories to collect.'
+        }
     } finally {
         Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
     }
