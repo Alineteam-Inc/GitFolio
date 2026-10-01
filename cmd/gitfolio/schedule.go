@@ -47,32 +47,11 @@ func cmdSchedule(dir string, args []string) error {
 				last = fmt.Sprintf(tr(lang, "lastSyncFailed"), t.Local().Format("2006-01-02 15:04"), st.LastError)
 			}
 		}
-		say(lang, "scheduleStatus", when, last, tr(lang, map[bool]string{true: "on", false: "off"}[cfg.Deps && cfg.ScheduleDeps]))
-		return nil
-	}
-	if args[0] == "deps" && len(args) == 2 && (args[1] == "on" || args[1] == "off") {
-		cfg.ScheduleDeps = args[1] == "on"
-		if err := saveConfig(dir, cfg); err != nil {
-			return err
-		}
-		if cfg.Schedule != "" { // registered before GITFOLIO_SCHEDULED existed: register it again
-			h, m, _ := parseHHMM(cfg.Schedule)
-			exe, err := gitfolioPath()
-			if err != nil {
-				return err
-			}
-			if _, err := schedule(dir, exe, h, m); err != nil {
-				return err
-			}
-		}
-		say(lang, "scheduleDeps", tr(lang, args[1]))
-		if cfg.ScheduleDeps && !cfg.Deps {
-			say(lang, "depsIsOff")
-		}
+		say(lang, "scheduleStatus", when, last)
 		return nil
 	}
 	if len(args) > 1 {
-		return failure("usage", "gitfolio schedule [HH:MM | off | deps on|off]")
+		return failure("usage", "gitfolio schedule [HH:MM | off]")
 	}
 	if args[0] == "off" {
 		return setSchedule(dir, lang, "")
@@ -139,10 +118,9 @@ func gitfolioPath() (string, error) {
 }
 
 // scheduleEnv is what the scheduled run inherits from this shell: PATH, so git resolves as in a
-// terminal, and GITFOLIO_LANG when set, so the log is in the same language. GITFOLIO_SCHEDULED tells
-// sync it is the daily run (schedule deps).
+// terminal, and GITFOLIO_LANG when set, so the log is in the same language.
 func scheduleEnv() [][2]string {
-	env := [][2]string{{"PATH", os.Getenv("PATH")}, {"GITFOLIO_SCHEDULED", "1"}}
+	env := [][2]string{{"PATH", os.Getenv("PATH")}}
 	if v := os.Getenv("GITFOLIO_LANG"); v != "" {
 		env = append(env, [2]string{"GITFOLIO_LANG", v})
 	}

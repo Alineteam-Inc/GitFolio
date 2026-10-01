@@ -129,21 +129,21 @@ func TestDepsInMonorepo(t *testing.T) {
 	if got := read(func() error { _, _, err := refreshDeps(data, &r); return err }); got != "-p HEAD:package.json, -p HEAD:services/api/go.mod" {
 		t.Errorf("deps scan read %q; only the approved files may be read, never the declined or undecided ones", got)
 	}
-	// sync reads them only as the daily run (GITFOLIO_SCHEDULED, set by the scheduler) with schedule deps on.
+	// scan and sync (the daily sync is a sync) read them only with deps auto on; push-wait never does.
 	if err := saveRepos(data, []Repo{r}); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("GITFOLIO_API_URL", "http://127.0.0.1:9") // not logged in, offline: sync stops after collecting
-	for _, c := range []struct {
-		scheduled, on bool
-		want          string
-	}{{false, true, ""}, {true, false, ""}, {true, true, "-p HEAD:package.json, -p HEAD:services/api/go.mod"}} {
-		if err := saveConfig(data, Config{Deps: true, ScheduleDeps: c.on}); err != nil {
+	approved := "-p HEAD:package.json, -p HEAD:services/api/go.mod"
+	for _, auto := range []bool{false, true} {
+		if err := saveConfig(data, Config{Deps: true, DepsAuto: auto}); err != nil {
 			t.Fatal(err)
 		}
-		t.Setenv("GITFOLIO_SCHEDULED", map[bool]string{true: "1"}[c.scheduled])
-		if got := read(func() error { cmdSync(data, nil); return nil }); got != c.want {
-			t.Errorf("sync (daily run %v, schedule deps %v) read %q, want %q", c.scheduled, c.on, got, c.want)
+		want := map[bool]string{true: approved}[auto]
+		for name, do := range map[string]func(){"scan": func() { cmdScan(data, []string{"--all"}) }, "sync": func() { cmdSync(data, nil) }} {
+			if got := read(func() error { do(); return nil }); got != want {
+				t.Errorf("%s with deps auto %v read %q, want %q", name, auto, got, want)
+			}
 		}
 	}
 	if err := saveConfig(data, Config{Deps: true}); err != nil {
