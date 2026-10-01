@@ -76,6 +76,7 @@ func TestDepsInMonorepo(t *testing.T) {
 		"services/api/go.mod":    "module api\n\nrequire github.com/gin-gonic/gin v1.9.0\n",
 		"services/api/main.go":   "package main\n",
 		"tools/requirements.txt": "secret-internal-tool==1.0\n",
+		"web/Cargo.toml":         "[dependencies]\nundecided = \"1\"\n",
 		"web/src/App.jsx":        "export default 1\n",
 		"node_modules/x/go.mod":  "module x\n",
 	}
@@ -95,15 +96,31 @@ func TestDepsInMonorepo(t *testing.T) {
 	run("commit", "-q", "-m", "init")
 
 	r := newRepo(repo)
-	if got := strings.Join(manifestCandidates(repo), " "); got != "package.json services/api/go.mod tools/requirements.txt" {
+	if got := strings.Join(manifestCandidates(repo), " "); got != "package.json services/api/go.mod tools/requirements.txt web/Cargo.toml" {
 		t.Fatalf("candidates = %q (node_modules must be skipped)", got)
 	}
 	r.Manifests = map[string]bool{"package.json": true, "services/api/go.mod": true, "tools/requirements.txt": false}
 	if err := saveConfig(data, Config{Deps: true}); err != nil {
 		t.Fatal(err)
 	}
+	// git itself logs every command gitfolio runs; this is how users can check it too (README).
+	trace := filepath.Join(t.TempDir(), "trace")
+	t.Setenv("GIT_TRACE", trace)
 	if _, err := scanRepo(data, &r, false); err != nil {
 		t.Fatal(err)
+	}
+	b, err := os.ReadFile(trace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var read []string // the only command that reads file contents
+	for _, line := range strings.Split(string(b), "\n") {
+		if _, args, ok := strings.Cut(line, "built-in: git cat-file "); ok {
+			read = append(read, args)
+		}
+	}
+	if slices.Sort(read); strings.Join(read, ", ") != "-p HEAD:package.json, -p HEAD:services/api/go.mod" {
+		t.Errorf("git cat-file ran for %q; only the approved files may be read, never the declined or undecided ones", read)
 	}
 
 	deps, err := loadDeps(data)
