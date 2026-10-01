@@ -38,7 +38,7 @@ func startHistory(dir string, args []string) {
 }
 
 // traceEnv returns the GIT_TRACE setting for a git command, writing the run's header before the first
-// one. A GIT_TRACE the user set is left alone (README "Check it yourself").
+// one. A GIT_TRACE the user set is left alone, so users can keep a trace of their own (DESIGN 7.8).
 func traceEnv() []string {
 	if gitTrace == "" || os.Getenv("GIT_TRACE") != "" {
 		return nil

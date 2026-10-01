@@ -577,6 +577,7 @@ Enable dependency detection? [y/N]
 - `gitfolio history`: 실행별로 날짜·gitfolio 명령, 그 아래 git 명령(시각, `built-in`·`exec` 줄). 기본 최근 20회, `--all` 전부. 원본 파일에는 git이 쓴 모든 줄이 남는다
 - 크기 상한 기본 1MB(`config git-history-size`, 16KB–100MB). 넘으면 오래된 실행부터 지워 상한의 약 3/4로 줄인다(매 실행마다 다시 쓰지 않게). 자른 뒤에도 실행 머리줄부터 시작한다
 - `config git-history off`: 기록 중단 + 파일 삭제. 사용자가 직접 `GIT_TRACE`를 설정하면 그쪽을 존중하고 기록에는 쓰지 않는다
+- 사용자가 직접 확인하는 방법(README는 요약만): `gitfolio history --all | grep cat-file` → 승인한 매니저 파일만. 따로 기록하려면 `GIT_TRACE=$PWD/git-trace.txt gitfolio deps scan --all`(PowerShell: `$env:GIT_TRACE="$PWD\git-trace.txt"`). git을 거치지 않는 파일 열기까지 보려면 `strace -f -e trace=openat`(Linux), `sudo fs_usage -w -f filesys gitfolio`(macOS), Process Monitor(Windows). 보낼 내용은 `sync --dry-run`, 설치본 출처는 `gh attestation verify <파일> -R Alineteam-Inc/GitFolio`(v0.1.1부터)
 - 한계: 동시에 도는 gitfolio 두 개(push 직후 전송과 수동 명령 등)의 줄은 섞일 수 있고, 자르는 순간 다른 실행이 쓴 한 줄이 빠질 수 있다. 파일은 데이터 폴더(본인만 접근) 안, 권한 0600
 
 ## 8. 로컬 저장 구조
