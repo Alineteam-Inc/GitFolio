@@ -121,9 +121,19 @@ func cmdInit(dir string, args []string) error {
 	if len(chosen) > 0 {
 		blank()
 	}
-	for _, p := range chosen {
-		if err := withLock(dir, func() error { return registerRepo(dir, p) }); err != nil {
-			warn(lang, "repoFailed", tildePath(p), err)
+	// The package manager files of all chosen repositories are asked about together, not one by one.
+	rs := make([]Repo, len(chosen))
+	for i, p := range chosen {
+		rs[i] = newRepo(p)
+	}
+	if deps && interactive() {
+		if _, err := reviewManifests(rs); err != nil {
+			return err
+		}
+	}
+	for _, r := range rs {
+		if err := withLock(dir, func() error { return registerRepo(dir, r, false) }); err != nil {
+			warn(lang, "repoFailed", tildePath(r.Path), err)
 		}
 	}
 
@@ -230,10 +240,8 @@ func applyDeps(dir string, deps bool) error {
 		if err != nil {
 			return err
 		}
-		for i := range repos {
-			if err := reviewAndRescan(dir, &repos[i]); err != nil {
-				return err
-			}
+		if err := reviewAndRescan(dir, repos); err != nil {
+			return err
 		}
 		return saveRepos(dir, repos)
 	case !deps && was:

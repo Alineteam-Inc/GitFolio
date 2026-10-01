@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -154,5 +157,46 @@ func TestExportOnlyTouchedModules(t *testing.T) {
 	b, _ := json.Marshal(out)
 	if strings.Contains(string(b), `"module"`) {
 		t.Errorf("export contains module IDs: %s", b)
+	}
+}
+
+// TestReviewManifestsTogether checks that the files of several repositories are numbered in one list
+// and answered with one selection.
+func TestReviewManifestsTogether(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	mk := func(files ...string) Repo {
+		dir := t.TempDir()
+		for _, f := range files {
+			p := filepath.Join(dir, f)
+			if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(p, []byte("{}\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		for _, args := range [][]string{{"init", "-q"}, {"add", "."}, {"-c", "user.email=me@example.com", "-c", "user.name=me", "commit", "-q", "-m", "init"}} {
+			if out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
+				t.Fatalf("git %v: %v\n%s", args, err, out)
+			}
+		}
+		return newRepo(dir)
+	}
+	rs := []Repo{mk("package.json", "api/go.mod", "web/package.json"), mk("README.md"), mk("pom.xml")}
+	rs[2].Manifests = map[string]bool{"pom.xml": true}
+	defer func(r *bufio.Reader) { stdin = r }(stdin)
+	stdin = bufio.NewReader(strings.NewReader("1,4\n")) // 1-3: first repository (sorted), 4: pom.xml
+
+	changed, err := reviewManifests(rs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(changed, []int{0}) {
+		t.Errorf("changed = %v; only the first repository's decisions changed", changed)
+	}
+	want := map[string]bool{"api/go.mod": true, "package.json": false, "web/package.json": false}
+	if !maps.Equal(rs[0].Manifests, want) || rs[1].Manifests != nil || !rs[2].Manifests["pom.xml"] {
+		t.Errorf("manifests = %v, %v, %v", rs[0].Manifests, rs[1].Manifests, rs[2].Manifests)
 	}
 }

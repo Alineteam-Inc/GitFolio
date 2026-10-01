@@ -50,7 +50,7 @@ func TestWorkEmails(t *testing.T) {
 	if err != nil || !mine["work@example.com"] || !mine["repo@example.com"] || len(mine) != 2 {
 		t.Errorf("myEmails = %v, %v", mine, err)
 	}
-	if err := registerRepo(dir, repo); err != nil {
+	if err := registerRepo(dir, newRepo(repo), false); err != nil {
 		t.Fatal(err)
 	}
 	if cfg, _ := loadConfig(dir); !slices.Equal(cfg.Emails, []string{"repo@example.com"}) || primaryEmail(cfg) != "repo@example.com" {
