@@ -7,7 +7,7 @@ import (
 )
 
 // firstChanges finds, for each file the user created, the author date of the first later commit by
-// someone else that changed it: aline.team's modifiedFiles (API.md 4.1). Files are followed by path, the
+// someone else that changed it: aline.team's modifiedFiles. Files are followed by path, the
 // way aline.team's own git sync does: a file renamed away is not followed, and someone else's rename is
 // not a change to the created path. System commits (merge, release, ...) do not count. commits is in
 // git log order, newest first; the result maps path → author date.

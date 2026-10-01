@@ -55,8 +55,8 @@ func TestParseRemote(t *testing.T) {
 	}
 }
 
-// webURL builds a repository address from provider and namespace the way aline.team does (docs/API.md 4,
-// confirmed by aline.team 2026-09-29): each path segment is percent-encoded, "/" stays a separator.
+// webURL builds a repository address from provider and namespace the way aline.team does (confirmed by
+// the server 2026-09-29): each path segment is percent-encoded, "/" stays a separator.
 func webURL(provider, namespace string) string {
 	seg := strings.Split(namespace, "/")
 	for i := range seg {

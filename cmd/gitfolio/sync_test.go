@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// TestSync walks the data API contract (docs/API.md 4) against the fake server: only new or changed
+// TestSync walks the data API contract against the fake server: only new or changed
 // records are sent, a record the server rejects is skipped, a failed send is retried, and a queued
 // repository deletion reaches the server.
 func TestSync(t *testing.T) {

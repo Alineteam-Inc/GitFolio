@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// defaultAPIBase is the aline.team API (docs/API.md, agreed with the aline.team server).
+// defaultAPIBase is the aline.team API (the contract agreed with the aline.team server).
 const defaultAPIBase = "https://aline.team/api"
 
 // apiBase returns the API root. Release builds always use production. Builds from source (version
@@ -48,7 +48,7 @@ func checkAPIURL(raw string) error {
 }
 
 // apiError is a failure answer: {"success": false, "error": {"status", "code", "messageKo", …}}.
-// Codes are the server's ErrorCode values (A001, A008, …), listed in docs/API.md.
+// Codes are the server's ErrorCode values (A001, A008, …).
 type apiError struct {
 	Status    int    `json:"status"`
 	Code      string `json:"code"`
@@ -223,7 +223,7 @@ const maxCodeTries = 5
 // errSignupCancelled is returned when the user does not want a new account for the email they typed.
 var errSignupCancelled = errors.New("sign-up cancelled")
 
-// signIn verifies the email with a one-time code and stores the token (docs/API.md 1.1–1.2).
+// signIn verifies the email with a one-time code and stores the token.
 // When the email has no account yet, the server signs it up; confirmSignup is asked first, because
 // signing up counts as agreeing to the terms and the privacy policy and a typo would make a stray
 // account. It also returns whether the user wants aline.team service notifications (sign-up only).

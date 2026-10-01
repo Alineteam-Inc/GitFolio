@@ -35,7 +35,7 @@ type deletion struct {
 }
 
 // syncPayload is what the next sync sends, in order. Dependencies are not sent yet: aline.team designs
-// that API in its second phase (docs/API.md 4).
+// that API in its second phase.
 type syncPayload struct {
 	Deletes  []deletion                `json:"deletes"`
 	Commits  []Commit                  `json:"commits"`
@@ -49,7 +49,7 @@ type modifiedFile struct {
 	ModifiedAt string `json:"modifiedAt"`
 }
 
-// commitBatch is one POST /cli/commits/batch request: one repository and its commits (docs/API.md 4.1).
+// commitBatch is one POST /cli/commits/batch request: one repository and its commits.
 // The server knows the repository by provider and namespace; the local name is not sent.
 type commitBatch struct {
 	Provider      string         `json:"provider"`
