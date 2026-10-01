@@ -123,8 +123,8 @@ func TestDepsInMonorepo(t *testing.T) {
 	for _, f := range commits[0].Files {
 		module[f.Name] = f.Module
 	}
-	if module["main.go"] != moduleID("services/api") || module["App.jsx"] != moduleID("") || module["requirements.txt"] != moduleID("") {
-		t.Errorf("modules = %v; want main.go in services/api, the rest in the root module", module)
+	if module["services/api/main.go"] != moduleID("services/api") || module["web/src/App.jsx"] != moduleID("") || module["tools/requirements.txt"] != moduleID("") {
+		t.Errorf("modules = %v; want services/api/main.go in services/api, the rest in the root module", module)
 	}
 }
 

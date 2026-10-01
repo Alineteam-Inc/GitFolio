@@ -19,6 +19,9 @@ jobs:
         with:
           fetch-depth: 0 # GoReleaser builds the changelog from history
 
+      - name: Release only from main # stage is the dev branch; Homebrew and installers follow main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::$GITHUB_REF_NAME is not on main"; exit 1; }
+
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod

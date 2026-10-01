@@ -33,8 +33,9 @@ func TestSync(t *testing.T) {
 		}
 	}
 	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com"}))
+	must(saveConfig(dir, Config{Emails: []string{"me@primary.com", "dev@example.com"}}))
 	must(saveRepos(dir, []Repo{
-		{ID: "r1", Path: "/x/app", Name: "app", Provider: "GITHUB", Namespace: "me/app"},
+		{ID: "r1", Path: "/x/app", Name: "app", Provider: "GITHUB", Namespace: "me/app", Changed: map[string]string{"main.go": "2026-09-30T11:00:00+09:00"}},
 		{ID: "r2", Path: "/x/local", Name: "local"},                                                               // no remote: never sent
 		{ID: "r3", Path: "/x/deep", Name: "deep", Provider: "GITLAB", Namespace: strings.Repeat("g/", 100) + "x"}, // over 200 characters
 	}))
@@ -56,18 +57,33 @@ func TestSync(t *testing.T) {
 	if _, ok := f.commits["GITHUB/me/app/a3"]; !ok || len(f.commits) != 2 {
 		t.Fatalf("server has %v", f.commits)
 	}
-	if got := f.commits["GITHUB/me/app/a1"]; got.Repo != "" || got.Branch != "main" || got.Files[0].Module != "" {
-		t.Errorf("sent record %+v: want the branch, and no repository name or module ID", got)
+	if got := f.commits["GITHUB/me/app/a1"]; got.Repo != "" || got.Branch != "main" || got.Files[0].Module != "" || got.AuthorEmail != "me@primary.com" {
+		t.Errorf("sent record %+v: want the branch, the primary email as author, and no repository name or module ID", got)
+	}
+	if f.modified["GITHUB/me/app/main.go"] != "2026-09-30T11:00:00+09:00" {
+		t.Errorf("modifiedFiles = %v, want main.go with its first change by someone else", f.modified)
 	}
 	batches := f.batches
 	sync(0, 0) // nothing new
 	if f.batches != batches {
 		t.Error("unchanged records were sent again")
 	}
+	// A new first change waits for a request with commits: aline.team takes none without.
+	repos, _ := loadRepos(dir)
+	repos[0].Changed["util.go"] = "2026-09-30T12:00:00+09:00"
+	must(saveRepos(dir, repos))
+	sync(0, 0)
+	if _, ok := f.modified["GITHUB/me/app/util.go"]; ok || f.batches != batches {
+		t.Error("modifiedFiles went without commits")
+	}
 
 	commits[0].Message = "feat: one [MASKED]" // e.g. after `config mask add`
 	must(writeCommits(dir, commits))
+	delete(f.modified, "GITHUB/me/app/main.go")
 	sync(1, 0)
+	if f.modified["GITHUB/me/app/util.go"] == "" || f.modified["GITHUB/me/app/main.go"] != "" {
+		t.Errorf("with the next commits only the new first change goes: %v", f.modified)
+	}
 
 	f.down = true
 	commits[2].Message = "fix: three again"

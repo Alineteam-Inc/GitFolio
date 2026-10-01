@@ -131,7 +131,7 @@ func TestFindRepos(t *testing.T) {
 	if got := strings.Join(names, " "); got != "a group/b" {
 		t.Errorf("findRepos = %q, want %q", got, "a group/b")
 	}
-	if n, last := ownCommits(filepath.Join(root, "a")); n != 1 || len(last) != 10 {
+	if n, last := ownCommits(filepath.Join(root, "a"), nil); n != 1 || len(last) != 10 {
 		t.Errorf("ownCommits = %d, %q; want 1 and a YYYY-MM-DD date", n, last)
 	}
 }

@@ -51,10 +51,11 @@ type fakeAline struct {
 	startDeviceShown bool // start carried a device the code email can show
 
 	// Data API (docs/API.md 4, proposal). The handler holds mu; tests lock it to read.
-	mu      sync.Mutex
-	commits map[string]Commit // provider/namespace/hash → record
-	batches int               // accepted commit batches
-	down    bool              // answer data calls with 503
+	mu       sync.Mutex
+	commits  map[string]Commit // provider/namespace/hash → record
+	modified map[string]string // provider/namespace/name → modifiedAt
+	batches  int               // accepted commit batches
+	down     bool              // answer data calls with 503
 }
 
 var emailDeviceName = regexp.MustCompile(`^(macOS|Linux|Windows) [A-Za-z0-9_]{1,16}$`)
@@ -146,7 +147,7 @@ func (f *fakeAline) handler() http.Handler {
 				w.WriteHeader(http.StatusServiceUnavailable) // no ApiBody, as from a proxy
 			default:
 				if f.commits == nil {
-					f.commits = map[string]Commit{}
+					f.commits, f.modified = map[string]Commit{}, map[string]string{}
 				}
 				h(w, r)
 			}
@@ -154,19 +155,22 @@ func (f *fakeAline) handler() http.Handler {
 	}
 	mux.HandleFunc("POST /cli/commits/batch", data(func(w http.ResponseWriter, r *http.Request) {
 		var in commitBatch // one repository per request
-		if r.ContentLength > 100<<20 || json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" || len(in.Commits) == 0 || len(in.Commits) > batchSize {
+		if r.ContentLength > 100<<20 || json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" || in.AuthorEmail == "" || len(in.Commits) == 0 || len(in.Commits) > batchSize || len(in.ModifiedFiles) > maxModified {
 			fail(w, 400, "C001")
 			return
 		}
 		for _, c := range in.Commits {
-			if c.Message == "bad" || c.Namespace != "" || c.Repo != "" || c.Hash == "" || c.Branch == "" || len(c.Files) > maxFilesSent {
+			if c.Message == "bad" || c.Namespace != "" || c.Repo != "" || c.AuthorEmail != "" || c.Hash == "" || c.Branch == "" || len(c.Files) > maxFilesSent {
 				fail(w, 400, "C001") // one bad record fails the whole batch
 				return
 			}
 		}
 		for _, c := range in.Commits {
-			c.Provider, c.Namespace = in.Provider, in.Namespace
+			c.Provider, c.Namespace, c.AuthorEmail = in.Provider, in.Namespace, in.AuthorEmail
 			f.commits[commitKey(c)] = c
+		}
+		for _, m := range in.ModifiedFiles {
+			f.modified[in.Provider+"/"+in.Namespace+"/"+m.Name] = m.ModifiedAt
 		}
 		f.batches++
 		ok(w, map[string]any{"upserted": len(in.Commits)})

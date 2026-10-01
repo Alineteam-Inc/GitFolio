@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -128,15 +127,22 @@ func devopsNamespace(host, p string) string {
 	return strings.Join(parts, "/")
 }
 
-// myEmails returns the lowercased emails that identify the user's own commits in repo.
-func myEmails(repo string) (map[string]bool, error) {
-	out, err := git(repo, "config", "user.email")
-	email := strings.ToLower(strings.TrimSpace(out))
-	if err != nil || email == "" {
+// myEmails returns the lowercased emails that identify the user's own commits in repo:
+// the work emails registered with `gitfolio email` and the repository's git config user.email.
+func myEmails(repo string, work []string) (map[string]bool, error) {
+	mine := map[string]bool{}
+	for _, e := range work {
+		mine[strings.ToLower(e)] = true
+	}
+	if out, err := git(repo, "config", "user.email"); err == nil {
+		if e := strings.ToLower(strings.TrimSpace(out)); e != "" {
+			mine[e] = true
+		}
+	}
+	if len(mine) == 0 {
 		return nil, failure("noUserEmail")
 	}
-	// Verified work emails from aline.team are added here in ROADMAP step 7.
-	return map[string]bool{email: true}, nil
+	return mine, nil
 }
 
 // logRange picks what to read: pushed commits when the repository has remotes, otherwise HEAD.
@@ -191,7 +197,7 @@ func remoteBranches(repo string) (map[string]string, error) {
 }
 
 func gitLog(repo string, rng []string) (string, error) {
-	args := []string{"-c", "core.quotePath=false", "log", "--no-merges", "--no-color", "--no-show-signature", "-M", "--numstat", logFormat}
+	args := []string{"-c", "core.quotePath=false", "log", "--no-merges", "--no-color", "--no-show-signature", "-M", "--numstat", "--summary", logFormat}
 	return git(repo, append(args, rng...)...)
 }
 
@@ -205,15 +211,24 @@ func parseLog(out string) []Commit {
 		c := Commit{Hash: f[0], Date: f[1], AuthorEmail: f[3], Message: strings.TrimSpace(f[4])}
 		c.AIAgents = detectAgents(f[2], c.AuthorEmail, c.Message)
 		c.coAuthors = coAuthorEmails(c.Message)
+		created := map[string]bool{}
 		for _, line := range strings.Split(f[5], "\n") {
+			if rest, ok := strings.CutPrefix(line, " create mode "); ok { // --summary: " create mode 100644 <path>"
+				if _, p, ok := strings.Cut(rest, " "); ok {
+					created[newPath(p)] = true
+				}
+				continue
+			}
 			p := strings.SplitN(line, "\t", 3)
 			if len(p) < 3 {
 				continue
 			}
 			add, _ := strconv.Atoi(p[0]) // binary files report "-", counted as 0
 			del, _ := strconv.Atoi(p[1])
-			full := newPath(p[2])
-			c.Files = append(c.Files, FileStat{Name: path.Base(full), Add: add, Del: del, path: full})
+			c.Files = append(c.Files, FileStat{Name: newPath(p[2]), Add: add, Del: del})
+		}
+		for i := range c.Files { // --summary lines follow the numstat lines
+			c.Files[i].Created = created[c.Files[i].Name]
 		}
 		commits = append(commits, c)
 	}
@@ -221,10 +236,8 @@ func parseLog(out string) []Commit {
 }
 
 // baseName returns the file name of a numstat path.
-func baseName(p string) string { return path.Base(newPath(p)) }
-
-// newPath returns the path of a numstat entry, taking the new side of a rename
-// ("dir/{old => new}/f.go" or "old.go => new.go").
+// newPath returns the repository-relative path of a numstat entry as git shows it, taking the new side of
+// a rename ("dir/{old => new}/f.go", "{src => }/f.go" or "old.go => new.go").
 func newPath(p string) string {
 	if strings.HasPrefix(p, `"`) {
 		if u, err := strconv.Unquote(p); err == nil {
@@ -234,7 +247,7 @@ func newPath(p string) string {
 	if i := strings.Index(p, " => "); i >= 0 {
 		l, r := strings.LastIndex(p[:i], "{"), strings.Index(p[i:], "}")
 		if l >= 0 && r >= 0 {
-			p = p[:l] + p[i+4:i+r] + p[i+r+1:]
+			p = strings.TrimPrefix(strings.ReplaceAll(p[:l]+p[i+4:i+r]+p[i+r+1:], "//", "/"), "/")
 		} else {
 			p = p[i+4:]
 		}

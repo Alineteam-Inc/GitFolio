@@ -20,17 +20,21 @@ type Repo struct {
 	Provider  string `json:"provider,omitempty"`  // GITHUB, GITLAB, ... or OTHER
 	Namespace string `json:"namespace,omitempty"` // owner/repo on the git service
 	LastScan  string `json:"last_scan,omitempty"`
+	// Format is the version of this repository's stored commits; older ones are collected again (repoFormat).
+	Format int `json:"format,omitempty"`
+	// Changed maps each file the user created to when someone else first changed it (modifiedFiles).
+	Changed map[string]string `json:"changed,omitempty"`
 	// Manifests records the user's decision per package manager file path: true = may be read.
 	// Local only, never exported or sent. Files missing here wait for approval.
 	Manifests map[string]bool `json:"manifests,omitempty"`
 }
 
 type FileStat struct {
-	Name   string `json:"name"`
-	Add    int    `json:"add"`
-	Del    int    `json:"del"`
-	Module string `json:"module,omitempty"` // local only: nearest approved manifest's directory, never exported
-	path   string // full path, used for module lookup only, never stored
+	Name    string `json:"name"`              // path in the repository, as git diff and log show it (e.g. "cmd/gitfolio/git.go")
+	Created bool   `json:"created,omitempty"` // this commit added the file (git status A; a rename is not)
+	Add     int    `json:"add"`
+	Del     int    `json:"del"`
+	Module  string `json:"module,omitempty"` // local only: nearest approved manifest's directory, never exported
 }
 
 type Commit struct {
@@ -38,8 +42,8 @@ type Commit struct {
 	Provider     string     `json:"provider,omitempty"`  // filled in export only
 	Namespace    string     `json:"namespace,omitempty"` // filled in export only
 	Hash         string     `json:"hash"`
-	Branch       string     `json:"branch,omitempty"` // remote branch it is on (see remoteBranches), never masked
-	AuthorEmail  string     `json:"authorEmail"`
+	Branch       string     `json:"branch,omitempty"`      // remote branch it is on (see remoteBranches), never masked
+	AuthorEmail  string     `json:"authorEmail,omitempty"` // the real author; sent as the primary email
 	Date         string     `json:"date"`
 	Message      string     `json:"message"`
 	Files        []FileStat `json:"files"`
@@ -47,6 +51,10 @@ type Commit struct {
 	AIAgents     []string   `json:"aiAgents,omitempty"`
 	coAuthors    []string   // raw Co-authored-by emails, used for matching only, never stored
 }
+
+// repoFormat is the version of the stored commits: 3 also records which files a commit created, 2 file
+// paths in the repository, 1 only file names.
+const repoFormat = 3
 
 func dataDir() (string, error) {
 	base, err := os.UserConfigDir()
@@ -70,6 +78,9 @@ type Config struct {
 	APIURL    string   `json:"apiUrl,omitempty"`    // aline.team API root; empty = production (config api-url)
 	// AutoSyncOff stops sending right after git push; sync still sends (config autosync).
 	AutoSyncOff bool `json:"autoSyncOff,omitempty"`
+	// Emails are the user's work emails (gitfolio email); the first is the primary one, the author
+	// email aline.team gets for all of the user's commits.
+	Emails []string `json:"emails,omitempty"`
 	// Schedule is the daily sync time ("09:00", local) registered with the OS scheduler; empty = none.
 	Schedule string `json:"schedule,omitempty"`
 }
@@ -209,11 +220,11 @@ func readAgentTags(dir string) (map[string][]string, error) {
 // With rebuild, r's stored commits are dropped first and collected again. Callers hold the data lock.
 // ponytail: reads every pushed commit and dedupes by hash on each scan; pass push ranges if big repos get slow.
 func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
-	mine, err := myEmails(r.Path)
+	cfg, err := loadConfig(dir)
 	if err != nil {
 		return 0, err
 	}
-	cfg, err := loadConfig(dir)
+	mine, err := myEmails(r.Path, cfg.Emails)
 	if err != nil {
 		return 0, err
 	}
@@ -238,8 +249,8 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	// Commits stored before branches were recorded are collected once more, to get their branch.
-	if rng[0] == "--remotes" && slices.ContainsFunc(stored, func(c Commit) bool { return c.Repo == r.ID && c.Branch == "" }) {
+	// Commits stored before branches or file paths were recorded are collected once more.
+	if r.Format < repoFormat || (rng[0] == "--remotes" && slices.ContainsFunc(stored, func(c Commit) bool { return c.Repo == r.ID && c.Branch == "" })) {
 		rebuild = true
 	}
 	if rebuild {
@@ -263,7 +274,9 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 		known[c.Hash] = true
 	}
 	var fresh []Commit
-	for _, c := range parseLog(out) {
+	all := parseLog(out)
+	r.Changed = firstChanges(all, mine)
+	for _, c := range all {
 		if known[c.Hash] {
 			continue
 		}
@@ -273,7 +286,7 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 		if c.CreationType = creationType(c, mine); c.CreationType != "" {
 			c.Repo = r.ID
 			for i := range c.Files {
-				c.Files[i].Module = moduleOf(c.Files[i].path, modules)
+				c.Files[i].Module = moduleOf(c.Files[i].Name, modules)
 			}
 			m.commit(&c) // after AI detection in parseLog, before anything is written
 			fresh = append(fresh, c)
@@ -292,6 +305,6 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	if err := appendCommits(dir, fresh); err != nil {
 		return 0, err
 	}
-	r.LastScan = time.Now().Format(time.RFC3339)
+	r.LastScan, r.Format = time.Now().Format(time.RFC3339), repoFormat
 	return len(fresh), nil
 }
