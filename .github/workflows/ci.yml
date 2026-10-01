@@ -27,7 +27,10 @@ jobs:
         run: go vet ./...
       - name: Test
         shell: bash # also on Windows (Git Bash), so the per-test lines look the same everywhere
-        run: go test -v ./... | grep -E '^(--- (PASS|FAIL|SKIP)|ok|FAIL|panic)'
+        run: | # one line per test; a failure prints everything else too
+          s=0; go test -v ./... > test.log 2>&1 || s=$?
+          grep -E '^ *(--- (PASS|FAIL|SKIP)|ok|FAIL|panic)' test.log
+          if [ $s != 0 ]; then grep -v -E '^ *(=== RUN|--- PASS)' test.log; exit $s; fi
 
       # The install scripts, fed a local release-like folder: they must install the right archive
       # after checking its SHA-256, and refuse a tampered one.
@@ -39,6 +42,7 @@ jobs:
           go build -o gitfolio ./cmd/gitfolio && tar -czf $d/gitfolio_${os}_${arch}.tar.gz gitfolio
           (cd $d && shasum -a 256 *.tar.gz > checksums.txt)
           GITFOLIO_BASE_URL=file://$d GITFOLIO_INSTALL_DIR=$RUNNER_TEMP/bin sh install.sh
+          GITFOLIO_BASE_URL=file://$d GITFOLIO_INSTALL_DIR=$RUNNER_TEMP/bin sh install.sh # again: replaces the binary
           $RUNNER_TEMP/bin/gitfolio version | tail -2
           echo tampered >> $d/gitfolio_${os}_${arch}.tar.gz
           if GITFOLIO_BASE_URL=file://$d GITFOLIO_INSTALL_DIR=$RUNNER_TEMP/bin2 sh install.sh; then echo "tampered archive was installed"; exit 1; fi
@@ -57,6 +61,8 @@ jobs:
             $env:GITFOLIO_INSTALL_DIR = Join-Path $env:RUNNER_TEMP "bin-$ps"
             & $ps -NoProfile -ExecutionPolicy Bypass -File install.ps1
             if ($LASTEXITCODE) { throw "install.ps1 failed under $ps" }
+            & $ps -NoProfile -ExecutionPolicy Bypass -File install.ps1 # again: replaces gitfolio.exe
+            if ($LASTEXITCODE) { throw "install.ps1 failed to replace gitfolio.exe under $ps" }
             & (Join-Path $env:GITFOLIO_INSTALL_DIR 'gitfolio.exe') version | Select-Object -Last 2
           }
           Add-Content (Join-Path $d 'gitfolio_windows_amd64.zip') 'tampered'
