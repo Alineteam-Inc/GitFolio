@@ -8,13 +8,29 @@ Latest: [v0.1.1](https://github.com/Alineteam-Inc/GitFolio/releases/latest) · [
 
 ## Install
 
+Requires `git`. The install scripts verify the SHA-256 checksum before installing.
+
+**macOS**
+
 ```sh
-brew install Alineteam-Inc/tap/gitfolio                                                   # macOS, Linux
-curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh   # macOS, Linux
-irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex        # Windows PowerShell
+brew install Alineteam-Inc/tap/gitfolio
 ```
 
-Requires `git`. The scripts verify the SHA-256 checksum before installing.
+or `curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh`
+
+**Linux**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
+```
+
+or, with Homebrew, `brew install Alineteam-Inc/tap/gitfolio`
+
+**Windows** (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
+```
 
 ## Get started
 
@@ -67,13 +83,29 @@ GitFolio는 내가 작성하고 push한 커밋의 메타데이터를 [aline.team
 
 ### 설치
 
+`git`이 필요합니다. 설치 스크립트는 SHA-256을 검증한 뒤 설치합니다.
+
+**macOS**
+
 ```sh
-brew install Alineteam-Inc/tap/gitfolio                                                   # macOS, Linux
-curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh   # macOS, Linux
-irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex        # Windows PowerShell
+brew install Alineteam-Inc/tap/gitfolio
 ```
 
-`git`이 필요합니다. 설치 스크립트는 SHA-256을 검증한 뒤 설치합니다.
+또는 `curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh`
+
+**Linux**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
+```
+
+또는 Homebrew가 있으면 `brew install Alineteam-Inc/tap/gitfolio`
+
+**Windows** (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
+```
 
 ### 시작하기
 
