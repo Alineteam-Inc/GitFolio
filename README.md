@@ -101,7 +101,7 @@ From then on, each `git push` is sent automatically.
   branch and repository names are kept as they are.
 - **Package manager files** (`package.json`, `pom.xml`, …) are read only with your per-file approval,
   only to detect dependencies, and only when you ask: right after you approve them, with
-  `gitfolio deps scan`, or by the daily sync if you turn that on (`gitfolio schedule deps on`).
+  `gitfolio deps scan`, or by scan, sync and the daily sync if you turn that on (`gitfolio deps auto on`).
   Pushes never read them. Dependencies are not sent yet.
 - **On your computer:** data and the login token are kept in your user config folder
   (`~/Library/Application Support/gitfolio`, `~/.config/gitfolio` or `%AppData%\gitfolio`),
@@ -246,7 +246,7 @@ gitfolio init
 - **마스킹:** 저장·전송 전에 커밋 메시지 속 토큰·키, URL, 이메일, IP, 티켓 번호, `gitfolio config mask add`로 등록한
   금지어를 가립니다. 파일 경로·브랜치 이름·저장소 이름은 그대로 둡니다.
 - **패키지 매니저 파일**(`package.json`, `pom.xml` 등)은 파일별로 승인한 경우에만, 의존성 파악 용도로만,
-  요청할 때만 읽습니다: 승인한 직후, `gitfolio deps scan` 실행 시, 켜 두었다면 예약 동기화 때(`gitfolio schedule deps on`).
+  요청할 때만 읽습니다: 승인한 직후, `gitfolio deps scan` 실행 시, 켜 두었다면 scan·sync·예약 동기화 때(`gitfolio deps auto on`).
   push 때는 읽지 않습니다. 의존성은 아직 전송하지 않습니다.
 - **이 컴퓨터에 저장되는 것:** 수집 데이터와 로그인 토큰은 사용자 설정 폴더
   (`~/Library/Application Support/gitfolio`, `~/.config/gitfolio`, `%AppData%\gitfolio`)에 본인만 읽을 수 있게 저장합니다.
