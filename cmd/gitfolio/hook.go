@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -44,16 +45,18 @@ exit 0
 `,
 }
 
-// hooksDir returns the repository's own hooks directory. Directories outside .git (core.hooksPath,
-// husky) are shared with other repositories or committed with the project, so they are refused.
-func hooksDir(repo string) (string, error) {
+// hooksDir returns the directory git runs repo's hooks from, and whether it is husky's: husky 9 sets
+// core.hooksPath to .husky/_, a folder it generates on this computer and keeps out of git. Other
+// directories outside .git (a shared core.hooksPath, older husky) are shared with other repositories
+// or committed with the project, so they are refused.
+func hooksDir(repo string) (dir string, husky bool, err error) {
 	out, err := git(repo, "rev-parse", "--git-path", "hooks", "--git-common-dir")
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	if len(lines) != 2 {
-		return "", fmt.Errorf("unexpected git rev-parse output %q", out)
+		return "", false, fmt.Errorf("unexpected git rev-parse output %q", out)
 	}
 	abs := func(p string) string {
 		if !filepath.IsAbs(p) {
@@ -63,15 +66,53 @@ func hooksDir(repo string) (string, error) {
 	}
 	hooks, common := abs(lines[0]), abs(lines[1])
 	if rel, err := filepath.Rel(common, hooks); err != nil || strings.HasPrefix(rel, "..") {
-		return "", failure("hooksElsewhere", tildePath(hooks))
+		if _, err := os.Stat(filepath.Join(hooks, "h")); err == nil && filepath.Base(hooks) == "_" {
+			return hooks, true, nil
+		}
+		return "", false, failure("hooksElsewhere", tildePath(hooks))
 	}
-	return hooks, nil
+	return hooks, false, nil
+}
+
+// huskyHooks puts gitfolio's lines at the top of husky's generated pre-push and post-commit files, or
+// takes them out. They go first because husky's own line ends the script. husky writes these files
+// again on npm install, so scans put the lines back.
+func huskyHooks(dir string, install bool) error {
+	for name, cmd := range map[string]string{"pre-push": `hook pre-push "$PPID"`, "post-commit": "hook post-commit"} {
+		p := filepath.Join(dir, name)
+		b, err := os.ReadFile(p)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		s := string(b)
+		if i := strings.Index(s, hookMarker); i >= 0 {
+			if install {
+				continue // already there
+			}
+			if j := strings.Index(s, hookMarker+" end\n"); j > i {
+				s = s[:i] + s[j+len(hookMarker+" end\n"):]
+			}
+		} else if install {
+			first, rest, _ := strings.Cut(cmp.Or(s, "#!/usr/bin/env sh\n"), "\n")
+			s = first + "\n" + hookMarker + " (github.com/Alineteam-Inc/GitFolio)\n" + hookFind +
+				`[ -n "$g" ] && "$g" ` + cmd + " </dev/null >/dev/null 2>&1\n" + hookMarker + " end\n" + rest
+		} else {
+			continue
+		}
+		if err := os.WriteFile(p, []byte(s), 0o755); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func installHooks(repo string) error {
-	dir, err := hooksDir(repo)
+	dir, husky, err := hooksDir(repo)
 	if err != nil {
 		return err
+	}
+	if husky {
+		return huskyHooks(dir, true)
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -98,9 +139,12 @@ func installHooks(repo string) error {
 
 // uninstallHooks removes gitfolio's hooks and puts back the ones that were there before.
 func uninstallHooks(repo string) error {
-	dir, err := hooksDir(repo)
+	dir, husky, err := hooksDir(repo)
 	if err != nil {
 		return err
+	}
+	if husky {
+		return huskyHooks(dir, false)
 	}
 	for name := range hookScripts {
 		p := filepath.Join(dir, name)
@@ -121,7 +165,7 @@ func uninstallHooks(repo string) error {
 
 // hookStatus reports whether gitfolio's pre-push hook is installed in repo, for `gitfolio list`.
 func hookStatus(repo string) string {
-	dir, err := hooksDir(repo)
+	dir, _, err := hooksDir(repo)
 	if err != nil {
 		return "manual"
 	}

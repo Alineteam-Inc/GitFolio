@@ -482,9 +482,9 @@ var messages = map[string]map[string]string{
 		"ja": "別の gitfolio の処理が実行中です。しばらくしてから再試行してください。\n",
 	},
 	"hooksElsewhere": {
-		"en": "Hooks live outside .git (%s, e.g. core.hooksPath or husky), so they were not changed.\nAdd these lines yourself:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
-		"ko": "훅 폴더가 .git 밖에 있어(%s, 예: core.hooksPath·husky) 훅을 바꾸지 않았습니다.\n아래 줄을 직접 추가하세요:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
-		"ja": "フックが .git の外にあるため(%s、例: core.hooksPath・husky)、変更していません。\n次の行をご自身で追加してください:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
+		"en": "Hooks live outside .git (%s, e.g. a shared core.hooksPath or husky 5–8), so they were not changed.\nAdd these lines yourself:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
+		"ko": "훅 폴더가 .git 밖에 있어(%s, 예: 공유 core.hooksPath·husky 5–8) 훅을 바꾸지 않았습니다.\n아래 줄을 직접 추가하세요:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
+		"ja": "フックが .git の外にあるため(%s、例: 共有の core.hooksPath・husky 5–8)、変更していません。\n次の行をご自身で追加してください:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
 	},
 	"hooksBothExist": {
 		"en": "Both %[1]s and %[1]s.gitfolio-orig exist; merge them by hand.\n",
@@ -512,9 +512,9 @@ var messages = map[string]map[string]string{
 		"ja": "%s を登録しました。(コミット %d 件)\n",
 	},
 	"hooksNotInstalled": {
-		"en": "Git hooks were not installed: %v\nCommits are still collected by `gitfolio scan`.\n",
-		"ko": "git hook을 설치하지 못했습니다: %v\n`gitfolio scan`으로는 계속 수집할 수 있습니다.\n",
-		"ja": "git フックをインストールできませんでした: %v\n`gitfolio scan` では引き続き収集できます。\n",
+		"en": "Git hooks were not installed: %v\nPushes from this repository are not sent right away; `gitfolio sync` or the daily sync (`gitfolio schedule`) sends them.\n",
+		"ko": "git hook을 설치하지 못했습니다: %v\n이 저장소는 push 직후 자동 전송되지 않습니다. `gitfolio sync`나 예약 동기화(`gitfolio schedule`)로 보냅니다.\n",
+		"ja": "git フックをインストールできませんでした: %v\nこのリポジトリは git push 直後には送信されません。`gitfolio sync` か毎日の同期(`gitfolio schedule`)で送信します。\n",
 	},
 	"hooksNotRestored": {
 		"en": "Git hooks were not restored: %v\n",

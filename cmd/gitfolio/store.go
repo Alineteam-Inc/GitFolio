@@ -229,6 +229,9 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 		return 0, err
 	}
 	m := newMasker(cfg.Mask)
+	if hooks, husky, err := hooksDir(r.Path); err == nil && husky {
+		_ = huskyHooks(hooks, true) // husky rewrites its hook files on npm install; put gitfolio's lines back
+	}
 	r.Name = filepath.Base(r.Path)
 	r.Provider, r.Namespace = remote(r.Path)
 	var modules map[string]string

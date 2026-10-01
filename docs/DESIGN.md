@@ -512,7 +512,8 @@ Enable dependency detection? [y/N]
 
 1. 경로가 git 저장소인지 확인
 2. 훅 디렉터리 확인 (`git rev-parse --git-path hooks`)
-   - 훅 디렉터리가 작업 트리 안에 있으면(husky 등) 자동 설치하지 않고, 기존 훅에 추가할 한 줄을 안내
+   - **husky 9** (`core.hooksPath = .husky/_`, husky가 만드는 커밋되지 않는 폴더, `h` 파일로 판별): `_/pre-push`·`_/post-commit` 스텁 맨 앞(shebang 다음)에 표시선으로 감싼 블록을 넣는다. husky 줄(`. h`)이 끝에서 `exit`하므로 앞이어야 하고, stdin은 건드리지 않는다(`</dev/null`). husky는 `npm install` 때 `_`를 다시 쓰므로 scan마다 블록을 다시 넣고, 그 사이 push는 다음 sync가 보낸다. 해제 시 블록만 지워 원래 스텁으로 되돌린다 (2026-10-01 사용자 결정)
+   - 그 밖에 훅 디렉터리가 `.git` 밖이면(공유 `core.hooksPath`, 커밋되는 husky 5–8 `.husky` 등) 자동 설치하지 않고 안내. 그 저장소는 push 직후 전송 없이 `sync`·예약 동기화로 보낸다
 3. 기존 `post-commit`·`pre-push` 훅이 있으면 `*.gitfolio-orig`로 이름을 바꾸고 체이닝
 4. 의존성 기능이 켜져 있으면 매니저 파일 승인 (3.5)
 5. 저장소 등록 → 최초 수집 (네트워크 없음)
