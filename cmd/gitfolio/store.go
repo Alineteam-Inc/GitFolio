@@ -243,7 +243,15 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 		_ = huskyHooks(hooks, true) // husky rewrites its hook files on npm install; put gitfolio's lines back
 	}
 	r.Name = filepath.Base(r.Path)
+	was := deletion{r.Provider, r.Namespace}
 	r.Provider, r.Namespace = remote(r.Path)
+	// A new address of the same repository (git remote set-url, or its push URL now counts): aline.team
+	// renames what it has rather than get the commits again under the new name.
+	if now := (deletion{r.Provider, r.Namespace}); was.Namespace != "" && now.Namespace != "" && now != was {
+		if err := queueMove(dir, repoMove{was, now}); err != nil {
+			return 0, err
+		}
+	}
 	var modules map[string]string
 	if cfg.Deps { // module IDs only: package manager files are read by `deps scan`, not here
 		modules = manifestModules(*r)

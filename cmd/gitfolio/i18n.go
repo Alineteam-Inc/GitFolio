@@ -330,6 +330,11 @@ var messages = map[string]map[string]string{
 		"ko": "이 컴퓨터의 커밋은 지웠습니다. 다음 동기화 때 aline.team에서도 이 저장소와 내 데이터를 지웁니다.\n웹에서도 연동했다면 그 연동과 내가 참여한 PR 기록도 함께 지워집니다.\n",
 		"ja": "このコンピューターのコミットは削除しました。次の同期で aline.team からもこのリポジトリとあなたのデータを削除します。\nWeb でも連携していた場合、その連携とあなたが参加したプルリクエストの記録も削除されます。\n",
 	},
+	"repoMoved": {
+		"en": "aline.team renamed %d repository(ies) to their new git address; their commits were not sent again.\n",
+		"ko": "aline.team에 저장소 %d개의 바뀐 git 주소를 반영했습니다. 커밋은 다시 보내지 않았습니다.\n",
+		"ja": "aline.team にリポジトリ %d 件の新しい git アドレスを反映しました。コミットは再送信していません。\n",
+	},
 	"emailBad": {
 		"en": "Not a valid email address: %s\n",
 		"ko": "올바른 이메일 주소가 아닙니다: %s\n",

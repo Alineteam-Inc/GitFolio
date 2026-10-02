@@ -64,6 +64,8 @@ type fakeAline struct {
 	work []string // work emails verified with a code (lowercased, in order)
 	// waitFor maps a namespace to the email aline.team wants verified before it takes its commits (A013).
 	waitFor map[string]string
+	noMove  bool   // an older server without the move call
+	moves   int    // repository moves made
 	pend    string // the work email a code was sent to
 
 	// Data API. The handler holds mu; tests lock it to read.
@@ -252,6 +254,29 @@ func (f *fakeAline) handler() http.Handler {
 			}
 		}
 		ok(w, map[string]any{"deletedCommits": n})
+	}))
+	mux.HandleFunc("POST /cli/repositories/move", data(func(w http.ResponseWriter, r *http.Request) {
+		var in struct{ Provider, Namespace, NewProvider, NewNamespace string }
+		if f.noMove {
+			w.WriteHeader(http.StatusNotFound) // no ApiBody, as for a route the server does not have
+			return
+		}
+		if json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" || in.NewNamespace == "" {
+			fail(w, 400, "C001")
+			return
+		}
+		from, to := in.Provider+"/"+in.Namespace+"/", in.NewProvider+"/"+in.NewNamespace+"/"
+		n := 0
+		for k, c := range f.commits {
+			if hash, ok := strings.CutPrefix(k, from); ok {
+				c.Provider, c.Namespace = in.NewProvider, in.NewNamespace
+				f.commits[to+hash] = c
+				delete(f.commits, k)
+				n++
+			}
+		}
+		f.moves++
+		ok(w, map[string]any{"movedCommits": n})
 	}))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
