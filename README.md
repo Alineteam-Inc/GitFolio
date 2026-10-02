@@ -65,7 +65,8 @@ gitfolio add | remove <path>     # register a repository / unregister (--purge: 
 gitfolio list                    # registered repositories and their status
 gitfolio sync [--dry-run]        # send what aline.team does not have yet (--dry-run: just show it)
 gitfolio config mask add <word>  # hide a customer or project name in commit messages
-gitfolio email add <email>       # another work email of yours
+gitfolio email add <email>       # another work email of yours (verify it with the emailed code to merge
+                                 # repositories you also linked on aline.team)
 gitfolio schedule 09:00          # optional daily sync (off: schedule off)
 gitfolio deps [on|off|scan]      # dependency detection: per-file approval, read on request
 gitfolio history                 # git commands GitFolio ran
@@ -144,7 +145,8 @@ gitfolio add | remove <경로>     # 저장소 등록 / 해제 (--purge: 이 컴
 gitfolio list                    # 등록 저장소와 상태
 gitfolio sync [--dry-run]        # aline.team에 없는 것만 전송 (--dry-run: 보여 주기만)
 gitfolio config mask add <단어>  # 커밋 메시지 속 고객사·프로젝트명 가리기
-gitfolio email add <이메일>      # 다른 작업 이메일 추가
+gitfolio email add <이메일>      # 다른 작업 이메일 추가 (메일로 온 코드로 인증하면 aline.team 웹에서도
+                                 # 연동한 저장소와 하나로 합쳐짐)
 gitfolio schedule 09:00          # 예약 동기화 (선택, 해제: schedule off)
 gitfolio deps [on|off|scan]      # 의존성 분석: 파일별 승인, 요청할 때만 읽기
 gitfolio history                 # GitFolio가 실행한 git 명령
