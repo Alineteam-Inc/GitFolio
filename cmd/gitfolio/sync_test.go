@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"net/http/httptest"
 	"os"
 	"os/exec"
@@ -307,6 +308,9 @@ func TestSyncMovesRepository(t *testing.T) {
 	// git remote set-url: now on GitHub.
 	must(queueMove(dir, repoMove{deletion{"GITLAB", "me/app"}, deletion{"GITHUB", "me/app"}}))
 	at("GITHUB", "me/app")
+	if out := dryRun(t, dir); !strings.Contains(out, `"moves"`) || strings.Contains(out, `"hash"`) {
+		t.Errorf("dry run before the move shows commits to send again:\n%s", out)
+	}
 	n, err := syncData(dir, false)
 	if err != nil || n.moves != 1 || n.commits != 0 || f.batches != batches {
 		t.Fatalf("after the move: sync = %+v, %v, batches %d → %d: want the move and nothing sent again", n, err, batches, f.batches)
@@ -369,4 +373,23 @@ func TestSyncMoveNoop(t *testing.T) {
 	if st, _ := loadSync(dir); len(st.Moves) != 0 {
 		t.Errorf("moves left: %v", st.Moves)
 	}
+}
+
+// dryRun returns what `gitfolio sync --dry-run` prints.
+func dryRun(t *testing.T, dir string) string {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stdout := os.Stdout
+	os.Stdout = w
+	_, err = syncData(dir, true)
+	os.Stdout = stdout
+	w.Close()
+	out, _ := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(out)
 }

@@ -297,6 +297,14 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 		if n.moves, err = c.sendMoves(dir, &st); err != nil {
 			return n, errors.Join(err, saveSync(dir, st))
 		}
+	} else if len(st.Moves) > 0 { // show the commits as the sync will, after the moves (not saved)
+		out, err := buildExport(dir)
+		if err != nil {
+			return n, err
+		}
+		for _, mv := range st.Moves {
+			renameSent(&st, mv, out.Commits)
+		}
 	}
 	p, err := pending(dir, st)
 	if err != nil {
