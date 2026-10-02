@@ -6,10 +6,13 @@
 
 - **사용자에게는 항상 한국어로 답한다.** 상태 보고, 짧은 확인, 명령 결과 직후 답변도 한국어. 코드·식별자·커밋 메시지·CLI 출력 문구 원문은 영어 가능
 - 이어서 작업할 때 읽는 순서
-  1. [docs/REMAINING.md](docs/REMAINING.md) — 지금 멈춘 지점과 다음 순서(체크리스트)
-  2. [docs/ROADMAP.md](docs/ROADMAP.md) — 현재 주안점, 작업 현황, 단계별 체크리스트, 브랜치와 사양
-  3. 비공개 서버 문서 — 서버 계약(인증·데이터 API), dev 검증 기록, 서버 상태·경위. **비공개**: 위치는 사용자에게 확인한다. 로컬 `docs/API.md`가 있어도 git에 올리지 않는다(`.gitignore`)
-  4. [docs/DESIGN.md](docs/DESIGN.md) — 설계와 결정 기록(날짜 포함). 설계가 바뀌면 이 문서를 먼저 고친다
+  1. 비공개 공유 문서의 탭들 — **비공개**: 위치는 사용자에게 확인한다
+     - 「잔여 작업」 — 지금 멈춘 지점과 다음 순서(체크리스트)
+     - 「로드맵」 — 현재 주안점, 작업 현황, 단계별 체크리스트, 브랜치와 사양, 버전 규칙
+     - 「API 계약」 — 서버 계약(인증·데이터 API), dev 검증 기록
+     - 첫 탭 「경위」 표 — 서버 상태와 결정 경위
+     - 로컬에 `docs/API.md`·`docs/REMAINING.md`·`docs/ROADMAP.md`가 남아 있어도 옛 사본이다. git에 올리지 않는다(`.gitignore`, 2026-10-02·03 사용자 결정)
+  2. [docs/DESIGN.md](docs/DESIGN.md) — 설계와 결정 기록(날짜 포함). 설계가 바뀌면 이 문서를 먼저 고친다
 
 ## 프로젝트
 
@@ -17,7 +20,7 @@
 - Go, 표준 라이브러리만, `CGO_ENABLED=0`, git은 명령 실행으로 사용. MIT (Alineteam Inc.). 바이너리 `cmd/gitfolio`
 - 대상 OS: **macOS·Linux·Windows** 모두 (amd64·arm64). 경로는 `filepath`, OS별 코드는 `platform_unix.go`·`platform_windows.go`
 - 서버는 별도 비공개 저장소. 계약과 서버 상태는 위 비공개 문서가 기준. CLI 상태가 바뀌면(dev 검증 통과, `main` 병합, 릴리스) 그 문서 「경위」 표에 한 줄 추가하거나 댓글을 단다. 문서를 볼 수 없으면 사용자에게 확인한다
-- **이 저장소는 공개다.** 서버 내부 정보(dev 서버 주소, DB·검색 인덱스 이름, 배포 경위, 서버 커밋, 개인 이메일, 비공개 문서 링크)는 커밋하지 않고 비공개 문서에 쓴다 (2026-10-02 사용자 결정)
+- **이 저장소는 공개다.** 서버 내부 정보(dev 서버 주소, DB·검색 인덱스 이름, 배포 경위, 서버 커밋, 개인 이메일, 비공개 문서 링크)와 작업 계획·진행 현황·잔여 작업은 커밋하지 않고 비공개 문서에 쓴다 (2026-10-02·03 사용자 결정)
 
 ## 브랜치와 환경
 
@@ -32,7 +35,7 @@
 ## 작업 규칙
 
 - 커밋은 **기능별로 나눠** 만들고 push한다. 메시지는 영어
-- 릴리스 버전은 Semantic Versioning(`MAJOR.MINOR.PATCH`, 지금은 `0.y.z`): 새 기능 = MINOR, 버그 수정 = PATCH. 상세는 ROADMAP 「버전 규칙」
+- 릴리스 버전은 Semantic Versioning(`MAJOR.MINOR.PATCH`, 지금은 `0.y.z`): 새 기능 = MINOR, 버그 수정 = PATCH. 상세는 비공개 「로드맵」 탭 「버전 규칙」
 - 확인: `gofmt -l ./cmd`, `for os in darwin linux windows; do GOOS=$os go vet ./...; done`, `go test ./...`
 - 화면 문구는 `cmd/gitfolio/i18n.go`에 en·ko·ja를 함께 넣는다 (`TestMessagesComplete`, `TestMessageVerbsMatch`). 출력 모양: 결과는 `GitFolio >>` 문단, 질문은 `? `, 안내문은 2칸 여백, 오류는 새 문단 (DESIGN 7.1)
 - **미병합 브랜치 빌드는 테스트용 HOME에서만 실행한다** (`HOME=<임시 폴더> GIT_CONFIG_GLOBAL=<임시 파일>`). `sync --dry-run` 같은 명령도 먼저 scan하므로 실제 설정의 로컬 데이터를 새 형식으로 바꿀 수 있다

@@ -47,7 +47,7 @@ homebrew_casks:
       Run `gitfolio init` to choose the repositories to collect.
     # The binary is not signed or notarized yet, so macOS would block the quarantined download.
     # GoReleaser's documented workaround clears the quarantine bit after install; it bypasses
-    # Gatekeeper for this binary only. Replace with signing and notarization (ROADMAP "이후").
+    # Gatekeeper for this binary only. Replace with signing and notarization (planned).
     hooks:
       post:
         install: |
