@@ -45,6 +45,8 @@ repositories. After that every `git push` is sent automatically. Your profile is
 ## Nothing is collected without your permission
 
 - **Only after you log in, only from repositories you chose, only your own pushed commits.**
+- **Only under emails you verified:** aline.team takes your commits under an email verified with a code
+  sent to it (`gitfolio init`, `gitfolio email verify`), or a GitHub or GitLab noreply address.
 - **Sent:** repository (`owner/repo`), commit hash, branch, time, message (masked on your computer),
   file paths with lines added/deleted, AI agent use.
 - **Never collected:** source code or file contents, where repositories are on your computer,
@@ -61,7 +63,7 @@ repositories. After that every `git push` is sent automatically. Your profile is
 
 ```sh
 gitfolio init                    # setup: data policy, sign-up/login, choose repositories
-gitfolio add | remove <path>     # register a repository / unregister (--purge: delete its data here and on aline.team)
+gitfolio add | remove <path>     # register a repository / unregister (--purge: delete its data here and on aline.team, web link included)
 gitfolio list                    # registered repositories and their status
 gitfolio sync [--dry-run]        # send what aline.team does not have yet (--dry-run: just show it)
 gitfolio config mask add <word>  # hide a customer or project name in commit messages
@@ -127,6 +129,8 @@ gitfolio init
 ### 허락 없이 수집하지 않습니다
 
 - **로그인한 뒤, 내가 고른 저장소에서, 내가 push한 내 커밋만** 수집합니다.
+- **인증한 이메일로만:** aline.team은 메일로 받은 코드로 인증한 이메일(`gitfolio init`, `gitfolio email verify`)이나
+  GitHub·GitLab noreply 주소로 쓴 커밋만 받습니다.
 - **보내는 것:** 저장소(`소유자/저장소`), 커밋 해시·브랜치·시각, 커밋 메시지(이 컴퓨터에서 마스킹),
   파일 경로와 추가·삭제 줄 수, AI 에이전트 사용 여부
 - **수집하지 않는 것:** 소스 코드·파일 내용, 내 컴퓨터의 저장소 위치, 인증 정보, 다른 사람의 커밋
@@ -141,7 +145,7 @@ gitfolio init
 
 ```sh
 gitfolio init                    # 설정: 데이터 정책, 가입·로그인, 저장소 선택
-gitfolio add | remove <경로>     # 저장소 등록 / 해제 (--purge: 이 컴퓨터와 aline.team의 데이터 삭제)
+gitfolio add | remove <경로>     # 저장소 등록 / 해제 (--purge: 이 컴퓨터와 aline.team의 데이터·웹 연동 삭제)
 gitfolio list                    # 등록 저장소와 상태
 gitfolio sync [--dry-run]        # aline.team에 없는 것만 전송 (--dry-run: 보여 주기만)
 gitfolio config mask add <단어>  # 커밋 메시지 속 고객사·프로젝트명 가리기
