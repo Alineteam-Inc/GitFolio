@@ -270,3 +270,81 @@ func TestSyncWaitsForVerifiedEmail(t *testing.T) {
 		t.Errorf("still waiting: %v", st.Waiting)
 	}
 }
+
+// A repository whose git service address changed is renamed on aline.team before any commits go, and
+// what was sent moves to the new name: nothing is sent again. An older server without the call gets
+// the commits again under the new name; while it cannot be reached the move waits.
+func TestSyncMovesRepository(t *testing.T) {
+	f := &fakeAline{token: testToken}
+	srv := httptest.NewServer(f.handler())
+	defer srv.Close()
+	t.Setenv("GITFOLIO_API_URL", srv.URL)
+	dir := t.TempDir()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com"}))
+	must(saveConfig(dir, Config{Emails: []string{"dev@example.com"}}))
+	at := func(provider, namespace string) {
+		t.Helper()
+		must(saveRepos(dir, []Repo{{ID: "r1", Path: "/x/app", Name: "app", Provider: provider, Namespace: namespace,
+			Changed: map[string]string{"main.go": "2026-10-02T11:00:00+09:00"}}}))
+	}
+	long := strings.Repeat("x", maxMessage+10) // cut before it is sent and fingerprinted
+	must(writeCommits(dir, []Commit{
+		{Repo: "r1", Hash: "a1", Branch: "main", Date: "2026-10-02T10:00:00+09:00", Message: "feat", Files: []FileStat{{Name: "main.go", Created: true}}, CreationType: "HUMAN"},
+		{Repo: "r1", Hash: "a2", Branch: "main", Date: "2026-10-02T10:00:00+09:00", Message: long, CreationType: "HUMAN"},
+	}))
+	at("GITLAB", "me/app")
+	if n, err := syncData(dir, false); err != nil || n.commits != 2 {
+		t.Fatalf("first sync = %+v, %v", n, err)
+	}
+	batches := f.batches
+
+	// git remote set-url: now on GitHub.
+	must(queueMove(dir, repoMove{deletion{"GITLAB", "me/app"}, deletion{"GITHUB", "me/app"}}))
+	at("GITHUB", "me/app")
+	n, err := syncData(dir, false)
+	if err != nil || n.moves != 1 || n.commits != 0 || f.batches != batches {
+		t.Fatalf("after the move: sync = %+v, %v, batches %d → %d: want the move and nothing sent again", n, err, batches, f.batches)
+	}
+	if _, ok := f.commits["GITHUB/me/app/a2"]; !ok || len(f.commits) != 2 {
+		t.Errorf("server has %v", f.commits)
+	}
+	if st, _ := loadSync(dir); len(st.Moves) != 0 || st.Changed["GITHUB/me/app/main.go"] == "" || st.Changed["GITLAB/me/app/main.go"] != "" {
+		t.Errorf("sync state after the move: moves %v, changed %v", st.Moves, st.Changed)
+	}
+
+	// Chained moves are one; one back to where it started is none.
+	must(queueMove(dir, repoMove{deletion{"GITHUB", "me/app"}, deletion{"GITHUB", "me/app2"}}))
+	must(queueMove(dir, repoMove{deletion{"GITHUB", "me/app2"}, deletion{"GITHUB", "me/app3"}}))
+	if st, _ := loadSync(dir); len(st.Moves) != 1 || st.Moves[0].From.Namespace != "me/app" || st.Moves[0].To.Namespace != "me/app3" {
+		t.Errorf("chained: %v", st.Moves)
+	}
+	must(queueMove(dir, repoMove{deletion{"GITHUB", "me/app3"}, deletion{"GITHUB", "me/app"}}))
+	if st, _ := loadSync(dir); len(st.Moves) != 0 {
+		t.Errorf("moved back: %v", st.Moves)
+	}
+
+	// Offline: the move waits, and no commits go under the new name before it.
+	must(queueMove(dir, repoMove{deletion{"GITHUB", "me/app"}, deletion{"GITHUB", "me/new"}}))
+	at("GITHUB", "me/new")
+	f.down = true
+	if _, err := syncData(dir, false); err == nil {
+		t.Fatal("sync to a server that is down succeeded")
+	}
+	if st, _ := loadSync(dir); len(st.Moves) != 1 {
+		t.Errorf("the move was not kept: %v", st.Moves)
+	}
+	// An older server: the move is dropped and the commits go again under the new name.
+	f.down, f.noMove = false, true
+	if n, err := syncData(dir, false); err != nil || n.moves != 0 || n.commits != 2 {
+		t.Fatalf("older server: sync = %+v, %v", n, err)
+	}
+	if st, _ := loadSync(dir); len(st.Moves) != 0 {
+		t.Errorf("the move stayed: %v", st.Moves)
+	}
+}

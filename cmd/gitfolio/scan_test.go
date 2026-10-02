@@ -323,3 +323,33 @@ func TestRemoteIsWherePushesGo(t *testing.T) {
 		t.Errorf("push to a local folder: %s %s, want the fetch URL", p, ns)
 	}
 }
+
+// scan notices a new git service address of a registered repository and queues the move.
+func TestScanQueuesMove(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	dir, path := t.TempDir(), t.TempDir()
+	if out, err := exec.Command("git", "init", "-q", path).CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v %s", err, out)
+	}
+	if out, err := exec.Command("git", "-C", path, "remote", "add", "origin", "https://github.com/me/renamed.git").CombinedOutput(); err != nil {
+		t.Fatalf("git remote: %v %s", err, out)
+	}
+	if err := saveConfig(dir, Config{Emails: []string{"me@example.com"}}); err != nil {
+		t.Fatal(err)
+	}
+	r := newRepo(path)
+	r.Provider, r.Namespace = "GITHUB", "me/old" // as the last scan saw it
+	if _, err := scanRepo(dir, &r, false); err != nil {
+		t.Fatal(err)
+	}
+	st, _ := loadSync(dir)
+	if r.Namespace != "me/renamed" || len(st.Moves) != 1 || st.Moves[0] != (repoMove{deletion{"GITHUB", "me/old"}, deletion{"GITHUB", "me/renamed"}}) {
+		t.Errorf("namespace %q, moves %v", r.Namespace, st.Moves)
+	}
+	if _, err := scanRepo(dir, &r, false); err != nil { // the same address again: nothing more
+		t.Fatal(err)
+	}
+	if st, _ := loadSync(dir); len(st.Moves) != 1 {
+		t.Errorf("moves after a second scan: %v", st.Moves)
+	}
+}
