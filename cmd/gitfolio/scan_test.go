@@ -295,3 +295,26 @@ func TestOldFormatRescanned(t *testing.T) {
 		t.Errorf("after rescan: %+v, format %d", commits, r.Format)
 	}
 }
+
+// The repository is where commits are pushed: a push URL different from the fetch URL wins, and of
+// several push URLs the first.
+func TestRemoteIsWherePushesGo(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	r := t.TempDir()
+	run := func(args ...string) {
+		t.Helper()
+		if out, err := exec.Command("git", append([]string{"-C", r}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v %s", args, err, out)
+		}
+	}
+	run("init", "-q")
+	run("remote", "add", "origin", "https://gitlab.com/example/example-app-flutter.git")
+	if p, ns := remote(r); p != "GITLAB" || ns != "example/example-app-flutter" {
+		t.Errorf("fetch URL only: %s %s", p, ns)
+	}
+	run("remote", "set-url", "--push", "origin", "https://github.com/example-org/Example-App.git")
+	run("remote", "set-url", "--add", "--push", "origin", "git@gitlab.com:example/example-app-flutter.git")
+	if p, ns := remote(r); p != "GITHUB" || ns != "example-org/Example-App" {
+		t.Errorf("fetch from GitLab, push to GitHub (then GitLab): %s %s, want the first push URL", p, ns)
+	}
+}
