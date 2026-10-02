@@ -51,7 +51,7 @@ func TestSync(t *testing.T) {
 	unpushed := commit("r1", "a4", "wip") // read from HEAD: the repository has a remote but no push succeeded yet
 	unpushed.Branch = ""
 	must(writeCommits(dir, append(commits, unpushed)))
-	p, err := pending(dir, syncState{}) // checked here: the fake server rejects a missing branch, aline.team does not
+	p, err := pending(dir, syncState{}) // checked here: aline.team rejects a missing branch (C001), so the sync below passes either way
 	must(err)
 	for _, c := range p.Commits {
 		if c.Hash == "a4" {
