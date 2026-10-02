@@ -137,6 +137,9 @@ func pending(dir string, st syncState) (syncPayload, error) {
 			p.noRemote++
 			continue
 		}
+		if c.Branch == "" { // not on a remote-tracking branch: read from HEAD before the first push succeeded
+			continue
+		}
 		if utf8.RuneCountInString(c.Message) > maxMessage {
 			c.Message = string([]rune(c.Message)[:maxMessage])
 		}
