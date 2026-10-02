@@ -276,7 +276,7 @@ func (f *fakeAline) handler() http.Handler {
 			}
 		}
 		f.moves++
-		ok(w, map[string]any{"movedCommits": n})
+		ok(w, map[string]any{"result": map[bool]string{true: "MOVED", false: "NOOP"}[n > 0]})
 	}))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
