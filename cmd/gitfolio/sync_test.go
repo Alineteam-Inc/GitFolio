@@ -48,12 +48,21 @@ func TestSync(t *testing.T) {
 	for i := range commits[2].Files {
 		commits[2].Files[i] = FileStat{Name: "f.go", Add: 1}
 	}
-	must(writeCommits(dir, commits))
+	unpushed := commit("r1", "a4", "wip") // read from HEAD: the repository has a remote but no push succeeded yet
+	unpushed.Branch = ""
+	must(writeCommits(dir, append(commits, unpushed)))
+	p, err := pending(dir, syncState{}) // checked here: the fake server rejects a missing branch, aline.team does not
+	must(err)
+	for _, c := range p.Commits {
+		if c.Hash == "a4" {
+			t.Error("a commit that was never pushed is pending")
+		}
+	}
 
 	if _, err := syncData(dir, true); err != nil || len(f.commits) != 0 {
 		t.Fatalf("dry run sent %d commits (%v)", len(f.commits), err)
 	}
-	sync(2, 0) // a2 is rejected (C001) and skipped, b1 has no remote, c1's namespace is too long
+	sync(2, 0) // a2 is rejected (C001) and skipped, b1 has no remote, c1's namespace is too long, a4 is not pushed
 	if _, ok := f.commits["GITHUB/me/app/a3"]; !ok || len(f.commits) != 2 {
 		t.Fatalf("server has %v", f.commits)
 	}

@@ -222,7 +222,7 @@ func cmdHook(dir string, args []string) error {
 		if err != nil {
 			return err
 		}
-		// scanRepo only reads commits reachable from remote-tracking refs, so a rejected push adds nothing.
+		// Only commits on remote-tracking refs are sent (pending), so a rejected push adds nothing.
 		return withLock(dir, func() error {
 			repos, err := loadRepos(dir)
 			if err != nil {
