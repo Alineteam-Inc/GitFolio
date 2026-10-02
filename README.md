@@ -4,7 +4,7 @@
 
 GitFolio by [Alineteam Inc.](https://aline.team) (macOS, Linux, Windows) sends metadata of the commits
 you authored and pushed to [aline.team](https://aline.team), which turns it into your developer profile.
-Latest: [v0.1.1](https://github.com/Alineteam-Inc/GitFolio/releases/latest) · [한국어](#한국어)
+Latest: [v0.2.0](https://github.com/Alineteam-Inc/GitFolio/releases/latest) · [한국어](#한국어)
 
 ## Install
 
