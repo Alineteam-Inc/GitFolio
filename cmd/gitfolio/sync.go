@@ -23,12 +23,21 @@ type syncState struct {
 	Account   string            `json:"account,omitempty"`   // the aline.team account the records below were sent to
 	Commits   map[string]string `json:"commits,omitempty"`   // provider/namespace/hash → fingerprint of the record sent
 	Deletes   []deletion        `json:"deletes,omitempty"`   // repository deletions not yet accepted by the server
+	Moves     []repoMove        `json:"moves,omitempty"`     // git service address changes not yet sent (remote set-url)
 	Changed   map[string]string `json:"changed,omitempty"`   // provider/namespace/path → modifiedAt sent (modifiedFiles)
 	LastSync  string            `json:"lastSync,omitempty"`  // last attempt, shown by `gitfolio schedule`
 	LastError string            `json:"lastError,omitempty"` // why it failed; empty when it went through
 	// Waiting maps provider/namespace to the email aline.team wants verified before it takes that
 	// repository's commits (A013); they are sent again by every sync until then. Rebuilt by each sync.
 	Waiting map[string]string `json:"waiting,omitempty"`
+}
+
+// repoMove tells aline.team that a registered repository's git service address changed (`git remote
+// set-url`, or its push URL now counts), so it renames the repository it has instead of getting the
+// commits again under the new name.
+type repoMove struct {
+	From deletion `json:"from"`
+	To   deletion `json:"to"`
 }
 
 // deletion asks aline.team to delete one repository's commits (remove --purge).
@@ -127,6 +136,58 @@ func queueDeletion(dir string, d deletion) error {
 	return saveSync(dir, st)
 }
 
+// queueMove records a repository's new git service address for the next sync. Moves chain (A→B then
+// B→C is A→C) and one back to where it started cancels. Callers hold the data lock.
+func queueMove(dir string, mv repoMove) error {
+	st, err := loadSync(dir)
+	if err != nil {
+		return err
+	}
+	if i := slices.IndexFunc(st.Moves, func(x repoMove) bool { return x.To == mv.From }); i >= 0 {
+		mv.From = st.Moves[i].From
+		st.Moves = slices.Delete(st.Moves, i, i+1)
+	}
+	if mv.From != mv.To {
+		st.Moves = append(st.Moves, mv)
+	}
+	return saveSync(dir, st)
+}
+
+// renameSent moves what was sent for a repository to its new name, so commits aline.team already has
+// are not sent again. A record counts as sent when its fingerprint under the old name matches.
+func renameSent(st *syncState, mv repoMove, commits []Commit) {
+	for _, c := range commits {
+		if c.Provider != mv.To.Provider || c.Namespace != mv.To.Namespace {
+			continue
+		}
+		c = sendable(c)
+		old := c
+		old.Provider, old.Namespace = mv.From.Provider, mv.From.Namespace
+		if st.Commits[commitKey(old)] == fingerprint(old) {
+			st.Commits[commitKey(c)] = fingerprint(c)
+		}
+		delete(st.Commits, commitKey(old))
+	}
+	oldKey, newKey := mv.From.Provider+"/"+mv.From.Namespace+"/", mv.To.Provider+"/"+mv.To.Namespace+"/"
+	for k, at := range st.Changed {
+		if name, ok := strings.CutPrefix(k, oldKey); ok {
+			st.Changed[newKey+name] = at
+			delete(st.Changed, k)
+		}
+	}
+}
+
+// sendable cuts a record to the server's limits, as it is sent and fingerprinted.
+func sendable(c Commit) Commit {
+	if utf8.RuneCountInString(c.Message) > maxMessage {
+		c.Message = string([]rune(c.Message)[:maxMessage])
+	}
+	if len(c.Files) > maxFilesSent {
+		c.Files = c.Files[:maxFilesSent]
+	}
+	return c
+}
+
 // pending works out what aline.team does not have yet. Records are the ones `gitfolio export` shows,
 // cut to the server's limits.
 func pending(dir string, st syncState) (syncPayload, error) {
@@ -143,12 +204,7 @@ func pending(dir string, st syncState) (syncPayload, error) {
 		if c.Branch == "" { // not on a remote-tracking branch: read from HEAD before the first push succeeded
 			continue
 		}
-		if utf8.RuneCountInString(c.Message) > maxMessage {
-			c.Message = string([]rune(c.Message)[:maxMessage])
-		}
-		if len(c.Files) > maxFilesSent {
-			c.Files = c.Files[:maxFilesSent]
-		}
+		c = sendable(c)
 		if st.Commits[commitKey(c)] != fingerprint(c) {
 			p.Commits = append(p.Commits, c)
 		}
@@ -198,7 +254,7 @@ func batches(commits []Commit) [][]Commit {
 	return out
 }
 
-type syncCounts struct{ commits, deletes, noRemote int }
+type syncCounts struct{ commits, deletes, moves, noRemote int }
 
 // syncData sends what aline.team does not have yet and records when it tried and whether it worked.
 // Callers hold the data lock.
@@ -237,6 +293,11 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 		}
 		st.Account = c.creds.Email
 	}
+	if !dryRun {
+		if n.moves, err = c.sendMoves(dir, &st); err != nil {
+			return n, errors.Join(err, saveSync(dir, st))
+		}
+	}
 	p, err := pending(dir, st)
 	if err != nil {
 		return n, err
@@ -249,9 +310,10 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 	n.noRemote = p.noRemote
 	if dryRun { // the requests exactly as they would be sent
 		out := struct {
+			Moves         []repoMove    `json:"moves,omitempty"`
 			Deletes       []deletion    `json:"deletes"`
 			CommitBatches []commitBatch `json:"commitBatches"`
-		}{p.Deletes, []commitBatch{}}
+		}{st.Moves, p.Deletes, []commitBatch{}}
 		for _, b := range batches(p.Commits) {
 			out.CommitBatches = append(out.CommitBatches, request(b, author, p.takeModified(b[0].Provider+"/"+b[0].Namespace)))
 		}
@@ -295,6 +357,40 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 		}
 	}
 	return n, save()
+}
+
+// sendMoves sends the queued address changes before any commits, so the new name does not start as a
+// second repository. A move the server cannot make (or does not know, an older server) is dropped and
+// the commits go again under the new name; offline or server trouble keeps it for the next sync.
+func (c *client) sendMoves(dir string, st *syncState) (int, error) {
+	if len(st.Moves) == 0 {
+		return 0, nil
+	}
+	out, err := buildExport(dir)
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, mv := range slices.Clone(st.Moves) {
+		err := c.call("POST", "/cli/repositories/move", map[string]string{
+			"provider": mv.From.Provider, "namespace": mv.From.Namespace,
+			"newProvider": mv.To.Provider, "newNamespace": mv.To.Namespace,
+		}, nil)
+		var ae *apiError
+		switch {
+		case err == nil:
+			renameSent(st, mv, out.Commits)
+			n++
+		case errors.As(err, &ae) && ae.Status >= 400 && ae.Status < 500 && ae.Status != 401 && ae.Status != 429:
+		default:
+			return n, err
+		}
+		st.Moves = slices.DeleteFunc(st.Moves, func(x repoMove) bool { return x == mv })
+		if err := saveSync(dir, *st); err != nil {
+			return n, err
+		}
+	}
+	return n, nil
 }
 
 // upsert sends commits and calls done for each one the server has dealt with. A batch the server rejects
@@ -372,8 +468,11 @@ func cmdSync(dir string, args []string) error {
 	switch {
 	case n.commits+n.deletes > 0:
 		say(lang, "synced", n.commits, n.deletes)
-	case len(st.Waiting) == 0:
+	case len(st.Waiting) == 0 && n.moves == 0:
 		say(lang, "upToDate")
+	}
+	if n.moves > 0 {
+		say(lang, "repoMoved", n.moves)
 	}
 	if n.noRemote > 0 {
 		say(lang, "noRemote", n.noRemote)
