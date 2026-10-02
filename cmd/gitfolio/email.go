@@ -9,7 +9,9 @@ import (
 
 // The user's work emails (DESIGN 3.2): commits by any of them, or by a repository's git config
 // user.email, count as the user's own. aline.team gets them all under one author email, the primary: the
-// first in the list. aline.team trusts these emails, so there is no verification step.
+// first in the list. aline.team takes commits under any of them, but merges a repository the user linked on
+// the web only when its email is verified for the account: the account email, or a work email verified
+// with a code (DESIGN 6.1.2). A repository's git config user.email is never verified.
 
 // primaryEmail is the author email sent for all of the user's commits: the first work email, else the
 // global git config user.email.
@@ -40,16 +42,45 @@ func addEmails(cfg *Config, emails []string) (bad []string) {
 	return bad
 }
 
-// emailList shows the work emails, the primary marked with ★.
-func emailList(lang string, cfg Config) string {
+// verified reports whether aline.team verified email for the logged-in account.
+func verified(creds Credentials, email string) bool {
+	return strings.EqualFold(creds.Email, email) || slices.Contains(creds.Verified, strings.ToLower(email))
+}
+
+// emailList shows the work emails, the primary marked with ★ and, when logged in, the verified ones with ✓.
+func emailList(lang string, cfg Config, creds Credentials) string {
 	if len(cfg.Emails) == 0 {
 		return tr(lang, "emailNone")
 	}
-	s := tr(lang, "emailList")
+	s, unverified := tr(lang, "emailList"), false
 	for i, e := range cfg.Emails {
-		s += map[bool]string{true: "★ ", false: "  "}[i == 0] + e + "\n"
+		s += map[bool]string{true: "★ ", false: "  "}[i == 0] + e
+		if creds.Token != "" && verified(creds, e) {
+			s += " ✓"
+		} else if creds.Token != "" {
+			unverified = true
+		}
+		s += "\n"
+	}
+	if unverified {
+		s += tr(lang, "emailUnverified")
 	}
 	return s
+}
+
+// verifyEmails verifies each email not verified yet with a code sent to it. A failure is reported and
+// the next email goes on: the emails stay in the list either way.
+func verifyEmails(lang string, c *client, emails []string) {
+	for _, e := range emails {
+		if verified(c.creds, e) {
+			continue
+		}
+		if err := c.verifyEmail(e, askCode(lang, e)); err != nil {
+			warn(lang, "emailVerifyFailed", e, err)
+		} else {
+			say(lang, "emailVerified", e)
+		}
+	}
 }
 
 // cmdEmail shows or changes the work emails: add, rm, primary.
@@ -59,12 +90,19 @@ func cmdEmail(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
+	c, err := newClient(dir)
+	if err != nil {
+		return err
+	}
+	if c.loggedIn() {
+		_, _ = c.me() // fresh ✓ marks; offline, the last known ones
+	}
 	if len(args) == 0 {
-		show(os.Stdout, emailList(lang, cfg))
+		show(os.Stdout, emailList(lang, cfg, c.creds))
 		return nil
 	}
-	if len(args) < 2 || (args[0] != "add" && args[0] != "rm" && args[0] != "primary") {
-		return failure("usage", "gitfolio email [add <email>... | rm <email> | primary <email>]")
+	if len(args) < 2 || !slices.Contains([]string{"add", "verify", "rm", "primary"}, args[0]) {
+		return failure("usage", "gitfolio email [add <email>... | verify <email> | rm <email> | primary <email>]")
 	}
 	e := strings.ToLower(strings.TrimSpace(args[1]))
 	var done string
@@ -73,7 +111,31 @@ func cmdEmail(dir string, args []string) error {
 		if bad := addEmails(&cfg, args[1:]); len(bad) > 0 {
 			return failure("emailBad", strings.Join(bad, ", "))
 		}
+		if err := saveConfig(dir, cfg); err != nil {
+			return err
+		}
+		if c.loggedIn() && interactive() {
+			verifyEmails(lang, c, lowered(args[1:]))
+		}
 		done = tr(lang, "emailAdded")
+	case "verify":
+		if !validEmail(e) {
+			return failure("emailBad", e)
+		}
+		if !c.loggedIn() {
+			return failure("loginFirst")
+		}
+		if !interactive() {
+			return failure("emailVerifyNeedsTerminal")
+		}
+		addEmails(&cfg, []string{e})
+		if err := saveConfig(dir, cfg); err != nil {
+			return err
+		}
+		if err := c.verifyEmail(e, askCode(lang, e)); err != nil {
+			return err
+		}
+		done = fmt.Sprintf(tr(lang, "emailVerified"), e)
 	case "rm":
 		i := slices.Index(cfg.Emails, e)
 		switch {
@@ -83,6 +145,11 @@ func cmdEmail(dir string, args []string) error {
 			return failure("emailRmPrimary", e) // pick another primary first, so there always is one
 		}
 		cfg.Emails = slices.Delete(cfg.Emails, i, i+1)
+		if c.loggedIn() && slices.Contains(c.creds.Verified, e) {
+			if err := c.unverifyEmail(e); err != nil {
+				warn(lang, "emailUnverifyFailed", e, err) // removed here anyway; aline.team keeps it verified
+			}
+		}
 		done = tr(lang, "emailRemoved")
 	case "primary":
 		if !validEmail(e) {
@@ -94,6 +161,6 @@ func cmdEmail(dir string, args []string) error {
 	if err := saveConfig(dir, cfg); err != nil {
 		return err
 	}
-	show(os.Stdout, done+emailList(lang, cfg))
+	show(os.Stdout, done+emailList(lang, cfg, c.creds))
 	return nil
 }
