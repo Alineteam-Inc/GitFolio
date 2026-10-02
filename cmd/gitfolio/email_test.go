@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -88,6 +90,9 @@ func TestVerifyWorkEmail(t *testing.T) {
 	if saved, _ := loadCredentials(dir); !verified(saved, "me@work.com") || !verified(saved, "DEV@example.com") || verified(saved, "other@x.com") {
 		t.Errorf("verified emails kept = %v", saved.Verified)
 	}
+	if err := c.verifyEmail("later@work.com", func(bool, int) string { return "" }); !errors.Is(err, errSkipped) || verified(c.creds, "later@work.com") {
+		t.Errorf("an empty code = %v, want it skipped and the email not verified", err)
+	}
 	if err := c.verifyEmail("me@work.com", func(bool, int) string { t.Error("asked a code for a verified email"); return "" }); err != nil {
 		t.Errorf("verifying again: %v", err)
 	}
@@ -114,5 +119,58 @@ func TestVerifyWorkEmail(t *testing.T) {
 	}
 	if len(f.work) != 0 {
 		t.Errorf("aline.team still has %v verified", f.work)
+	}
+}
+
+func TestNoreply(t *testing.T) {
+	for e, want := range map[string]bool{
+		"123+me@users.noreply.github.com":    true,
+		"me@users.noreply.github.com":        true, // older form: still no mailbox behind it
+		"12-me@users.noreply.gitlab.com":     true,
+		"7-me@Users.Noreply.git.example.com": true, // a GitLab server of its own
+		"me@noreply.github.com":              false,
+		"noreply@example.com":                false,
+		"me@work.com":                        false,
+	} {
+		if noreply(e) != want {
+			t.Errorf("noreply(%q) = %v", e, !want)
+		}
+	}
+	got := emailList("en", Config{Emails: []string{"1+me@users.noreply.github.com"}}, Credentials{Token: testToken, Email: "a@b.c"})
+	if !strings.Contains(got, "(noreply)") || strings.Contains(got, "verify") {
+		t.Errorf("a noreply address is shown as one to verify:\n%s", got)
+	}
+}
+
+// The emails git uses in the found repositories are offered: the global one first, then each
+// repository's own, with how many repositories use each. Without a terminal init keeps what it has.
+func TestRepoEmails(t *testing.T) {
+	global := filepath.Join(t.TempDir(), "gitconfig")
+	if err := os.WriteFile(global, []byte("[user]\n\temail = Me@Home.com\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GIT_CONFIG_GLOBAL", global)
+	var repos []string
+	for _, local := range []string{"", "me@work.com", "me@work.com"} {
+		r := t.TempDir()
+		if out, err := exec.Command("git", "init", "-q", r).CombinedOutput(); err != nil {
+			t.Fatalf("git init: %v %s", err, out)
+		}
+		if local != "" {
+			if out, err := exec.Command("git", "-C", r, "config", "user.email", local).CombinedOutput(); err != nil {
+				t.Fatalf("git config: %v %s", err, out)
+			}
+		}
+		repos = append(repos, r)
+	}
+	emails, uses := repoEmails(repos)
+	if !slices.Equal(emails, []string{"me@home.com", "me@work.com"}) || uses["me@home.com"] != 1 || uses["me@work.com"] != 2 {
+		t.Errorf("emails = %v, uses = %v", emails, uses)
+	}
+	if got := chooseEmails("en", Credentials{}, nil, repos); !slices.Equal(got, []string{"me@home.com"}) {
+		t.Errorf("without a terminal and no emails yet: %v, want the global git email", got)
+	}
+	if got := chooseEmails("en", Credentials{}, []string{"old@job.com"}, repos); !slices.Equal(got, []string{"old@job.com"}) {
+		t.Errorf("without a terminal: %v, want the emails so far", got)
 	}
 }

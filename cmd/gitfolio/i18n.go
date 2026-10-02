@@ -246,14 +246,9 @@ var messages = map[string]map[string]string{
 		"ja": "代表メールアドレスを %s に変更しました。\naline.team にすでにあるリポジトリは最初のアドレスのまま集計され、新しいリポジトリからこのアドレスを使います。\n",
 	},
 	"emailUnverified": {
-		"en": "✓ = verified. Repositories you linked on aline.team with a verified email are merged with\nwhat GitFolio sends; verify one with `gitfolio email verify <email>`.\n",
-		"ko": "✓ = 인증됨. aline.team 웹에서 인증된 이메일로 연동한 저장소는 GitFolio가 보낸 것과 하나로 합쳐집니다.\n`gitfolio email verify <이메일>`로 인증하세요.\n",
-		"ja": "✓ = 認証済み。aline.team の Web で認証済みのアドレスで連携したリポジトリは、GitFolio が送信したものと\n1 つにまとめられます。`gitfolio email verify <メールアドレス>` で認証してください。\n",
-	},
-	"emailVerifyAsk": {
-		"en": "Verify %s with an email code? Repositories you linked on aline.team with it are then merged with\nwhat GitFolio sends instead of showing twice. [Y/n] > ",
-		"ko": "%s을(를) 이메일 코드로 인증할까요? 인증하면 aline.team 웹에서 이 이메일로 연동한 저장소가\nGitFolio가 보낸 것과 둘로 나뉘지 않고 하나로 합쳐집니다. [Y/n] > ",
-		"ja": "%s をメールのコードで認証しますか?認証すると、aline.team の Web でこのアドレスで連携したリポジトリが\nGitFolio が送信したものと 2 つに分かれず 1 つにまとめられます。[Y/n] > ",
+		"en": "✓ = verified. aline.team takes commits only under verified emails, and merges the repositories\nyou linked on the web under them; verify one with `gitfolio email verify <email>`.\n",
+		"ko": "✓ = 인증됨. aline.team은 인증된 이메일의 커밋만 받고, 웹에서 그 이메일로 연동한 저장소와 하나로 합칩니다.\n`gitfolio email verify <이메일>`로 인증하세요.\n",
+		"ja": "✓ = 認証済み。aline.team は認証済みのアドレスのコミットのみを受け付け、Web でそのアドレスで連携したリポジトリと\n1 つにまとめます。`gitfolio email verify <メールアドレス>` で認証してください。\n",
 	},
 	"emailVerified": {
 		"en": "%s is verified.\n",
@@ -279,6 +274,61 @@ var messages = map[string]map[string]string{
 		"en": "Removed here, but aline.team still has %s as verified (%v).\n",
 		"ko": "이 컴퓨터에서는 삭제했지만 aline.team에는 %s이(가) 인증된 이메일로 남아 있습니다(%v).\n",
 		"ja": "このコンピューターからは削除しましたが、aline.team には %s が認証済みとして残っています(%v)。\n",
+	},
+	"codeAskSkip": {
+		"en": "Enter the code sent to %s (Enter = later) > ",
+		"ko": "%s(으)로 보낸 확인 코드를 입력하세요 (Enter = 나중에) > ",
+		"ja": "%s に送信した確認コードを入力してください (Enter = 後で) > ",
+	},
+	"emailSkipped": {
+		"en": "Skipped %s. Verify it later with `gitfolio email verify`.\n",
+		"ko": "%s 인증을 건너뛰었습니다. 나중에 `gitfolio email verify`로 인증하세요.\n",
+		"ja": "%s の認証をスキップしました。後で `gitfolio email verify` で認証してください。\n",
+	},
+	"emailNoreply": {
+		"en": "%s is a noreply address: it cannot receive a code, and aline.team needs none for it.\n",
+		"ko": "%s은(는) noreply 주소라 코드를 받을 수 없고, aline.team도 인증을 요구하지 않습니다.\n",
+		"ja": "%s は noreply アドレスのためコードを受け取れず、aline.team も認証を求めません。\n",
+	},
+	"emailCandidates": {
+		"en": "Emails git uses for commits in these folders (repositories using each):\n",
+		"ko": "이 폴더의 저장소에서 git이 커밋에 쓰는 이메일 (쓰는 저장소 수):\n",
+		"ja": "これらのフォルダーのリポジトリで git がコミットに使うメールアドレス (使っているリポジトリ数):\n",
+	},
+	"emailRepoCount": {
+		"en": "%d repo(s)",
+		"ko": "저장소 %d개",
+		"ja": "%d 件",
+	},
+	"emailSelect": {
+		"en": "Which of these are your emails? Commits by them count as yours, and each is verified with a code.\n[all / 1,3 / Enter = all] > ",
+		"ko": "이 중 본인 이메일은 무엇인가요? 그 이메일로 쓴 커밋을 본인 커밋으로 모으고, 이메일마다 코드로 인증합니다.\n[all / 1,3 / Enter = 전부] > ",
+		"ja": "このうちあなたのメールアドレスはどれですか? そのアドレスのコミットをあなたのコミットとして集め、アドレスごとにコードで認証します。\n[all / 1,3 / Enter = すべて] > ",
+	},
+	"emailVerifyNotice": {
+		"en": "aline.team takes commits only under emails verified for your account. A code goes to each email\nbelow, one at a time (Enter skips one; verify it later with `gitfolio email verify`).\n",
+		"ko": "aline.team은 계정에 인증된 이메일의 커밋만 받습니다. 아래 이메일마다 차례로 코드를 보냅니다.\n(Enter = 건너뛰기, 나중에 `gitfolio email verify`로 인증)\n",
+		"ja": "aline.team はアカウントで認証済みのメールアドレスのコミットのみを受け付けます。以下のアドレスに順にコードを送ります。\n(Enter = スキップ、後で `gitfolio email verify` で認証)\n",
+	},
+	"emailCheckOnce": {
+		"en": "Since GitFolio 0.2.0, aline.team takes commits only under emails verified for your account\n(GitHub and GitLab noreply addresses need none). Not verified yet: %s\n",
+		"ko": "GitFolio 0.2.0부터 aline.team은 계정에 인증된 이메일의 커밋만 받습니다.\n(GitHub·GitLab noreply 주소는 인증 불필요) 아직 인증하지 않은 이메일: %s\n",
+		"ja": "GitFolio 0.2.0 から、aline.team はアカウントで認証済みのメールアドレスのコミットのみを受け付けます。\n(GitHub・GitLab の noreply アドレスは不要) まだ認証していないアドレス: %s\n",
+	},
+	"emailVerifyNow": {
+		"en": "Verify them now with an email code? [Y/n] > ",
+		"ko": "지금 이메일 코드로 인증할까요? [Y/n] > ",
+		"ja": "今メールのコードで認証しますか? [Y/n] > ",
+	},
+	"sendWaiting": {
+		"en": "Not sent yet: aline.team takes these repositories only after %s is verified for your account.\n  %s\nVerify it with `gitfolio email verify %s`; the next push or sync sends them.\n",
+		"ko": "아직 보내지 않았습니다: %s을(를) 계정에 인증해야 aline.team이 아래 저장소를 받습니다.\n  %s\n`gitfolio email verify %s`로 인증하면 다음 push나 sync 때 보냅니다.\n",
+		"ja": "まだ送信していません: %s をアカウントで認証すると、aline.team が以下のリポジトリを受け付けます。\n  %s\n`gitfolio email verify %s` で認証すると、次の push か sync で送信します。\n",
+	},
+	"purgeQueued": {
+		"en": "Its commits were deleted here. The next sync deletes the repository and your data in it on aline.team;\nif you also linked it on the web, that link and the pull request events you took part in go too.\n",
+		"ko": "이 컴퓨터의 커밋은 지웠습니다. 다음 동기화 때 aline.team에서도 이 저장소와 내 데이터를 지웁니다.\n웹에서도 연동했다면 그 연동과 내가 참여한 PR 기록도 함께 지워집니다.\n",
+		"ja": "このコンピューターのコミットは削除しました。次の同期で aline.team からもこのリポジトリとあなたのデータを削除します。\nWeb でも連携していた場合、その連携とあなたが参加したプルリクエストの記録も削除されます。\n",
 	},
 	"emailBad": {
 		"en": "Not a valid email address: %s\n",

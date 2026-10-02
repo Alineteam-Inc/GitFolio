@@ -55,6 +55,7 @@ type apiError struct {
 	MessageKo string `json:"messageKo"`
 	MessageEn string `json:"messageEn"`
 	MessageJa string `json:"messageJa"`
+	Email     string `json:"email,omitempty"` // A013: the email to verify before this repository is taken
 }
 
 func (e *apiError) Error() string {
@@ -76,6 +77,7 @@ const (
 	codeUnverifiedWeb = "U004" // account made on the web without verifying its email
 	codeEmailVerified = "A011" // the work email is already verified for this account
 	codeTooManyEmails = "A012" // the account has the most verified work emails it may have
+	codeUnverified    = "A013" // a repository's commits wait until error.email is verified (from 0.2.0)
 	codeRateLimited   = "R001"
 	codeBadInput      = "C001" // malformed request
 )
@@ -303,9 +305,13 @@ func lowered(emails []string) []string {
 	return out
 }
 
+// errSkipped is returned when the user leaves the code empty to verify the email later.
+var errSkipped = errors.New("skipped")
+
 // verifyEmail proves with a one-time code that the user owns a work email (POST /cli/emails, then
-// /cli/emails/verify). aline.team then merges the repositories the user linked on the web under that
-// email with what GitFolio sends (DESIGN 6.1.2). askCode works as in signIn.
+// /cli/emails/verify). From 0.2.0 aline.team takes commits only under verified emails, and it merges the
+// repositories the user linked on the web under one with what GitFolio sends (DESIGN 6.1.2). askCode
+// works as in signIn; an empty code skips the email (errSkipped).
 func (c *client) verifyEmail(email string, askCode func(retry bool, length int) string) error {
 	device := map[string]string{"name": deviceName()}
 	if tz := localTimezone(); tz != "" {
@@ -331,8 +337,12 @@ func (c *client) verifyEmail(email string, askCode func(retry bool, length int) 
 		start.CodeLength = 6
 	}
 	for try := 0; ; try++ {
+		code := askCode(try > 0, start.CodeLength)
+		if code == "" {
+			return errSkipped
+		}
 		var me meResult
-		err := c.call("POST", "/cli/emails/verify", map[string]any{"challengeId": start.ChallengeID, "code": askCode(try > 0, start.CodeLength)}, &me)
+		err := c.call("POST", "/cli/emails/verify", map[string]any{"challengeId": start.ChallengeID, "code": code}, &me)
 		if errors.As(err, &ae) && ae.Code == codeWrongCode && try < maxCodeTries-1 {
 			continue
 		}

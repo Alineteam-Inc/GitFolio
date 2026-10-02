@@ -46,7 +46,7 @@ func cmdLogin(dir string) error {
 		n := strings.ToLower(prompt(tr(lang, "notifyAsk"))) // opt-in: only an explicit yes
 		return true, n == "y" || n == "yes"
 	}
-	res, err := c.signIn(email, confirmSignup, askCode(lang, email))
+	res, err := c.signIn(email, confirmSignup, askCode(lang, email, false))
 	if errors.Is(err, errSignupCancelled) {
 		say(lang, "signupCancelled")
 		return nil
@@ -63,15 +63,17 @@ func cmdLogin(dir string) error {
 }
 
 // askCode asks for the code sent to email, again while it is not the announced number of digits.
-func askCode(lang, email string) func(retry bool, length int) string {
+// When skippable, Enter alone returns "" (a work email can be verified later).
+func askCode(lang, email string, skippable bool) func(retry bool, length int) string {
+	ask := map[bool]string{false: "codeAsk", true: "codeAskSkip"}[skippable]
 	return func(retry bool, length int) string {
 		if retry {
 			notice(tr(lang, "codeWrong"))
 		}
 		for {
-			code := strings.TrimSpace(prompt(fmt.Sprintf(tr(lang, "codeAsk"), email)))
+			code := strings.TrimSpace(prompt(fmt.Sprintf(tr(lang, ask), email)))
 			// A typo is caught here, so it neither ends the login nor uses up one of the server's tries.
-			if stdinClosed || validCode(code, length) {
+			if stdinClosed || validCode(code, length) || (skippable && code == "") {
 				return code
 			}
 			notice(fmt.Sprintf(tr(lang, "codeFormat"), length))

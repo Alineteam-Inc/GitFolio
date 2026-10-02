@@ -95,6 +95,9 @@ func run(args []string) error {
 	if args[0] != "hook" && checkUpdate(dir) {
 		return nil // updated: the user runs the command again with the new binary
 	}
+	if !slices.Contains([]string{"hook", "init", "login", "logout", "email"}, args[0]) {
+		checkEmails(dir, detectLang(os.Getenv))
+	}
 	if collects(args) {
 		creds, err := loadCredentials(dir)
 		if err != nil {
@@ -289,6 +292,9 @@ func cmdRemove(dir string, args []string) error {
 		}
 	}
 	say(detectLang(os.Getenv), "removed", r.Name)
+	if *purge {
+		say(detectLang(os.Getenv), "purgeQueued")
+	}
 	return nil
 }
 
@@ -388,7 +394,15 @@ func cmdList(dir string) error {
 		}
 		fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\t%s\n", r.Name, count[r.ID], hookStatus(r.Path), deps, r.LastScan, r.Path)
 	}
-	return w.Flush()
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	st, err := loadSync(dir)
+	if err != nil {
+		return err
+	}
+	waitingNotice(detectLang(os.Getenv), st.Waiting) // also after pushes, which send in the background
+	return nil
 }
 
 type exportData struct {

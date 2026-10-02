@@ -90,6 +90,9 @@ type Config struct {
 	// DepsAuto makes scan and sync, the daily one included, also read the approved package manager
 	// files (deps auto); off, they are read only by deps scan and right after approving.
 	DepsAuto bool `json:"depsAuto,omitempty"`
+	// EmailsChecked is set once the user was asked to verify the work emails (init, or the one-time
+	// question after updating to 0.2.0, when aline.team started to take commits only under verified emails).
+	EmailsChecked bool `json:"emailsChecked,omitempty"`
 }
 
 func loadRepos(dir string) (repos []Repo, err error) {
