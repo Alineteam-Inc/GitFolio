@@ -1,5 +1,7 @@
 /gitfolio
 /dist
 
-# aline.team server contract and dev notes: kept private (service internals)
+# Kept private (service internals, plans and status): the shared private doc holds them
 /docs/API.md
+/docs/REMAINING.md
+/docs/ROADMAP.md
