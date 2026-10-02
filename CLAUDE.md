@@ -32,6 +32,7 @@
 ## 작업 규칙
 
 - 커밋은 **기능별로 나눠** 만들고 push한다. 메시지는 영어
+- 릴리스 버전은 Semantic Versioning(`MAJOR.MINOR.PATCH`, 지금은 `0.y.z`): 새 기능 = MINOR, 버그 수정 = PATCH. 상세는 ROADMAP 「버전 규칙」
 - 확인: `gofmt -l ./cmd`, `for os in darwin linux windows; do GOOS=$os go vet ./...; done`, `go test ./...`
 - 화면 문구는 `cmd/gitfolio/i18n.go`에 en·ko·ja를 함께 넣는다 (`TestMessagesComplete`, `TestMessageVerbsMatch`). 출력 모양: 결과는 `GitFolio >>` 문단, 질문은 `? `, 안내문은 2칸 여백, 오류는 새 문단 (DESIGN 7.1)
 - **미병합 브랜치 빌드는 테스트용 HOME에서만 실행한다** (`HOME=<임시 폴더> GIT_CONFIG_GLOBAL=<임시 파일>`). `sync --dry-run` 같은 명령도 먼저 scan하므로 실제 설정의 로컬 데이터를 새 형식으로 바꿀 수 있다
