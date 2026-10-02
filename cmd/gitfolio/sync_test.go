@@ -228,3 +228,45 @@ func TestRemoteBranches(t *testing.T) {
 	}
 	check()
 }
+
+// A repository aline.team takes only after an email is verified (A013) waits, and only it: the other
+// repositories are sent, its commits are not marked sent, and they go once the email is verified.
+func TestSyncWaitsForVerifiedEmail(t *testing.T) {
+	f := &fakeAline{token: testToken, waitFor: map[string]string{"me/app": "me@work.com"}}
+	srv := httptest.NewServer(f.handler())
+	defer srv.Close()
+	t.Setenv("GITFOLIO_API_URL", srv.URL)
+	dir := t.TempDir()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com"}))
+	must(saveConfig(dir, Config{Emails: []string{"me@work.com"}}))
+	must(saveRepos(dir, []Repo{
+		{ID: "r1", Path: "/x/app", Name: "app", Provider: "GITHUB", Namespace: "me/app"}, // waits
+		{ID: "r2", Path: "/x/lib", Name: "lib", Provider: "GITHUB", Namespace: "me/lib"},
+	}))
+	commit := func(repo, hash string) Commit {
+		return Commit{Repo: repo, Hash: hash, Branch: "main", Date: "2026-10-02T10:00:00+09:00", Message: "feat", CreationType: "HUMAN"}
+	}
+	must(writeCommits(dir, []Commit{commit("r1", "a1"), commit("r1", "a2"), commit("r2", "b1")}))
+
+	n, err := syncData(dir, false)
+	if err != nil || n.commits != 1 || len(f.commits) != 1 {
+		t.Fatalf("sync = %+v, %v; server has %v: want only me/lib's commit", n, err, f.commits)
+	}
+	st, _ := loadSync(dir)
+	if st.Waiting["GITHUB/me/app"] != "me@work.com" || st.LastError != "" {
+		t.Errorf("waiting = %v, lastError %q", st.Waiting, st.LastError)
+	}
+	f.work = append(f.work, "me@work.com") // verified with `gitfolio email verify`
+	if n, err := syncData(dir, false); err != nil || n.commits != 2 || len(f.commits) != 3 {
+		t.Fatalf("after verifying: sync = %+v, %v; server has %d commits", n, err, len(f.commits))
+	}
+	if st, _ := loadSync(dir); len(st.Waiting) != 0 {
+		t.Errorf("still waiting: %v", st.Waiting)
+	}
+}
