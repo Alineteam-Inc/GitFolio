@@ -74,6 +74,7 @@ const (
 	codeWrongCode     = "A008" // email code does not match
 	codeExpiredCode   = "A009" // email code expired or tried too often
 	codeUnverifiedWeb = "U004" // account made on the web without verifying its email
+	codeEmailVerified = "A011" // the work email is already verified for this account
 	codeRateLimited   = "R001"
 	codeBadInput      = "C001" // malformed request
 )
@@ -266,6 +267,84 @@ func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), as
 			return res, err
 		}
 		c.creds.Token, c.creds.TokenExpiresAt, c.creds.Email = res.Token, res.TokenExpiresAt, res.Account.Email
+		c.creds.Verified = lowered(res.VerifiedEmails)
 		return res, saveCredentials(c.dir, c.creds)
 	}
+}
+
+// meResult is the body of GET /cli/me, also returned by the work email calls.
+type meResult struct {
+	Account struct {
+		Email string `json:"email"`
+	} `json:"account"`
+	VerifiedEmails []string `json:"verifiedEmails"`
+}
+
+// me asks which account the token belongs to and keeps its verified emails.
+func (c *client) me() (meResult, error) {
+	var me meResult
+	if err := c.call("GET", "/cli/me", nil, &me); err != nil {
+		return me, err
+	}
+	return me, c.keepVerified(me.VerifiedEmails)
+}
+
+func (c *client) keepVerified(emails []string) error {
+	c.creds.Verified = lowered(emails)
+	return saveCredentials(c.dir, c.creds)
+}
+
+func lowered(emails []string) []string {
+	out := make([]string, len(emails))
+	for i, e := range emails {
+		out[i] = strings.ToLower(strings.TrimSpace(e))
+	}
+	return out
+}
+
+// verifyEmail proves with a one-time code that the user owns a work email (POST /cli/emails, then
+// /cli/emails/verify). aline.team then merges the repositories the user linked on the web under that
+// email with what GitFolio sends (DESIGN 6.1.2). askCode works as in signIn.
+func (c *client) verifyEmail(email string, askCode func(retry bool, length int) string) error {
+	device := map[string]string{"name": deviceName()}
+	if tz := localTimezone(); tz != "" {
+		device["timezone"] = tz
+	}
+	var start struct {
+		ChallengeID string `json:"challengeId"`
+		CodeLength  int    `json:"codeLength"`
+	}
+	err := c.call("POST", "/cli/emails", map[string]any{"email": email, "device": device}, &start)
+	var ae *apiError
+	if errors.As(err, &ae) && ae.Code == codeEmailVerified {
+		_, err = c.me()
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	if start.CodeLength <= 0 {
+		start.CodeLength = 6
+	}
+	for try := 0; ; try++ {
+		var me meResult
+		err := c.call("POST", "/cli/emails/verify", map[string]any{"challengeId": start.ChallengeID, "code": askCode(try > 0, start.CodeLength)}, &me)
+		if errors.As(err, &ae) && ae.Code == codeWrongCode && try < maxCodeTries-1 {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		return c.keepVerified(me.VerifiedEmails)
+	}
+}
+
+// unverifyEmail removes a work email from the account's verified emails (DELETE /cli/emails).
+// Repositories already merged because of it stay merged.
+func (c *client) unverifyEmail(email string) error {
+	var me meResult
+	if err := c.call("DELETE", "/cli/emails?email="+url.QueryEscape(email), nil, &me); err != nil {
+		return err
+	}
+	return c.keepVerified(me.VerifiedEmails)
 }

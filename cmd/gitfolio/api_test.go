@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -59,12 +61,20 @@ type fakeAline struct {
 
 	startDeviceShown bool // start carried a device the code email can show
 
+	work []string // work emails verified with a code (lowercased, in order)
+	pend string   // the work email a code was sent to
+
 	// Data API. The handler holds mu; tests lock it to read.
 	mu       sync.Mutex
 	commits  map[string]Commit // provider/namespace/hash → record
 	modified map[string]string // provider/namespace/name → modifiedAt
 	batches  int               // accepted commit batches
 	down     bool              // answer data calls with 503
+}
+
+// me is the body of GET /cli/me: the account email first, then the verified work emails.
+func (f *fakeAline) me() map[string]any {
+	return map[string]any{"account": map[string]any{"id": testAccountID, "email": "dev@example.com"}, "verifiedEmails": append([]string{"dev@example.com"}, f.work...)}
 }
 
 var emailDeviceName = regexp.MustCompile(`^(macOS|Linux|Windows) [A-Za-z0-9_]{1,16}$`)
@@ -136,7 +146,43 @@ func (f *fakeAline) handler() http.Handler {
 			fail(w, 401, "A001")
 			return
 		}
-		ok(w, map[string]any{"account": map[string]any{"id": testAccountID, "email": "dev@example.com"}, "verifiedEmails": []string{"dev@example.com"}})
+		ok(w, f.me())
+	})
+	mux.HandleFunc("POST /cli/emails", func(w http.ResponseWriter, r *http.Request) {
+		var in struct{ Email string }
+		switch {
+		case !authed(r):
+			fail(w, 401, "A001")
+		case json.NewDecoder(r.Body).Decode(&in) != nil || !validEmail(in.Email):
+			fail(w, 400, "C001")
+		case slices.Contains(f.me()["verifiedEmails"].([]string), strings.ToLower(in.Email)):
+			fail(w, 409, "A011")
+		default:
+			f.pend = strings.ToLower(in.Email)
+			ok(w, map[string]any{"challengeId": "ch_e", "expiresAt": time.Now().UTC().Add(10 * time.Minute), "codeLength": 6})
+		}
+	})
+	mux.HandleFunc("POST /cli/emails/verify", func(w http.ResponseWriter, r *http.Request) {
+		var in struct{ ChallengeID, Code string }
+		switch {
+		case !authed(r):
+			fail(w, 401, "A001")
+		case json.NewDecoder(r.Body).Decode(&in) != nil || in.ChallengeID != "ch_e" || f.pend == "":
+			fail(w, 400, "A009")
+		case in.Code != "123456":
+			fail(w, 400, "A008")
+		default:
+			f.work, f.pend = append(f.work, f.pend), ""
+			ok(w, f.me())
+		}
+	})
+	mux.HandleFunc("DELETE /cli/emails", func(w http.ResponseWriter, r *http.Request) {
+		if !authed(r) {
+			fail(w, 401, "A001")
+			return
+		}
+		f.work = slices.DeleteFunc(f.work, func(e string) bool { return e == strings.ToLower(r.URL.Query().Get("email")) })
+		ok(w, f.me())
 	})
 	mux.HandleFunc("POST /cli/logout", func(w http.ResponseWriter, r *http.Request) {
 		if !authed(r) {
@@ -251,7 +297,7 @@ func TestSignInMeLogout(t *testing.T) {
 	if f.token != "" {
 		t.Error("logout did not revoke the token on the server")
 	}
-	if saved, _ := loadCredentials(dir); saved != (Credentials{}) {
+	if saved, _ := loadCredentials(dir); !reflect.DeepEqual(saved, Credentials{}) {
 		t.Errorf("credentials after logout = %+v, want empty", saved)
 	}
 }

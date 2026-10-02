@@ -245,6 +245,36 @@ var messages = map[string]map[string]string{
 		"ko": "대표 이메일을 %s(으)로 바꿨습니다.\naline.team에 이미 있는 저장소는 처음 이메일로 그대로 집계되고, 새 저장소부터 이 이메일을 씁니다.\n",
 		"ja": "代表メールアドレスを %s に変更しました。\naline.team にすでにあるリポジトリは最初のアドレスのまま集計され、新しいリポジトリからこのアドレスを使います。\n",
 	},
+	"emailUnverified": {
+		"en": "✓ = verified. Repositories you linked on aline.team with a verified email are merged with\nwhat GitFolio sends; verify one with `gitfolio email verify <email>`.\n",
+		"ko": "✓ = 인증됨. aline.team 웹에서 인증된 이메일로 연동한 저장소는 GitFolio가 보낸 것과 하나로 합쳐집니다.\n`gitfolio email verify <이메일>`로 인증하세요.\n",
+		"ja": "✓ = 認証済み。aline.team の Web で認証済みのアドレスで連携したリポジトリは、GitFolio が送信したものと\n1 つにまとめられます。`gitfolio email verify <メールアドレス>` で認証してください。\n",
+	},
+	"emailVerifyAsk": {
+		"en": "Verify %s with an email code? Repositories you linked on aline.team with it are then merged with\nwhat GitFolio sends instead of showing twice. [Y/n] > ",
+		"ko": "%s을(를) 이메일 코드로 인증할까요? 인증하면 aline.team 웹에서 이 이메일로 연동한 저장소가\nGitFolio가 보낸 것과 둘로 나뉘지 않고 하나로 합쳐집니다. [Y/n] > ",
+		"ja": "%s をメールのコードで認証しますか?認証すると、aline.team の Web でこのアドレスで連携したリポジトリが\nGitFolio が送信したものと 2 つに分かれず 1 つにまとめられます。[Y/n] > ",
+	},
+	"emailVerified": {
+		"en": "%s is verified.\n",
+		"ko": "%s을(를) 인증했습니다.\n",
+		"ja": "%s を認証しました。\n",
+	},
+	"emailVerifyFailed": {
+		"en": "Could not verify %s (%v). It stays in the list; try again with `gitfolio email verify`.\n",
+		"ko": "%s을(를) 인증하지 못했습니다(%v). 목록에는 그대로 있으니 `gitfolio email verify`로 다시 시도하세요.\n",
+		"ja": "%s を認証できませんでした(%v)。一覧には残ります。`gitfolio email verify` でもう一度お試しください。\n",
+	},
+	"emailVerifyNeedsTerminal": {
+		"en": "Verifying an email needs a terminal: run `gitfolio email verify <email>` there.\n",
+		"ko": "이메일 인증은 터미널에서 해야 합니다. 터미널에서 `gitfolio email verify <이메일>`을 실행하세요.\n",
+		"ja": "メールアドレスの認証にはターミナルが必要です。ターミナルで `gitfolio email verify <メールアドレス>` を実行してください。\n",
+	},
+	"emailUnverifyFailed": {
+		"en": "Removed here, but aline.team still has %s as verified (%v).\n",
+		"ko": "이 컴퓨터에서는 삭제했지만 aline.team에는 %s이(가) 인증된 이메일로 남아 있습니다(%v).\n",
+		"ja": "このコンピューターからは削除しましたが、aline.team には %s が認証済みとして残っています(%v)。\n",
+	},
 	"emailBad": {
 		"en": "Not a valid email address: %s\n",
 		"ko": "올바른 이메일 주소가 아닙니다: %s\n",
