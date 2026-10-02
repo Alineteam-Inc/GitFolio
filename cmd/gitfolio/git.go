@@ -59,20 +59,30 @@ var providers = map[string]string{
 // remote returns the repository's provider and owner/repo on its git service (origin first,
 // otherwise the first remote). aline.team resolves them to the service's repository ID.
 // It is where commits are pushed: the push URL when it differs from the fetch URL (fetch from GitLab,
-// push to GitHub), the first of several. Both are empty without such a remote.
+// push to GitHub), the first of several, unless that is not a git service (a local mirror): then the
+// fetch URL. Both are empty without such a remote.
 func remote(repo string) (provider, namespace string) {
-	out, err := git(repo, "remote", "get-url", "--push", "origin")
-	if err != nil {
+	name := "origin"
+	if _, err := git(repo, "remote", "get-url", name); err != nil {
 		names, err := git(repo, "remote")
 		if err != nil || len(strings.Fields(names)) == 0 {
 			return "", ""
 		}
-		if out, err = git(repo, "remote", "get-url", "--push", strings.Fields(names)[0]); err != nil {
-			return "", ""
+		name = strings.Fields(names)[0]
+	}
+	for _, push := range []bool{true, false} {
+		args := []string{"remote", "get-url", name}
+		if push {
+			args = []string{"remote", "get-url", "--push", name}
+		}
+		if out, err := git(repo, args...); err == nil {
+			first, _, _ := strings.Cut(strings.TrimSpace(out), "\n")
+			if provider, namespace = parseRemote(strings.TrimSpace(first)); provider != "" {
+				return provider, namespace
+			}
 		}
 	}
-	first, _, _ := strings.Cut(strings.TrimSpace(out), "\n")
-	return parseRemote(strings.TrimSpace(first))
+	return "", ""
 }
 
 // parseRemote extracts the provider and owner/repo from https, ssh and scp-style

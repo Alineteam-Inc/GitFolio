@@ -317,4 +317,9 @@ func TestRemoteIsWherePushesGo(t *testing.T) {
 	if p, ns := remote(r); p != "GITHUB" || ns != "EXTORY-Inc/OTLEAVE_APP" {
 		t.Errorf("fetch from GitLab, push to GitHub (then GitLab): %s %s, want the first push URL", p, ns)
 	}
+	run("config", "--unset-all", "remote.origin.pushurl")
+	run("remote", "set-url", "--push", "origin", t.TempDir()) // a local mirror is no git service
+	if p, ns := remote(r); p != "GITLAB" || ns != "example/example-app-flutter" {
+		t.Errorf("push to a local folder: %s %s, want the fetch URL", p, ns)
+	}
 }
