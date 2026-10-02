@@ -348,3 +348,25 @@ func TestSyncMovesRepository(t *testing.T) {
 		t.Errorf("the move stayed: %v", st.Moves)
 	}
 }
+
+// A move aline.team has nothing for (another device moved it first) is not counted, and still moves
+// what this device sent.
+func TestSyncMoveNoop(t *testing.T) {
+	f := &fakeAline{token: testToken}
+	srv := httptest.NewServer(f.handler())
+	defer srv.Close()
+	t.Setenv("GITFOLIO_API_URL", srv.URL)
+	dir := t.TempDir()
+	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := queueMove(dir, repoMove{deletion{"GITHUB", "me/a"}, deletion{"GITHUB", "me/b"}}); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := syncData(dir, false); err != nil || n.moves != 0 || f.moves != 1 {
+		t.Errorf("sync = %+v, %v; server moves %d", n, err, f.moves)
+	}
+	if st, _ := loadSync(dir); len(st.Moves) != 0 {
+		t.Errorf("moves left: %v", st.Moves)
+	}
+}
