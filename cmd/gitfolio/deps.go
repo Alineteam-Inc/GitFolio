@@ -460,10 +460,7 @@ func parseVersionCatalog(s string) []dep {
 var stdin = bufio.NewReader(os.Stdin)
 
 // interactive reports whether a person can answer prompts (not a hook, pipe or scheduled run).
-func interactive() bool {
-	st, err := os.Stdin.Stat()
-	return err == nil && st.Mode()&os.ModeCharDevice != 0
-}
+func interactive() bool { return terminal(os.Stdin) }
 
 // stdinClosed turns true once input ends; some tools look like a terminal but cannot answer.
 var stdinClosed bool
