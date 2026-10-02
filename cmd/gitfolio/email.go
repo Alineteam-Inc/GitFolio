@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"slices"
@@ -9,9 +10,10 @@ import (
 
 // The user's work emails (DESIGN 3.2): commits by any of them, or by a repository's git config
 // user.email, count as the user's own. aline.team gets them all under one author email, the primary: the
-// first in the list. aline.team takes commits under any of them, but merges a repository the user linked on
-// the web only when its email is verified for the account: the account email, or a work email verified
-// with a code (DESIGN 6.1.2). A repository's git config user.email is never verified.
+// first in the list. From 0.2.0 aline.team takes a repository's commits only under an email verified for
+// the account (the account email, or a work email verified with a code) or a noreply address, and merges a
+// repository the user linked on the web under such an email with what GitFolio sends (DESIGN 6.1.2).
+// A repository's git config user.email only tells which commits are the user's.
 
 // primaryEmail is the author email sent for all of the user's commits: the first work email, else the
 // global git config user.email.
@@ -47,6 +49,14 @@ func verified(creds Credentials, email string) bool {
 	return strings.EqualFold(creds.Email, email) || slices.Contains(creds.Verified, strings.ToLower(email))
 }
 
+// noreply reports whether email is a git service's address that hides the real one
+// (id+login@users.noreply.github.com, users.noreply.gitlab.com or a GitLab server's). It cannot receive
+// a code, and aline.team takes commits under it without one.
+func noreply(email string) bool {
+	_, domain, _ := strings.Cut(strings.ToLower(email), "@")
+	return strings.HasPrefix(domain, "users.noreply.")
+}
+
 // emailList shows the work emails, the primary marked with ★ and, when logged in, the verified ones with ✓.
 func emailList(lang string, cfg Config, creds Credentials) string {
 	if len(cfg.Emails) == 0 {
@@ -55,9 +65,12 @@ func emailList(lang string, cfg Config, creds Credentials) string {
 	s, unverified := tr(lang, "emailList"), false
 	for i, e := range cfg.Emails {
 		s += map[bool]string{true: "★ ", false: "  "}[i == 0] + e
-		if creds.Token != "" && verified(creds, e) {
+		switch {
+		case noreply(e):
+			s += " (noreply)"
+		case creds.Token != "" && verified(creds, e):
 			s += " ✓"
-		} else if creds.Token != "" {
+		case creds.Token != "":
 			unverified = true
 		}
 		s += "\n"
@@ -68,16 +81,19 @@ func emailList(lang string, cfg Config, creds Credentials) string {
 	return s
 }
 
-// verifyEmails verifies each email not verified yet with a code sent to it. A failure is reported and
-// the next email goes on: the emails stay in the list either way.
+// verifyEmails verifies, one after the other, each email not verified yet with a code sent to it.
+// Enter skips one; a failure is reported and the next email goes on. The emails stay in the list either way.
 func verifyEmails(lang string, c *client, emails []string) {
 	for _, e := range emails {
-		if verified(c.creds, e) {
+		if verified(c.creds, e) || noreply(e) {
 			continue
 		}
-		if err := c.verifyEmail(e, askCode(lang, e)); err != nil {
+		switch err := c.verifyEmail(e, askCode(lang, e, true)); {
+		case errors.Is(err, errSkipped):
+			say(lang, "emailSkipped", e)
+		case err != nil:
 			warn(lang, "emailVerifyFailed", e, err)
-		} else {
+		default:
 			say(lang, "emailVerified", e)
 		}
 	}
@@ -122,6 +138,9 @@ func cmdEmail(dir string, args []string) error {
 		if !validEmail(e) {
 			return failure("emailBad", e)
 		}
+		if noreply(e) {
+			return failure("emailNoreply", e)
+		}
 		if !c.loggedIn() {
 			return failure("loginFirst")
 		}
@@ -132,10 +151,14 @@ func cmdEmail(dir string, args []string) error {
 		if err := saveConfig(dir, cfg); err != nil {
 			return err
 		}
-		if err := c.verifyEmail(e, askCode(lang, e)); err != nil {
+		switch err := c.verifyEmail(e, askCode(lang, e, true)); {
+		case errors.Is(err, errSkipped):
+			done = fmt.Sprintf(tr(lang, "emailSkipped"), e)
+		case err != nil:
 			return err
+		default:
+			done = fmt.Sprintf(tr(lang, "emailVerified"), e)
 		}
-		done = fmt.Sprintf(tr(lang, "emailVerified"), e)
 	case "rm":
 		i := slices.Index(cfg.Emails, e)
 		switch {
@@ -163,4 +186,33 @@ func cmdEmail(dir string, args []string) error {
 	}
 	show(os.Stdout, done+emailList(lang, cfg, c.creds))
 	return nil
+}
+
+// checkEmails asks, once, a user set up before 0.2.0 to verify the work emails: aline.team now takes a
+// repository's commits only under a verified email. init asks this itself; hooks and pipes never ask.
+func checkEmails(dir, lang string) {
+	cfg, err := loadConfig(dir)
+	if err != nil || cfg.EmailsChecked || len(cfg.Emails) == 0 || !interactive() || !terminal(os.Stdout) {
+		return
+	}
+	c, err := newClient(dir)
+	if err != nil || !c.loggedIn() {
+		return
+	}
+	if _, err := c.me(); err != nil {
+		return // offline: next time
+	}
+	cfg.EmailsChecked = true
+	if saveConfig(dir, cfg) != nil {
+		return
+	}
+	unverified := slices.DeleteFunc(slices.Clone(cfg.Emails), func(e string) bool { return verified(c.creds, e) || noreply(e) })
+	if len(unverified) == 0 {
+		return
+	}
+	notice("\n" + fmt.Sprintf(tr(lang, "emailCheckOnce"), strings.Join(unverified, ", ")))
+	if a := strings.ToLower(prompt(tr(lang, "emailVerifyNow"))); !stdinClosed && (a == "" || a == "y" || a == "yes") {
+		verifyEmails(lang, c, unverified)
+	}
+	blank()
 }

@@ -62,7 +62,9 @@ type fakeAline struct {
 	startDeviceShown bool // start carried a device the code email can show
 
 	work []string // work emails verified with a code (lowercased, in order)
-	pend string   // the work email a code was sent to
+	// waitFor maps a namespace to the email aline.team wants verified before it takes its commits (A013).
+	waitFor map[string]string
+	pend    string // the work email a code was sent to
 
 	// Data API. The handler holds mu; tests lock it to read.
 	mu       sync.Mutex
@@ -214,6 +216,14 @@ func (f *fakeAline) handler() http.Handler {
 		var in commitBatch // one repository per request
 		if r.ContentLength > 100<<20 || json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" || in.AuthorEmail == "" || len(in.Commits) == 0 || len(in.Commits) > batchSize || len(in.ModifiedFiles) > maxModified {
 			fail(w, 400, "C001")
+			return
+		}
+		if e := f.waitFor[in.Namespace]; e != "" && !slices.Contains(f.me()["verifiedEmails"].([]string), e) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(403)
+			json.NewEncoder(w).Encode(map[string]any{"success": false, "error": map[string]any{
+				"status": 403, "code": "A013", "email": e, "messageEn": "verify " + e + " first",
+			}})
 			return
 		}
 		for _, c := range in.Commits {

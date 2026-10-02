@@ -72,16 +72,17 @@ func cmdInit(dir string, args []string) error {
 	// Repositories: where they are, whose commits count, which ones to collect.
 	section(lang, "reposTitle")
 	roots := askRoots(lang, cfg.Roots, args)
-	// Whose commits count: the git email is the first work email (the primary) unless there are some
-	// already; more can be added here or later with `gitfolio email add`.
-	if len(cfg.Emails) == 0 {
-		if out, err := git(".", "config", "--global", "user.email"); err == nil {
-			addEmails(&cfg, []string{out})
-		}
+	blank()
+	msg := tr(lang, "searching")
+	if runtime.GOOS == "darwin" {
+		msg += tr(lang, "searchingMac")
 	}
-	if len(cfg.Emails) == 0 {
-		notice(tr(lang, "identityMissing"))
-	} else {
+	show(os.Stdout, msg)
+	found := findRepos(roots, 5) // once: for the emails, then for the repositories
+	// Whose commits count: the emails git uses in these repositories, as the user picks them; more can be
+	// added here or later with `gitfolio email add`.
+	cfg.Emails = chooseEmails(lang, c.creds, cfg.Emails, found)
+	if len(cfg.Emails) > 0 {
 		notice("\n" + tr(lang, "identityWork") + emailList(lang, cfg, c.creds))
 	}
 	for interactive() && !stdinClosed {
@@ -97,19 +98,18 @@ func cmdInit(dir string, args []string) error {
 		if err != nil {
 			return err
 		}
-		c.Roots, c.Emails = roots, cfg.Emails
+		c.Roots, c.Emails, c.EmailsChecked = roots, cfg.Emails, true
 		return saveConfig(dir, c)
 	}); err != nil {
 		return err
 	}
-	// Verifying a work email merges the repositories linked on the web under it (DESIGN 6.1.2).
-	if unverified := slices.DeleteFunc(slices.Clone(cfg.Emails), func(e string) bool { return verified(c.creds, e) }); len(unverified) > 0 && interactive() {
-		a := strings.ToLower(prompt(fmt.Sprintf(tr(lang, "emailVerifyAsk"), strings.Join(unverified, ", "))))
-		if !stdinClosed && (a == "" || a == "y" || a == "yes") {
-			verifyEmails(lang, c, unverified)
-		}
+	// aline.team takes commits only under verified emails and merges the repositories linked on the web
+	// under them (DESIGN 6.1.2): each picked email is verified now, one after the other.
+	if interactive() && slices.ContainsFunc(cfg.Emails, func(e string) bool { return !verified(c.creds, e) && !noreply(e) }) {
+		notice("\n" + tr(lang, "emailVerifyNotice"))
+		verifyEmails(lang, c, cfg.Emails)
 	}
-	chosen, err := chooseRepos(lang, dir, roots, cfg.Emails)
+	chosen, err := chooseRepos(lang, dir, found, cfg.Emails)
 	if err != nil {
 		return err
 	}
@@ -170,15 +170,82 @@ func cmdInit(dir string, args []string) error {
 	return nil
 }
 
-// chooseRepos finds unregistered repositories with the user's commits under roots and asks which to
-// collect. Nothing is chosen by default: company code is never collected unless the user picks it.
-func chooseRepos(lang, dir string, roots, work []string) ([]string, error) {
-	blank()
-	msg := tr(lang, "searching")
-	if runtime.GOOS == "darwin" {
-		msg += tr(lang, "searchingMac")
+// repoEmails returns the emails git uses for commits in repos, with how many of them use each: the
+// global user.email first, then each repository's own (its local config or a conditional include).
+// These are the user's own settings, not commit authors, so teammates' emails do not show up.
+func repoEmails(repos []string) (emails []string, uses map[string]int) {
+	uses = map[string]int{}
+	add := func(e string, n int) {
+		if e = strings.ToLower(strings.TrimSpace(e)); validEmail(e) {
+			if _, ok := uses[e]; !ok {
+				emails = append(emails, e)
+			}
+			uses[e] += n
+		}
 	}
-	show(os.Stdout, msg)
+	if out, err := git(".", "config", "--global", "user.email"); err == nil {
+		add(out, 0)
+	}
+	for _, r := range repos {
+		if out, err := git(r, "config", "user.email"); err == nil {
+			add(out, 1)
+		}
+	}
+	return emails, uses
+}
+
+// chooseEmails lists the work emails so far and the emails git uses in repos, and asks which are the
+// user's. Enter takes them all: they come from the user's own git settings. The emails so far stay first,
+// so the primary does not change. Without a terminal it keeps them, or takes the global git email.
+func chooseEmails(lang string, creds Credentials, have, repos []string) []string {
+	found, uses := repoEmails(repos)
+	list := slices.Clone(have)
+	for _, e := range found {
+		if !slices.Contains(list, e) {
+			list = append(list, e)
+		}
+	}
+	if len(list) == 0 {
+		notice(tr(lang, "identityMissing"))
+		return nil
+	}
+	if !interactive() {
+		return list[:max(len(have), 1)]
+	}
+	notice("\n" + tr(lang, "emailCandidates"))
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	for i, e := range list {
+		state := ""
+		switch {
+		case noreply(e):
+			state = "noreply"
+		case verified(creds, e):
+			state = "✓"
+		}
+		fmt.Fprintf(w, "%s  %d\t%s\t%s\t%s\n", margin, i+1, e, fmt.Sprintf(tr(lang, "emailRepoCount"), uses[e]), state)
+	}
+	w.Flush()
+	for !stdinClosed {
+		answer := prompt(tr(lang, "emailSelect"))
+		if answer == "" {
+			return list
+		}
+		sel, err := parseSelection(answer, len(list))
+		if err == nil {
+			var picked []string
+			for _, i := range sel {
+				picked = append(picked, list[i-1])
+			}
+			return picked
+		}
+		notice(fmt.Sprintf(tr(lang, "badSelection"), len(list)))
+	}
+	return have
+}
+
+// chooseRepos lists the unregistered repositories with the user's commits and asks which to collect.
+// Nothing is chosen by default: company code is never collected unless the user picks it.
+func chooseRepos(lang, dir string, found, work []string) ([]string, error) {
 	repos, err := loadRepos(dir)
 	if err != nil {
 		return nil, err
@@ -192,7 +259,7 @@ func chooseRepos(lang, dir string, roots, work []string) ([]string, error) {
 		commits    int
 	}
 	var cands []candidate
-	for _, p := range findRepos(roots, 5) {
+	for _, p := range found {
 		if n, last := ownCommits(p, work); n > 0 && !registered[p] {
 			cands = append(cands, candidate{p, last, n})
 		}

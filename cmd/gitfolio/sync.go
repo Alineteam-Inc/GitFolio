@@ -26,6 +26,9 @@ type syncState struct {
 	Changed   map[string]string `json:"changed,omitempty"`   // provider/namespace/path → modifiedAt sent (modifiedFiles)
 	LastSync  string            `json:"lastSync,omitempty"`  // last attempt, shown by `gitfolio schedule`
 	LastError string            `json:"lastError,omitempty"` // why it failed; empty when it went through
+	// Waiting maps provider/namespace to the email aline.team wants verified before it takes that
+	// repository's commits (A013); they are sent again by every sync until then. Rebuilt by each sync.
+	Waiting map[string]string `json:"waiting,omitempty"`
 }
 
 // deletion asks aline.team to delete one repository's commits (remove --purge).
@@ -267,8 +270,12 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 		st.Deletes = slices.DeleteFunc(st.Deletes, func(x deletion) bool { return x == d })
 		n.deletes++
 	}
+	st.Waiting = map[string]string{}
 	for _, batch := range batches(p.Commits) {
 		key := batch[0].Provider + "/" + batch[0].Namespace
+		if _, ok := st.Waiting[key]; ok {
+			continue // the repository's other batches wait too
+		}
 		err := c.upsert(author, batch, p.takeModified(key), func(x Commit, accepted bool) {
 			st.Commits[commitKey(x)] = fingerprint(x)
 			if accepted {
@@ -279,6 +286,10 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 				st.Changed[key+"/"+f.Name] = f.ModifiedAt
 			}
 		})
+		var ae *apiError
+		if errors.As(err, &ae) && ae.Code == codeUnverified { // only this repository waits: not marked sent
+			st.Waiting[key], err = cmp.Or(strings.ToLower(ae.Email), "?"), nil
+		}
 		if serr := save(); err != nil || serr != nil {
 			return n, errors.Join(err, serr)
 		}
@@ -354,13 +365,31 @@ func cmdSync(dir string, args []string) error {
 	if err != nil || *dryRun {
 		return err
 	}
-	if n.commits+n.deletes == 0 {
-		say(lang, "upToDate")
-	} else {
+	st, err := loadSync(dir)
+	if err != nil {
+		return err
+	}
+	switch {
+	case n.commits+n.deletes > 0:
 		say(lang, "synced", n.commits, n.deletes)
+	case len(st.Waiting) == 0:
+		say(lang, "upToDate")
 	}
 	if n.noRemote > 0 {
 		say(lang, "noRemote", n.noRemote)
 	}
+	waitingNotice(lang, st.Waiting)
 	return nil
+}
+
+// waitingNotice tells, once per email, which repositories aline.team takes only after it is verified.
+func waitingNotice(lang string, waiting map[string]string) {
+	byEmail := map[string][]string{}
+	for key, email := range waiting {
+		_, namespace, _ := strings.Cut(key, "/")
+		byEmail[email] = append(byEmail[email], namespace)
+	}
+	for _, email := range slices.Sorted(maps.Keys(byEmail)) {
+		warn(lang, "sendWaiting", email, strings.Join(slices.Sorted(slices.Values(byEmail[email])), ", "), email)
+	}
 }
