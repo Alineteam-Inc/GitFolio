@@ -132,8 +132,13 @@ func updateCommand(tag string) (*exec.Cmd, string) {
 	}
 }
 
-// terminal reports whether f is a terminal.
+// terminal reports whether f is a terminal: a character device other than the null device, which is
+// one too (`gitfolio email add x </dev/null` must not ask for a code).
 func terminal(f *os.File) bool {
 	st, err := f.Stat()
-	return err == nil && st.Mode()&os.ModeCharDevice != 0
+	if err != nil || st.Mode()&os.ModeCharDevice == 0 {
+		return false
+	}
+	null, err := os.Stat(os.DevNull)
+	return err != nil || !os.SameFile(st, null)
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -37,5 +38,17 @@ func TestUpdateCheck(t *testing.T) {
 	// Builds from source never check or ask.
 	if checkUpdate(t.TempDir()) {
 		t.Error("a dev build offered an update")
+	}
+}
+
+// The null device is a character device too, but nobody answers there.
+func TestNullIsNotATerminal(t *testing.T) {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if terminal(f) {
+		t.Error("the null device counts as a terminal")
 	}
 }
