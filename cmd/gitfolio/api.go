@@ -75,6 +75,7 @@ const (
 	codeExpiredCode   = "A009" // email code expired or tried too often
 	codeUnverifiedWeb = "U004" // account made on the web without verifying its email
 	codeEmailVerified = "A011" // the work email is already verified for this account
+	codeTooManyEmails = "A012" // the account has the most verified work emails it may have
 	codeRateLimited   = "R001"
 	codeBadInput      = "C001" // malformed request
 )
@@ -320,6 +321,9 @@ func (c *client) verifyEmail(email string, askCode func(retry bool, length int) 
 		_, err = c.me()
 		return err
 	}
+	if errors.As(err, &ae) && ae.Code == codeTooManyEmails {
+		return failure("emailTooMany")
+	}
 	if err != nil {
 		return err
 	}
@@ -331,6 +335,9 @@ func (c *client) verifyEmail(email string, askCode func(retry bool, length int) 
 		err := c.call("POST", "/cli/emails/verify", map[string]any{"challengeId": start.ChallengeID, "code": askCode(try > 0, start.CodeLength)}, &me)
 		if errors.As(err, &ae) && ae.Code == codeWrongCode && try < maxCodeTries-1 {
 			continue
+		}
+		if errors.As(err, &ae) && ae.Code == codeTooManyEmails { // checked again here: codes asked for earlier
+			return failure("emailTooMany")
 		}
 		if err != nil {
 			return err
