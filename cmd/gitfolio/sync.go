@@ -372,15 +372,20 @@ func (c *client) sendMoves(dir string, st *syncState) (int, error) {
 	}
 	n := 0
 	for _, mv := range slices.Clone(st.Moves) {
+		var res struct {
+			Result string `json:"result"` // MOVED, MERGED (into the new name's repository) or NOOP (nothing under the old name)
+		}
 		err := c.call("POST", "/cli/repositories/move", map[string]string{
 			"provider": mv.From.Provider, "namespace": mv.From.Namespace,
 			"newProvider": mv.To.Provider, "newNamespace": mv.To.Namespace,
-		}, nil)
+		}, &res)
 		var ae *apiError
 		switch {
 		case err == nil:
-			renameSent(st, mv, out.Commits)
-			n++
+			renameSent(st, mv, out.Commits) // NOOP too: another device may have moved it already
+			if res.Result != "NOOP" {
+				n++
+			}
 		case errors.As(err, &ae) && ae.Status >= 400 && ae.Status < 500 && ae.Status != 401 && ae.Status != 429:
 		default:
 			return n, err
