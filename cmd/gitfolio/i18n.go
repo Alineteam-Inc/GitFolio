@@ -265,6 +265,11 @@ var messages = map[string]map[string]string{
 		"ko": "%s을(를) 인증하지 못했습니다(%v). 목록에는 그대로 있으니 `gitfolio email verify`로 다시 시도하세요.\n",
 		"ja": "%s を認証できませんでした(%v)。一覧には残ります。`gitfolio email verify` でもう一度お試しください。\n",
 	},
+	"emailTooMany": {
+		"en": "aline.team takes at most 20 verified work emails. Remove one first: gitfolio email rm <email>\n",
+		"ko": "aline.team은 인증된 작업 이메일을 20개까지 받습니다. 먼저 하나를 삭제하세요: gitfolio email rm <이메일>\n",
+		"ja": "aline.team が受け付ける認証済みの作業用メールアドレスは 20 件までです。先に 1 件削除してください: gitfolio email rm <メールアドレス>\n",
+	},
 	"emailVerifyNeedsTerminal": {
 		"en": "Verifying an email needs a terminal: run `gitfolio email verify <email>` there.\n",
 		"ko": "이메일 인증은 터미널에서 해야 합니다. 터미널에서 `gitfolio email verify <이메일>`을 실행하세요.\n",

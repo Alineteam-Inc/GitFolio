@@ -171,6 +171,8 @@ func (f *fakeAline) handler() http.Handler {
 			fail(w, 400, "A009")
 		case in.Code != "123456":
 			fail(w, 400, "A008")
+		case len(f.work) >= 20: // checked again when the code is used (codes asked for earlier)
+			fail(w, 400, "A012")
 		default:
 			f.work, f.pend = append(f.work, f.pend), ""
 			ok(w, f.me())

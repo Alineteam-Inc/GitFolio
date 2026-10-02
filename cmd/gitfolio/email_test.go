@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http/httptest"
 	"os"
 	"os/exec"
@@ -97,6 +98,14 @@ func TestVerifyWorkEmail(t *testing.T) {
 	if got := emailList("en", cfg, Credentials{}); strings.Contains(got, "✓") || strings.Contains(got, "verify") {
 		t.Errorf("logged out, the list shows verification:\n%s", got)
 	}
+	full := f.work
+	for len(f.work) < 20 {
+		f.work = append(f.work, fmt.Sprintf("w%d@x.com", len(f.work)))
+	}
+	if err := c.verifyEmail("one@more.com", func(bool, int) string { return "123456" }); err == nil || !strings.Contains(err.Error(), "20") {
+		t.Errorf("verify past 20 emails = %v, want the remove-one-first message", err)
+	}
+	f.work = full
 	if err := saveConfig(dir, Config{Emails: []string{"me@home.com", "me@work.com"}}); err != nil {
 		t.Fatal(err)
 	}
