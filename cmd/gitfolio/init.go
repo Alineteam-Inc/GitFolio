@@ -32,6 +32,9 @@ type Credentials struct {
 	Token          string `json:"token,omitempty"` // aline.team CLI token (aln_cli_…), sent only in the Authorization header
 	TokenExpiresAt string `json:"tokenExpiresAt,omitempty"`
 	Email          string `json:"email,omitempty"` // account email, shown by login
+	// Verified are the emails aline.team verified for this account: the account email and the work
+	// emails verified with a code (DESIGN 6.1.2), lowercased, as of the last answer from the server.
+	Verified []string `json:"verifiedEmails,omitempty"`
 }
 
 func loadCredentials(dir string) (c Credentials, err error) {
@@ -56,9 +59,11 @@ func cmdInit(dir string, args []string) error {
 	if err := cmdLogin(dir); err != nil {
 		return err
 	}
-	if creds, err := loadCredentials(dir); err != nil || creds.Token == "" {
+	c, err := newClient(dir)
+	if err != nil || !c.loggedIn() {
 		return err // sign-up declined: nothing is set up before login
 	}
+	_, _ = c.me() // verified emails, for an account logged in before they were kept here
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err
@@ -77,7 +82,7 @@ func cmdInit(dir string, args []string) error {
 	if len(cfg.Emails) == 0 {
 		notice(tr(lang, "identityMissing"))
 	} else {
-		notice("\n" + tr(lang, "identityWork") + emailList(lang, cfg))
+		notice("\n" + tr(lang, "identityWork") + emailList(lang, cfg, c.creds))
 	}
 	for interactive() && !stdinClosed {
 		answer := prompt(tr(lang, "emailMoreAsk"))
@@ -96,6 +101,13 @@ func cmdInit(dir string, args []string) error {
 		return saveConfig(dir, c)
 	}); err != nil {
 		return err
+	}
+	// Verifying a work email merges the repositories linked on the web under it (DESIGN 6.1.2).
+	if unverified := slices.DeleteFunc(slices.Clone(cfg.Emails), func(e string) bool { return verified(c.creds, e) }); len(unverified) > 0 && interactive() {
+		a := strings.ToLower(prompt(fmt.Sprintf(tr(lang, "emailVerifyAsk"), strings.Join(unverified, ", "))))
+		if !stdinClosed && (a == "" || a == "y" || a == "yes") {
+			verifyEmails(lang, c, unverified)
+		}
 	}
 	chosen, err := chooseRepos(lang, dir, roots, cfg.Emails)
 	if err != nil {

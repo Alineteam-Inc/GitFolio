@@ -46,20 +46,7 @@ func cmdLogin(dir string) error {
 		n := strings.ToLower(prompt(tr(lang, "notifyAsk"))) // opt-in: only an explicit yes
 		return true, n == "y" || n == "yes"
 	}
-	askCode := func(retry bool, length int) string {
-		if retry {
-			notice(tr(lang, "codeWrong"))
-		}
-		for {
-			code := strings.TrimSpace(prompt(fmt.Sprintf(tr(lang, "codeAsk"), email)))
-			// A typo is caught here, so it neither ends the login nor uses up one of the server's tries.
-			if stdinClosed || validCode(code, length) {
-				return code
-			}
-			notice(fmt.Sprintf(tr(lang, "codeFormat"), length))
-		}
-	}
-	res, err := c.signIn(email, confirmSignup, askCode)
+	res, err := c.signIn(email, confirmSignup, askCode(lang, email))
 	if errors.Is(err, errSignupCancelled) {
 		say(lang, "signupCancelled")
 		return nil
@@ -73,6 +60,23 @@ func cmdLogin(dir string) error {
 		say(lang, "loggedIn", res.Account.Email)
 	}
 	return nil
+}
+
+// askCode asks for the code sent to email, again while it is not the announced number of digits.
+func askCode(lang, email string) func(retry bool, length int) string {
+	return func(retry bool, length int) string {
+		if retry {
+			notice(tr(lang, "codeWrong"))
+		}
+		for {
+			code := strings.TrimSpace(prompt(fmt.Sprintf(tr(lang, "codeAsk"), email)))
+			// A typo is caught here, so it neither ends the login nor uses up one of the server's tries.
+			if stdinClosed || validCode(code, length) {
+				return code
+			}
+			notice(fmt.Sprintf(tr(lang, "codeFormat"), length))
+		}
+	}
 }
 
 // validCode reports whether code is exactly length digits.
@@ -91,13 +95,8 @@ func cmdWhoami(dir string) error {
 		say(lang, "notLoggedIn")
 		return nil
 	}
-	var me struct {
-		Account struct {
-			Email string `json:"email"`
-		} `json:"account"`
-		VerifiedEmails []string `json:"verifiedEmails"`
-	}
-	if err := c.call("GET", "/cli/me", nil, &me); err != nil {
+	me, err := c.me()
+	if err != nil {
 		return err
 	}
 	say(lang, "whoami", me.Account.Email, strings.Join(me.VerifiedEmails, ", "), c.base)
