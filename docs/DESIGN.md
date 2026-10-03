@@ -598,12 +598,12 @@ Enable dependency detection? [y/N]
 | 파일 | 내용 |
 |---|---|
 | `config.json` | 저장소 모음 경로, 금지어, 의존성 기능 동의, push 동기화 on/off(`autoSyncOff`), 서버 주소, 예약 시각 |
-| `credentials.json` | aline.team CLI 토큰(`aln_cli_…`)·만료 시각·계정 이메일 (권한 0600) |
+| `credentials.json` | aline.team CLI 토큰(`aln_cli_…`)·만료 시각·계정 이메일 (권한 0600). 토큰을 발급한 서버(`server`)를 함께 저장하고, 다른 서버로 보내는 빌드(릴리스 빌드는 항상 운영)에서는 로그아웃 상태로 본다 — 그 토큰을 다른 서버로 보내지 않음 (2026-10-03) |
 | `repos.json` | 등록 저장소: 로컬 경로, 이름, 마지막 수집 정보, 매니저 파일 승인·거절·대기 목록 (**로컬 전용, 전송 안 함**) |
 | `commits.jsonl` | 커밋 1건당 1줄 |
 | `agent-tags.jsonl` | `post-commit` 훅이 기록한 커밋 해시 → 에이전트 |
 | `deps.json` | 저장소·모듈별 의존성 (의존성 기능 사용 시에만 생성) |
-| `sync.json` | 전송한 계정, 레코드 ID(`provider/namespace/hash`)별 전송 지문(내용 해시), 대기 중인 저장소 삭제 요청, 마지막 동기화 시각·실패 사유 |
+| `sync.json` | 전송한 계정과 서버(바뀌면 처음부터 다시 전송), 레코드 ID(`provider/namespace/hash`)별 전송 지문(내용 해시), 대기 중인 저장소 삭제 요청, 마지막 동기화 시각·실패 사유 |
 | `schedule.log` | 예약 동기화 실행 기록 (macOS·cron) |
 | `git-history.log` | gitfolio가 실행한 git 명령 기록 (`GIT_TRACE`, 7.8). 기본 최대 1MB |
 

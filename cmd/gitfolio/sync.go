@@ -21,6 +21,7 @@ import (
 // syncState remembers what aline.team already has, so only new or changed records are sent (DESIGN 6.2).
 type syncState struct {
 	Account   string            `json:"account,omitempty"`   // the aline.team account the records below were sent to
+	Server    string            `json:"server,omitempty"`    // and the server it is on (Credentials.Server)
 	Commits   map[string]string `json:"commits,omitempty"`   // provider/namespace/hash → fingerprint of the record sent
 	Deletes   []deletion        `json:"deletes,omitempty"`   // repository deletions not yet accepted by the server
 	Moves     []repoMove        `json:"moves,omitempty"`     // git service address changes not yet sent (remote set-url)
@@ -287,11 +288,11 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 	if err != nil {
 		return n, err
 	}
-	if st.Account != c.creds.Email {
-		if st.Account != "" { // another account: it has none of this device's records yet
+	if st.Account != c.creds.Email || st.Server != c.creds.Server {
+		if st.Account != "" { // another account or server: it has none of this device's records yet
 			st = syncState{Commits: map[string]string{}, Changed: map[string]string{}}
 		}
-		st.Account = c.creds.Email
+		st.Account, st.Server = c.creds.Email, c.creds.Server
 	}
 	if !dryRun {
 		if n.moves, err = c.sendMoves(dir, &st); err != nil {
