@@ -342,7 +342,11 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 		n.deletes++
 	}
 	st.Waiting = map[string]string{}
+	lang, done := detectLang(os.Getenv), 0
+	defer progressDone()
 	for _, batch := range batches(p.Commits) {
+		progress(lang, "progressSend", done, len(p.Commits))
+		done += len(batch)
 		key := batch[0].Provider + "/" + batch[0].Namespace
 		if _, ok := st.Waiting[key]; ok {
 			continue // the repository's other batches wait too
@@ -454,6 +458,7 @@ func cmdSync(dir string, args []string) error {
 		return err
 	}
 	for i := range repos {
+		progress(lang, "progressScan", i, len(repos))
 		if _, err := scanRepo(dir, &repos[i], false); err != nil {
 			warn(lang, "repoFailed", repos[i].Name, err)
 			continue
@@ -464,6 +469,7 @@ func cmdSync(dir string, args []string) error {
 			}
 		}
 	}
+	progressDone() // before --dry-run prints its requests
 	if err := saveRepos(dir, repos); err != nil {
 		return err
 	}
