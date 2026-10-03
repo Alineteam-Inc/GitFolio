@@ -154,7 +154,8 @@ func cmdInit(dir string, args []string) error {
 	for _, r := range rs {
 		widest = max(widest, width(r.Name))
 	}
-	for _, r := range rs {
+	for i, r := range rs {
+		progress(lang, "progressRegister", i, len(rs))
 		var n int
 		if err := withLock(dir, func() (err error) { n, err = registerRepo(dir, r, false); return err }); err != nil {
 			warn(lang, "repoFailed", tildePath(r.Path), err)

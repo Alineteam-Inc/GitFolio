@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -191,5 +192,28 @@ func TestScreenLayout(t *testing.T) {
 	got := settings("Done.\nRepositories: 2\n대표 이메일: me@example.com\n")
 	if want := "Done.\nRepositories  2\n대표 이메일   me@example.com\n"; got != want {
 		t.Errorf("settings =\n%q\nwant\n%q", got, want)
+	}
+}
+
+func TestProgress(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stdout, color, nl := os.Stdout, useColor, newlines
+	t.Cleanup(func() { os.Stdout, useColor, newlines, progressShown = stdout, color, nl, false })
+	os.Stdout = w
+
+	useColor = false
+	progress("en", "progressSend", 1, 2) // not a terminal: nothing
+	useColor = true
+	progress("en", "progressSend", 3, 10)
+	_, _ = screen{io.Discard}.Write([]byte("next\n")) // the next output clears the line first
+	progressDone()                                    // already cleared: nothing
+	w.Close()
+	got, _ := io.ReadAll(r)
+	want := "\r\x1b[2K  ℹ Sending  \x1b[36m██████\x1b[0m\x1b[2m░░░░░░░░░░░░░░\x1b[0m  30%\r\x1b[2K"
+	if string(got) != want {
+		t.Errorf("got %q\nwant %q", got, want)
 	}
 }
