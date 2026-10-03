@@ -61,7 +61,11 @@ func dataDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dir := filepath.Join(base, "gitfolio")
+	name := "gitfolio"
+	if version == "dev" { // a build from source keeps its own data, apart from the installed release
+		name = "gitfolio-dev"
+	}
+	dir := filepath.Join(base, name)
 	return dir, os.MkdirAll(dir, 0o700)
 }
 
