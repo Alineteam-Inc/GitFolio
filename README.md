@@ -33,7 +33,7 @@ irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | 
 ```
 
 **Update:** GitFolio checks for a new release once a day when you run it in a terminal and asks before
-updating. To update by hand, run `brew upgrade --cask gitfolio` or the install command again.
+updating. To update right away, run `gitfolio update`.
 
 ## Get started
 
@@ -77,6 +77,7 @@ gitfolio email add <email>       # another work email of yours (verify it with t
 gitfolio schedule 09:00          # optional daily sync (off: schedule off)
 gitfolio deps [on|off|scan]      # dependency detection: per-file approval, read on request
 gitfolio history                 # git commands GitFolio ran
+gitfolio update                  # install the newest release now
 gitfolio help                    # everything else
 ```
 
@@ -123,7 +124,7 @@ irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | 
 ```
 
 **업데이트:** 터미널에서 실행하면 하루 한 번 새 버전을 확인하고, 업데이트할지 묻습니다. 직접 하려면
-`brew upgrade --cask gitfolio`를 실행하거나 설치 명령을 다시 실행하세요.
+`gitfolio update`를 실행하세요.
 
 ### 시작하기
 
@@ -164,6 +165,7 @@ gitfolio email add <이메일>      # 다른 작업 이메일 추가 (메일로 
 gitfolio schedule 09:00          # 예약 동기화 (선택, 해제: schedule off)
 gitfolio deps [on|off|scan]      # 의존성 분석: 파일별 승인, 요청할 때만 읽기
 gitfolio history                 # GitFolio가 실행한 git 명령
+gitfolio update                  # 최신 버전을 바로 설치
 gitfolio help                    # 그 밖의 명령
 ```
 

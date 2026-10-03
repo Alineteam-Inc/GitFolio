@@ -619,6 +619,31 @@ var messages = map[string]map[string]string{
 		"ko": "GitFolio를 %s(으)로 업데이트했습니다. 명령을 다시 실행하세요.\n",
 		"ja": "GitFolio を %s に更新しました。もう一度コマンドを実行してください。\n",
 	},
+	"updateFromSource": {
+		"en": "This copy was built from source. Update it with `git pull` and `go install ./cmd/gitfolio`.\n",
+		"ko": "소스에서 빌드한 사본입니다. `git pull`과 `go install ./cmd/gitfolio`로 업데이트하세요.\n",
+		"ja": "ソースからビルドしたコピーです。`git pull` と `go install ./cmd/gitfolio` で更新してください。\n",
+	},
+	"updateCheckFailed": {
+		"en": "Could not check for a new release: %v\n",
+		"ko": "새 버전을 확인하지 못했습니다: %v\n",
+		"ja": "新しいバージョンを確認できませんでした: %v\n",
+	},
+	"updateLatest": {
+		"en": "GitFolio %s is the newest release.\n",
+		"ko": "GitFolio %s이(가) 최신 버전입니다.\n",
+		"ja": "GitFolio %s が最新版です。\n",
+	},
+	"updating": {
+		"en": "Updating GitFolio %s → %s ...\n",
+		"ko": "GitFolio를 %s에서 %s(으)로 업데이트합니다...\n",
+		"ja": "GitFolio を %s から %s に更新します...\n",
+	},
+	"updatedNow": {
+		"en": "Updated GitFolio to %s.\n",
+		"ko": "GitFolio를 %s(으)로 업데이트했습니다.\n",
+		"ja": "GitFolio を %s に更新しました。\n",
+	},
 	"updateFailed": {
 		"en": "Could not update (%v). Update by hand:\n  %s\n",
 		"ko": "업데이트하지 못했습니다(%v). 직접 업데이트하세요:\n  %s\n",
