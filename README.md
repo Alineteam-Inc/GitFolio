@@ -4,7 +4,7 @@
 
 GitFolio by [Alineteam Inc.](https://aline.team) (macOS, Linux, Windows) sends metadata of the commits
 you authored and pushed to [aline.team](https://aline.team), which turns it into your developer profile.
-Latest: [v0.2.0](https://github.com/Alineteam-Inc/GitFolio/releases/latest) · [한국어](#한국어)
+[Latest release](https://github.com/Alineteam-Inc/GitFolio/releases/latest) · [한국어](#한국어)
 
 ## Install
 
@@ -32,6 +32,9 @@ or, with Homebrew, `brew install Alineteam-Inc/tap/gitfolio`
 irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
 ```
 
+**Update:** GitFolio checks for a new release once a day when you run it in a terminal and asks before
+updating. To update by hand, run `brew upgrade --cask gitfolio` or the install command again.
+
 ## Get started
 
 ```sh
@@ -40,7 +43,8 @@ gitfolio init
 
 Shows the data policy, signs you up or logs you in with an email code, and lets you choose the
 repositories. After that every `git push` is sent automatically. Your profile is at
-[aline.team/profile](https://aline.team/profile).
+[aline.team/profile](https://aline.team/profile). When your login expires, GitFolio emails you a code
+and logs you in again on the spot.
 
 ## Nothing is collected without your permission
 
@@ -63,6 +67,7 @@ repositories. After that every `git push` is sent automatically. Your profile is
 
 ```sh
 gitfolio init                    # setup: data policy, sign-up/login, choose repositories
+gitfolio login | whoami | logout # log in with an email code / show the account / log out
 gitfolio add | remove <path>     # register a repository / unregister (--purge: delete its data here and on aline.team, web link included)
 gitfolio list                    # registered repositories and their status
 gitfolio sync [--dry-run]        # send what aline.team does not have yet (--dry-run: just show it)
@@ -117,6 +122,9 @@ curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install
 irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
 ```
 
+**업데이트:** 터미널에서 실행하면 하루 한 번 새 버전을 확인하고, 업데이트할지 묻습니다. 직접 하려면
+`brew upgrade --cask gitfolio`를 실행하거나 설치 명령을 다시 실행하세요.
+
 ### 시작하기
 
 ```sh
@@ -125,6 +133,7 @@ gitfolio init
 
 데이터 정책을 보여 주고, 이메일 코드로 가입·로그인한 뒤, 수집할 저장소를 고릅니다. 이후 `git push`할 때마다
 자동으로 전송됩니다. 프로필은 [aline.team/profile](https://aline.team/profile)에서 봅니다.
+로그인이 만료되면 이메일로 코드를 보내 그 자리에서 다시 로그인합니다.
 
 ### 허락 없이 수집하지 않습니다
 
@@ -145,6 +154,7 @@ gitfolio init
 
 ```sh
 gitfolio init                    # 설정: 데이터 정책, 가입·로그인, 저장소 선택
+gitfolio login | whoami | logout # 이메일 코드로 로그인 / 계정 확인 / 로그아웃
 gitfolio add | remove <경로>     # 저장소 등록 / 해제 (--purge: 이 컴퓨터와 aline.team의 데이터·웹 연동 삭제)
 gitfolio list                    # 등록 저장소와 상태
 gitfolio sync [--dry-run]        # aline.team에 없는 것만 전송 (--dry-run: 보여 주기만)
