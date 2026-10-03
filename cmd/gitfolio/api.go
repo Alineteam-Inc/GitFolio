@@ -76,7 +76,7 @@ const (
 	codeExpiredCode   = "A009" // email code expired or tried too often
 	codeUnverifiedWeb = "U004" // account made on the web without verifying its email
 	codeEmailVerified = "A011" // the work email is already verified for this account
-	codeTooManyEmails = "A012" // the account has the most verified work emails it may have
+	codeTooManyEmails = "A012" // the account has as many verified work emails as it may have
 	codeUnverified    = "A013" // a repository's commits wait until error.email is verified (from 0.2.0)
 	codeRateLimited   = "R001"
 	codeBadInput      = "C001" // malformed request
@@ -221,7 +221,7 @@ func zoneFromPath(p string) string {
 	return ""
 }
 
-// maxCodeTries is how many codes the CLI asks for.
+// maxCodeTries is how many codes the CLI asks for before it stops (A009 ends it earlier).
 const maxCodeTries = 5
 
 // errSignupCancelled is returned when the user does not want a new account for the email they typed.
