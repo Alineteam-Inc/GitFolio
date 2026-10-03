@@ -76,12 +76,15 @@ func indent(s string) string {
 }
 
 // say prints a translated result line with the GitFolio prefix.
-func say(lang, key string, args ...any) { show(os.Stdout, fmt.Sprintf(tr(lang, key), args...)) }
+func say(lang, key string, args ...any) { show(out, fmt.Sprintf(tr(lang, key), args...)) }
+
+// sayKV is say for a summary of settings or state: its "label: value" lines are aligned (see settings).
+func sayKV(lang, key string, args ...any) { show(out, settings(fmt.Sprintf(tr(lang, key), args...))) }
 
 // warn is say for problems, on stderr. A problem always starts its own paragraph, so it stands out.
 func warn(lang, key string, args ...any) {
 	inParagraph = false
-	show(os.Stderr, fmt.Sprintf(tr(lang, key), args...))
+	show(errOut, fmt.Sprintf(tr(lang, key), args...))
 	inParagraph = false
 }
 
@@ -94,9 +97,16 @@ var inParagraph bool
 // the other lines aligned under it.
 func show(w io.Writer, text string) {
 	under := strings.Repeat(" ", len(statusPrefix))
+	prefix := paint("1;32", strings.TrimSpace(statusPrefix)) + " " // green; yellow for problems
+	if w == errOut {
+		prefix = paint("1;33", strings.TrimSpace(statusPrefix)) + " "
+	}
+	if !inParagraph {
+		gap(w)
+	}
 	for i, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
 		if i == 0 && !inParagraph {
-			fmt.Fprintln(w, margin+statusPrefix+line)
+			fmt.Fprintln(w, margin+prefix+line)
 		} else {
 			fmt.Fprintln(w, margin+under+line)
 		}
@@ -104,16 +114,17 @@ func show(w io.Writer, text string) {
 	inParagraph = true
 }
 
-// notice prints an explanation with the margin; it ends a status paragraph.
+// notice prints an explanation with the margin, as its own paragraph; it ends a status paragraph.
 func notice(s string) {
 	inParagraph = false
-	fmt.Print(indent(s))
+	gap(out)
+	fmt.Fprint(out, indent(strings.TrimLeft(s, "\n")))
 }
 
-// blank prints an empty line between paragraphs.
+// blank ends a paragraph; the next one starts after one empty line (gap), however often blank is called.
 func blank() {
 	inParagraph = false
-	fmt.Println()
+	gap(out)
 }
 
 // failure returns a translated error; main prints it with the GitFolio prefix. Errors that come from
@@ -125,7 +136,8 @@ func failure(key string, args ...any) error {
 // section prints the separator that opens an interactive command.
 func section(lang, titleKey string) {
 	inParagraph = false
-	fmt.Printf("\n%s===== GitFolio · %s =====\n", margin, strings.TrimSpace(tr(lang, titleKey)))
+	gap(out)
+	fmt.Fprintf(out, "%s%s\n", margin, heading("===== GitFolio · "+strings.TrimSpace(tr(lang, titleKey))+" ====="))
 }
 
 // tr returns the message for lang, falling back to English.
@@ -610,6 +622,21 @@ var messages = map[string]map[string]string{
 		"en": "%s: %v\n",
 		"ko": "%s: %v\n",
 		"ja": "%s: %v\n",
+	},
+	"reposColumns": {
+		"en": "Repository\tCommits\tLatest",
+		"ko": "저장소\t커밋\t최근",
+		"ja": "リポジトリ\tコミット\t最新",
+	},
+	"registeredMany": {
+		"en": "Registered %d repositories:\n",
+		"ko": "저장소 %d개를 등록했습니다:\n",
+		"ja": "リポジトリ %d 件を登録しました:\n",
+	},
+	"commitsUnit": {
+		"en": "commit(s)",
+		"ko": "커밋",
+		"ja": "コミット",
 	},
 	"registered": {
 		"en": "Registered %s (%d commit(s)).\n",

@@ -55,7 +55,7 @@ func cmdLogin(dir string) error {
 		return err
 	}
 	if res.Account.Created {
-		show(os.Stdout, fmt.Sprintf(tr(lang, "signedUp"), res.Account.Email)+tr(lang, "passwordMail"))
+		show(out, fmt.Sprintf(tr(lang, "signedUp"), res.Account.Email)+tr(lang, "passwordMail"))
 	} else {
 		say(lang, "loggedIn", res.Account.Email)
 	}
@@ -101,7 +101,7 @@ func cmdWhoami(dir string) error {
 	if err != nil {
 		return err
 	}
-	say(lang, "whoami", me.Account.Email, strings.Join(me.VerifiedEmails, ", "), c.base)
+	sayKV(lang, "whoami", me.Account.Email, strings.Join(me.VerifiedEmails, ", "), c.base)
 	return nil
 }
 

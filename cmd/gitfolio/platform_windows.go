@@ -70,3 +70,19 @@ func waitExit(pid int, max time.Duration) {
 	case <-time.After(max):
 	}
 }
+
+// enableColor turns on ANSI color handling in the Windows console (Windows 10 and later); false where
+// the console cannot, so plain text is printed instead.
+func enableColor() bool {
+	h, err := syscall.GetStdHandle(syscall.STD_OUTPUT_HANDLE)
+	if err != nil {
+		return false
+	}
+	var mode uint32
+	if syscall.GetConsoleMode(h, &mode) != nil {
+		return false
+	}
+	const virtualTerminalProcessing = 0x0004
+	r, _, _ := syscall.NewLazyDLL("kernel32.dll").NewProc("SetConsoleMode").Call(uintptr(h), uintptr(mode|virtualTerminalProcessing))
+	return r != 0
+}

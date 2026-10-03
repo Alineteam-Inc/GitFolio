@@ -39,3 +39,6 @@ func waitExit(pid int, max time.Duration) {
 		}
 	}
 }
+
+// enableColor reports whether the terminal shows ANSI colors; Unix terminals do.
+func enableColor() bool { return true }

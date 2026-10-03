@@ -190,54 +190,57 @@ func cmdAdd(dir, path string) error {
 	if err != nil {
 		return err
 	}
-	return registerRepo(dir, newRepo(top), true)
+	n, err := registerRepo(dir, newRepo(top), true)
+	if err == nil {
+		say(detectLang(os.Getenv), "registered", filepath.Base(top), n)
+	}
+	return err
 }
 
-// registerRepo registers r (a git top-level), collects it and installs hooks. With ask, it first asks
+// registerRepo registers r (a git top-level), collects it and installs hooks, and returns how many
+// commits it collected; the caller reports it. With ask, it first asks
 // which package manager files may be read; init asks for all chosen repositories at once instead.
 // Callers hold the data lock.
-func registerRepo(dir string, repo Repo, ask bool) error {
+func registerRepo(dir string, repo Repo, ask bool) (int, error) {
 	top := repo.Path
 	repos, err := loadRepos(dir)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	for _, r := range repos {
 		if r.Path == top {
-			return failure("alreadyRegistered", tildePath(top))
+			return 0, failure("alreadyRegistered", tildePath(top))
 		}
 	}
 	repos = append(repos, repo)
 	r := &repos[len(repos)-1]
 	cfg, err := loadConfig(dir)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if len(cfg.Emails) == 0 { // the first repository's git email becomes the primary work email
 		if out, err := git(top, "config", "user.email"); err == nil && len(addEmails(&cfg, []string{out})) == 0 {
 			if err := saveConfig(dir, cfg); err != nil {
-				return err
+				return 0, err
 			}
 		}
 	}
 	if ask && cfg.Deps && interactive() {
 		if _, err := reviewManifests(repos[len(repos)-1:]); err != nil {
-			return err
+			return 0, err
 		}
 	}
 	n, err := scanRepo(dir, r, false)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if err := saveRepos(dir, repos); err != nil {
-		return err
+		return 0, err
 	}
-	lang := detectLang(os.Getenv)
-	say(lang, "registered", r.Name, n)
 	if err := installHooks(top); err != nil {
-		warn(lang, "hooksNotInstalled", err)
+		warn(detectLang(os.Getenv), "hooksNotInstalled", err)
 	}
-	return nil
+	return n, nil
 }
 
 func cmdRemove(dir string, args []string) error {
@@ -346,7 +349,7 @@ func cmdScan(dir string, args []string) error {
 				msg += fmt.Sprintf(tr(lang, "depsPending"), n, r.Path)
 			}
 		}
-		show(os.Stdout, msg)
+		show(out, msg)
 	}
 	if !*all && !matched {
 		return failure("notRegisteredAdd", tildePath(top))

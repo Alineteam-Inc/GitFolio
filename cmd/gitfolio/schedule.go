@@ -47,7 +47,7 @@ func cmdSchedule(dir string, args []string) error {
 				last = fmt.Sprintf(tr(lang, "lastSyncFailed"), t.Local().Format("2006-01-02 15:04"), st.LastError)
 			}
 		}
-		say(lang, "scheduleStatus", when, last)
+		sayKV(lang, "scheduleStatus", when, last)
 		return nil
 	}
 	if len(args) > 1 {
@@ -97,7 +97,7 @@ func setSchedule(dir, lang, when string) error {
 	if runtime.GOOS == "darwin" {
 		msg += tr(lang, "scheduleMacAccess") // seen on the first run for repositories in ~/Documents
 	}
-	show(os.Stdout, msg)
+	show(out, msg)
 	return nil
 }
 

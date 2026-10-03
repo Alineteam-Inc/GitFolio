@@ -169,3 +169,27 @@ func TestStatusParagraphs(t *testing.T) {
 	}
 	inParagraph = false
 }
+
+// TestScreenLayout: paragraphs are separated by exactly one empty line however they are printed,
+// and settings line up by display width (Korean takes two columns per character).
+func TestScreenLayout(t *testing.T) {
+	var b strings.Builder
+	saved, savedNL := out, newlines
+	t.Cleanup(func() { out, newlines, inParagraph = saved, savedNL, false })
+	out, newlines, inParagraph = screen{&b}, 2, false
+
+	notice("Explanation.\n")
+	say("en", "upToDate")
+	blank()
+	blank()
+	section("en", "settingsTitle")
+	want := "  Explanation.\n\n  GitFolio >> " + tr("en", "upToDate") + "\n  ===== GitFolio · Settings =====\n"
+	if b.String() != want {
+		t.Errorf("got\n%q\nwant\n%q", b.String(), want)
+	}
+
+	got := settings("Done.\nRepositories: 2\n대표 이메일: me@example.com\n")
+	if want := "Done.\nRepositories  2\n대표 이메일   me@example.com\n"; got != want {
+		t.Errorf("settings =\n%q\nwant\n%q", got, want)
+	}
+}
