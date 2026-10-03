@@ -690,9 +690,9 @@ var messages = map[string]map[string]string{
 		"ja": "収集中",
 	},
 	"progressSend": {
-		"en": "Sending",
-		"ko": "전송 중",
-		"ja": "送信中",
+		"en": "Syncing",
+		"ko": "동기화 중",
+		"ja": "同期中",
 	},
 	"progressRegister": {
 		"en": "Registering",
