@@ -74,7 +74,7 @@ func bold(s string) string    { return paint("1", s) }
 func dim(s string) string     { return paint("2", s) }
 func heading(s string) string { return paint("1;35", s) }
 
-// styleQuestion makes a question stand out: a cyan "?", the question in bold, and its input hint
+// styleQuestion makes a question stand out: the question in bold after its "?", and its input hint
 // (the [ ... ] choices and the ">" where the answer goes, or a line that is only a hint) dim.
 func styleQuestion(line string, first bool) string {
 	text, hint := line, ""
