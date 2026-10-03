@@ -354,6 +354,7 @@ gitfolio history [--all]       gitfolio가 실행한 git 명령, 실행별 (기�
 gitfolio email [add|rm|primary <이메일>]  작업 이메일 목록·대표 이메일(★, 첫 번째) 관리 (3.2)
 gitfolio schedule [HH:MM|off]  예약 동기화 설정·해제, 인자 없으면 예약 시각·마지막 동기화 결과 (7.5)
 gitfolio deps auto on|off      scan·sync·예약 동기화 때 승인한 매니저 파일도 읽기 (기본 off, push는 읽지 않음, 3.5)
+gitfolio update                업데이트 확인을 바로 하고 새 버전이 있으면 설치 (자동 확인과 같은 방법, 2026-10-03)
 gitfolio version | help
 gitfolio hook post-commit|pre-push|push-wait   (내부용, 훅에서 호출)
 ```
@@ -580,7 +581,7 @@ Enable dependency detection? [y/N]
 
 ## 8. 로컬 저장 구조
 
-위치: `os.UserConfigDir()/gitfolio/`
+위치: `os.UserConfigDir()/gitfolio/` — 소스 빌드(버전 `dev`)는 `gitfolio-dev/`를 따로 쓴다. 릴리스와 데이터·로그인이 섞이지 않게 (2026-10-03)
 (macOS `~/Library/Application Support/gitfolio`, Linux `~/.config/gitfolio`, Windows `%AppData%\gitfolio`)
 
 | 파일 | 내용 |
