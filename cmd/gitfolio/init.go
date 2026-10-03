@@ -35,6 +35,9 @@ type Credentials struct {
 	// Verified are the emails aline.team verified for this account: the account email and the work
 	// emails verified with a code (DESIGN 6.1.2), lowercased, as of the last answer from the server.
 	Verified []string `json:"verifiedEmails,omitempty"`
+	// Server is the aline.team API that issued the token. A token is only sent there: a build that talks
+	// to another server (a release build always uses production) counts as logged out. Empty before 0.2.1.
+	Server string `json:"server,omitempty"`
 }
 
 func loadCredentials(dir string) (c Credentials, err error) {
