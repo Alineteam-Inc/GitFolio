@@ -684,6 +684,21 @@ var messages = map[string]map[string]string{
 		"ko": "커밋",
 		"ja": "コミット",
 	},
+	"progressScan": {
+		"en": "Collecting",
+		"ko": "수집 중",
+		"ja": "収集中",
+	},
+	"progressSend": {
+		"en": "Sending",
+		"ko": "전송 중",
+		"ja": "送信中",
+	},
+	"progressRegister": {
+		"en": "Registering",
+		"ko": "등록 중",
+		"ja": "登録中",
+	},
 	"registered": {
 		"en": "Registered %s (%d commit(s)).\n",
 		"ko": "%s 저장소를 등록했습니다. (커밋 %d개)\n",

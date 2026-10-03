@@ -23,6 +23,7 @@ type screen struct{ w io.Writer }
 var newlines = 2
 
 func (s screen) Write(p []byte) (int, error) {
+	progressDone()
 	if len(p) > 0 {
 		k := len(p) - len(strings.TrimRight(string(p), "\n"))
 		if k == len(p) {
@@ -123,6 +124,29 @@ func width(s string) int {
 		}
 	}
 	return n
+}
+
+// progress shows how far a long step is (collecting, sending, registering) as one line redrawn in
+// place, "ℹ Sending ██████░░░░ 60%", only in a terminal. Any next output, or progressDone, clears it;
+// it never counts as output for gap.
+var progressShown bool
+
+func progress(lang, key string, done, total int) {
+	if !useColor || total <= 0 {
+		return
+	}
+	const cells = 20
+	filled := cells * done / total
+	fmt.Fprintf(os.Stdout, "\r\x1b[2K%s%s %s  %s%s %3d%%", margin, symInfo, tr(lang, key),
+		paint("36", strings.Repeat("█", filled)), dim(strings.Repeat("░", cells-filled)), 100*done/total)
+	progressShown = true
+}
+
+func progressDone() {
+	if progressShown {
+		progressShown = false
+		fmt.Fprint(os.Stdout, "\r\x1b[2K")
+	}
 }
 
 // pad fills s with spaces to n columns.
