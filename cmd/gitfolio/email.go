@@ -141,11 +141,11 @@ func cmdEmail(dir string, args []string) error {
 		if noreply(e) {
 			return failure("emailNoreply", e)
 		}
-		if !c.loggedIn() {
-			return failure("loginFirst")
-		}
 		if !interactive() {
 			return failure("emailVerifyNeedsTerminal")
+		}
+		if !c.ensureLogin() {
+			return failure("loginFirst")
 		}
 		addEmails(&cfg, []string{e})
 		if err := saveConfig(dir, cfg); err != nil {

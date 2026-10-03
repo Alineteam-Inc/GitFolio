@@ -132,29 +132,43 @@ func (c *client) call(method, path string, in, out any) error {
 	if serr := saveCredentials(c.dir, c.creds); serr != nil {
 		return serr
 	}
-	if !c.relogin && c.loginAgain() == nil {
+	if c.ensureLogin() {
 		return c.send(method, path, in, out, true)
 	}
 	return fmt.Errorf("%w %s", err, tr(detectLang(os.Getenv), "relogin"))
 }
 
-// loginAgain logs the account in again after its login expired, with a code sent to its email, when
-// a person can answer (once per run). Errors mean the user runs `gitfolio login` themselves.
-func (c *client) loginAgain() error {
-	email := c.creds.Email
-	if email == "" || !interactive() {
-		return errors.New("cannot ask")
+// ensureLogin makes sure this run is logged in. When the login is missing or expired, a person at the
+// terminal goes straight into logging in: a code goes to the account's email right away when it is
+// known; without one, or when that fails, the email is asked for. Once per run; hooks and scheduled
+// runs cannot ask, and the next command at the terminal does it.
+func (c *client) ensureLogin() bool {
+	if c.loggedIn() {
+		return true
+	}
+	if c.relogin || !interactive() {
+		return false
 	}
 	c.relogin = true
 	lang := detectLang(os.Getenv)
-	warn(lang, "loginExpired", email)
-	noSignup := func() (bool, bool) { return false, false } // the account exists; never make a new one here
-	if _, err := c.signIn(email, noSignup, askCode(lang, email, false)); err != nil {
-		warn(lang, "failed", err)
-		return err
+	if email := c.creds.Email; email != "" {
+		warn(lang, "loginExpired", email)
+		noSignup := func() (bool, bool) { return false, false } // the account exists; never make a new one here
+		_, err := c.signIn(email, noSignup, askCode(lang, email, false))
+		if err == nil {
+			say(lang, "loggedIn", email)
+			return true
+		}
+		if stdinClosed {
+			return false
+		}
+		warn(lang, "loginOtherEmail", err)
 	}
-	say(lang, "loggedIn", email)
-	return nil
+	if err := c.login(lang); err != nil {
+		warn(lang, "failed", err)
+		return false
+	}
+	return c.loggedIn()
 }
 
 // send makes one request and unwraps the server's {"success", "contents"} envelope into out.

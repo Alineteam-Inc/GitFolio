@@ -529,6 +529,11 @@ var messages = map[string]map[string]string{
 		"ko": "aline.team 로그인이 만료되었습니다. 다시 로그인하도록 %s(으)로 확인 코드를 보냅니다.\n",
 		"ja": "aline.team のログインの有効期限が切れました。再ログインのため %s に確認コードを送ります。\n",
 	},
+	"loginOtherEmail": {
+		"en": "Could not log in with that email (%v). Log in with your email again.\n",
+		"ko": "그 이메일로 로그인하지 못했습니다 (%v). 이메일을 다시 입력해 로그인하세요.\n",
+		"ja": "そのメールアドレスでログインできませんでした (%v)。メールアドレスを入力し直してログインしてください。\n",
+	},
 	"relogin": {
 		"en": "(run `gitfolio login`)",
 		"ko": "(`gitfolio login`으로 다시 로그인하세요)",
