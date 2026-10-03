@@ -212,7 +212,7 @@ func TestProgress(t *testing.T) {
 	progressDone()                                    // already cleared: nothing
 	w.Close()
 	got, _ := io.ReadAll(r)
-	want := "\r\x1b[2K  ℹ Syncing  \x1b[36m██████\x1b[0m\x1b[2m░░░░░░░░░░░░░░\x1b[0m  30%\r\x1b[2K"
+	want := "\r\x1b[2K  ℹ Syncing...  \x1b[36m██████\x1b[0m\x1b[2m░░░░░░░░░░░░░░\x1b[0m  30%\r\x1b[2K"
 	if string(got) != want {
 		t.Errorf("got %q\nwant %q", got, want)
 	}
