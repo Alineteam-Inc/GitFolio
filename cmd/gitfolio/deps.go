@@ -475,7 +475,7 @@ func prompt(q string) string {
 	lines := strings.Split(strings.TrimLeft(q, " \n"), "\n")
 	for i, l := range lines {
 		if i == 0 {
-			lines[i] = margin + paint("1;36", strings.TrimSpace(questionMark)) + " " + styleQuestion(l, true)
+			lines[i] = margin + symQuestion + " " + styleQuestion(l, true)
 		} else {
 			lines[i] = margin + strings.Repeat(" ", len(questionMark)) + styleQuestion(l, false)
 		}
@@ -547,7 +547,7 @@ func reviewManifests(rs []Repo) ([]int, error) {
 	k := 0
 	for i, r := range rs {
 		if len(files[i]) > 0 {
-			fmt.Fprintf(out, "%s%s\n", margin, bold(r.Name))
+			fmt.Fprintf(out, "%s  %s\n", margin, bold(r.Name))
 		}
 		for _, f := range files[i] {
 			k++
@@ -555,7 +555,7 @@ func reviewManifests(rs []Repo) ([]int, error) {
 			if ok, decided := r.Manifests[f]; decided {
 				state = tr(lang, map[bool]string{true: "manifestAllowed", false: "manifestDeclined"}[ok])
 			}
-			fmt.Fprintf(out, "%s  %3d  %s  %s\n", margin, k, dim(pad(state, 8)), f)
+			fmt.Fprintf(out, "%s    %3d  %s  %s\n", margin, k, dim(pad(state, 8)), f)
 		}
 	}
 	for {
