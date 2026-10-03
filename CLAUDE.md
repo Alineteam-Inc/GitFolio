@@ -33,7 +33,7 @@
 - 커밋은 **기능별로 나눠** 만들고 push한다. 메시지는 영어
 - 릴리스 버전은 Semantic Versioning(`MAJOR.MINOR.PATCH`, 지금은 `0.y.z`): 새 기능 = MINOR, 버그 수정 = PATCH. 정식 1.0 전에는 `0.y.z`
 - 확인: `gofmt -l ./cmd`, `for os in darwin linux windows; do GOOS=$os go vet ./...; done`, `go test ./...`
-- 화면 문구는 `cmd/gitfolio/i18n.go`에 en·ko·ja를 함께 넣는다 (`TestMessagesComplete`, `TestMessageVerbsMatch`). 출력 모양: 터미널에서는 Inquirer.js 형식(질문 `?`, 결과 `✔`, 경고 `⚠`, 오류 `✖`, 안내 `ℹ`, 색), 그 밖에서는 `GitFolio >>`·`? `. 문단 사이 빈 줄 하나 (DESIGN 7.1)
+- 화면 문구는 `cmd/gitfolio/i18n.go`에 en·ko·ja를 함께 넣는다 (`TestMessagesComplete`, `TestMessageVerbsMatch`). 출력 모양: 터미널에서는 Inquirer.js 형식(질문 `?`, 결과 `✔`, 경고 `⚠`, 오류 `✖`, 안내 `ℹ`, 색), 그 밖에서는 `GitFolio :`·`? `. 문단 사이 빈 줄 하나 (DESIGN 7.1)
 - **소스 빌드(`go install`, 버전 `dev`)는 데이터 폴더가 따로다** (`gitfolio-dev`, 릴리스는 `gitfolio`). 원래 Mac의 실제 사용은 brew 릴리스(운영), 소스 빌드는 `~/go/bin/gitfolio-dev`로 설치해 dev 서버 테스트에 쓴다
 - **미병합 브랜치 빌드는 테스트용 HOME에서만 실행한다** (`HOME=<임시 폴더> GIT_CONFIG_GLOBAL=<임시 파일>`). `sync --dry-run` 같은 명령도 먼저 scan하므로 로컬 데이터를 새 형식으로 바꿀 수 있다
 - 보안: 토큰(`aln_cli_…`)은 화면·로그·커밋에 절대 출력하지 않는다. 다른 서비스 인증 정보(git credential, `gh`)는 읽지도 보내지도 않는다. HTTPS만

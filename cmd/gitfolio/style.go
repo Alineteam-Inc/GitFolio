@@ -12,7 +12,7 @@ import (
 // warnings with a yellow ⚠, errors with a red ✖ and notes with a blue ℹ; settings are aligned
 // "label  value" lines. Paragraphs are separated by exactly one empty line, wherever they are printed
 // from. Marks and color are used only in a terminal, never with NO_COLOR set (https://no-color.org);
-// elsewhere results and problems start with "GitFolio >> " and questions with "? ".
+// elsewhere results and problems start with "GitFolio : " and questions with "? ".
 
 // screen is stdout or stderr, remembering how the last output ended so gap knows whether an empty
 // line is already there. Both share the count: they end up on the same terminal.
