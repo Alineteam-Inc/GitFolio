@@ -126,8 +126,8 @@ func width(s string) int {
 	return n
 }
 
-// progress shows how far a long step is (collecting, sending, registering) as one line redrawn in
-// place, "ℹ Syncing ██████░░░░ 60%", only in a terminal. Any next output, or progressDone, clears it;
+// progress shows how far a long step is (checking, syncing, registering) as one line redrawn in
+// place, "ℹ Syncing...  ██████░░░░ 60%", only in a terminal. Any next output, or progressDone, clears it;
 // it never counts as output for gap.
 var progressShown bool
 
