@@ -48,12 +48,14 @@ homebrew_casks:
     # The binary is not signed or notarized yet, so macOS would block the quarantined download.
     # GoReleaser's documented workaround clears the quarantine bit after install; it bypasses
     # Gatekeeper for this binary only. Replace with signing and notarization (planned).
-    hooks:
-      post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/gitfolio"]
-          end
+    # Homebrew 7 deprecates `postflight` blocks for declarative `postflight_steps`, which GoReleaser's
+    # hooks cannot write yet, so the block goes in as is ({{staged_path}} is Homebrew's, not a template).
+    custom_block: |
+      postflight_steps do
+        on_macos do
+          run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ "{{staged_path}}" }}/gitfolio"]
+        end
+      end
 
 changelog:
   use: github
