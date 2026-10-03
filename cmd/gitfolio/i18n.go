@@ -84,7 +84,11 @@ func sayKV(lang, key string, args ...any) { show(out, settings(fmt.Sprintf(tr(la
 // warn is say for problems, on stderr. A problem always starts its own paragraph, so it stands out.
 func warn(lang, key string, args ...any) {
 	inParagraph = false
-	show(errOut, fmt.Sprintf(tr(lang, key), args...))
+	mark := symWarn
+	if key == "failed" { // the command itself failed
+		mark = symError
+	}
+	showMarked(errOut, mark, fmt.Sprintf(tr(lang, key), args...))
 	inParagraph = false
 }
 
@@ -95,11 +99,14 @@ var inParagraph bool
 
 // show prints text with the GitFolio prefix on its first line, unless it continues a paragraph, and
 // the other lines aligned under it.
-func show(w io.Writer, text string) {
-	under := strings.Repeat(" ", len(statusPrefix))
-	prefix := paint("1;32", strings.TrimSpace(statusPrefix)) + " " // green; yellow for problems
-	if w == errOut {
-		prefix = paint("1;33", strings.TrimSpace(statusPrefix)) + " "
+func show(w io.Writer, text string) { showMarked(w, symDone, text) }
+
+// showMarked is show with the mark a terminal in color puts first (see style.go); elsewhere (logs,
+// pipes, hooks, NO_COLOR) the line starts with "GitFolio >> " so it can be found among other output.
+func showMarked(w io.Writer, mark, text string) {
+	prefix, under := statusPrefix, strings.Repeat(" ", len(statusPrefix))
+	if _, isScreen := w.(screen); isScreen && useColor {
+		prefix, under = mark+" ", "  "
 	}
 	if !inParagraph {
 		gap(w)
@@ -118,7 +125,11 @@ func show(w io.Writer, text string) {
 func notice(s string) {
 	inParagraph = false
 	gap(out)
-	fmt.Fprint(out, indent(strings.TrimLeft(s, "\n")))
+	s = strings.TrimLeft(s, "\n")
+	if useColor { // an info mark, the lines after it aligned under the text
+		s = symInfo + " " + strings.ReplaceAll(strings.TrimRight(s, "\n"), "\n", "\n  ") + s[len(strings.TrimRight(s, "\n")):]
+	}
+	fmt.Fprint(out, indent(s))
 }
 
 // blank ends a paragraph; the next one starts after one empty line (gap), however often blank is called.
