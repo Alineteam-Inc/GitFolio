@@ -103,6 +103,9 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
+		if c.creds.Token == "" && args[0] != "hook" {
+			_ = c.loginAgain() // the login expired: log in again now, with a code to the same email
+		}
 		creds := c.creds
 		if creds.Token == "" {
 			if args[0] == "hook" {

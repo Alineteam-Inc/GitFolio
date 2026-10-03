@@ -72,6 +72,7 @@ func (e *apiError) Error() string {
 // Server error codes the CLI reacts to.
 const (
 	codeTokenInvalid  = "A001" // token invalid, expired or revoked
+	codeNotLoggedIn   = "A000" // no valid login: the token is unknown to this server
 	codeWrongCode     = "A008" // email code does not match
 	codeExpiredCode   = "A009" // email code expired or tried too often
 	codeUnverifiedWeb = "U004" // account made on the web without verifying its email
@@ -83,10 +84,11 @@ const (
 )
 
 type client struct {
-	base  string
-	http  *http.Client
-	dir   string
-	creds Credentials
+	base    string
+	http    *http.Client
+	dir     string
+	creds   Credentials
+	relogin bool // logged in again once in this run (see call)
 }
 
 func newClient(dir string) (*client, error) {
@@ -118,18 +120,41 @@ func credentialsFor(dir, base string) (Credentials, error) {
 func (c *client) loggedIn() bool { return c.creds.Token != "" }
 
 // call sends an authenticated request. A token the server no longer accepts (expired or revoked) is
-// removed here, so the user signs in again with `gitfolio login`.
+// removed here. A person at the terminal logs in again right away with a code sent to the same email,
+// and the request is sent again; hooks and scheduled runs cannot ask, so the next command does it.
 func (c *client) call(method, path string, in, out any) error {
 	err := c.send(method, path, in, out, true)
 	var ae *apiError
-	if errors.As(err, &ae) && ae.Code == codeTokenInvalid {
-		c.creds.Token, c.creds.TokenExpiresAt = "", ""
-		if serr := saveCredentials(c.dir, c.creds); serr != nil {
-			return serr
-		}
-		return fmt.Errorf("%w %s", err, tr(detectLang(os.Getenv), "relogin"))
+	if !errors.As(err, &ae) || (ae.Code != codeTokenInvalid && ae.Code != codeNotLoggedIn) {
+		return err
 	}
-	return err
+	c.creds.Token, c.creds.TokenExpiresAt = "", ""
+	if serr := saveCredentials(c.dir, c.creds); serr != nil {
+		return serr
+	}
+	if !c.relogin && c.loginAgain() == nil {
+		return c.send(method, path, in, out, true)
+	}
+	return fmt.Errorf("%w %s", err, tr(detectLang(os.Getenv), "relogin"))
+}
+
+// loginAgain logs the account in again after its login expired, with a code sent to its email, when
+// a person can answer (once per run). Errors mean the user runs `gitfolio login` themselves.
+func (c *client) loginAgain() error {
+	email := c.creds.Email
+	if email == "" || !interactive() {
+		return errors.New("cannot ask")
+	}
+	c.relogin = true
+	lang := detectLang(os.Getenv)
+	warn(lang, "loginExpired", email)
+	noSignup := func() (bool, bool) { return false, false } // the account exists; never make a new one here
+	if _, err := c.signIn(email, noSignup, askCode(lang, email, false)); err != nil {
+		warn(lang, "failed", err)
+		return err
+	}
+	say(lang, "loggedIn", email)
+	return nil
 }
 
 // send makes one request and unwraps the server's {"success", "contents"} envelope into out.
