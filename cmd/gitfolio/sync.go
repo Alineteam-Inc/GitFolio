@@ -89,7 +89,7 @@ const (
 	maxMessage    = 10000 // characters
 	maxFilesSent  = 1000
 	maxModified   = 5000 // modifiedFiles per request
-	maxNamespace  = 200  // the server keys repositories by "[internal]"
+	maxNamespace  = 200  // longest owner/repo aline.team takes
 	syncStateFile = "sync.json"
 )
 
