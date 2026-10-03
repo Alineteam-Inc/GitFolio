@@ -513,6 +513,11 @@ var messages = map[string]map[string]string{
 		"ko": "먼저 aline.team에 로그인하거나 가입하세요: gitfolio login\n",
 		"ja": "先に aline.team にログインまたは新規登録してください: gitfolio login\n",
 	},
+	"loginExpired": {
+		"en": "Your aline.team login has expired. To log in again, a code goes to %s.\n",
+		"ko": "aline.team 로그인이 만료되었습니다. 다시 로그인하도록 %s(으)로 확인 코드를 보냅니다.\n",
+		"ja": "aline.team のログインの有効期限が切れました。再ログインのため %s に確認コードを送ります。\n",
+	},
 	"relogin": {
 		"en": "(run `gitfolio login`)",
 		"ko": "(`gitfolio login`으로 다시 로그인하세요)",
