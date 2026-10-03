@@ -59,7 +59,7 @@ func parseAppleLanguages(out string) []string {
 
 // statusPrefix marks GitFolio's own result and error lines so they stand out among shell and git output.
 // Questions start with "? " (see prompt); notices carry only the margin.
-const statusPrefix = "GitFolio >> "
+const statusPrefix = "GitFolio : "
 
 // margin keeps GitFolio's interactive text off the terminal's left edge.
 const margin = "  "
@@ -102,7 +102,7 @@ var inParagraph bool
 func show(w io.Writer, text string) { showMarked(w, symDone, text) }
 
 // showMarked is show with the mark a terminal in color puts first (see style.go); elsewhere (logs,
-// pipes, hooks, NO_COLOR) the line starts with "GitFolio >> " so it can be found among other output.
+// pipes, hooks, NO_COLOR) the line starts with "GitFolio : " so it can be found among other output.
 func showMarked(w io.Writer, mark, text string) {
 	prefix, under := statusPrefix, strings.Repeat(" ", len(statusPrefix))
 	if _, isScreen := w.(screen); isScreen && useColor {

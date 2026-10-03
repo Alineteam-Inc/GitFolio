@@ -183,7 +183,7 @@ func TestScreenLayout(t *testing.T) {
 	blank()
 	blank()
 	section("en", "settingsTitle")
-	want := "  Explanation.\n\n  GitFolio >> " + tr("en", "upToDate") + "\n  ===== GitFolio · Settings =====\n"
+	want := "  Explanation.\n\n  GitFolio : " + tr("en", "upToDate") + "\n  ===== GitFolio · Settings =====\n"
 	if b.String() != want {
 		t.Errorf("got\n%q\nwant\n%q", b.String(), want)
 	}
