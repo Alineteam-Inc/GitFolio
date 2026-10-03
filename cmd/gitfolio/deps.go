@@ -471,19 +471,22 @@ const questionMark = "? "
 
 func prompt(q string) string {
 	inParagraph = false
+	gap(out)
 	lines := strings.Split(strings.TrimLeft(q, " \n"), "\n")
 	for i, l := range lines {
 		if i == 0 {
-			lines[i] = margin + questionMark + l
+			lines[i] = margin + paint("1;36", strings.TrimSpace(questionMark)) + " " + styleQuestion(l, true)
 		} else {
-			lines[i] = margin + strings.Repeat(" ", len(questionMark)) + l
+			lines[i] = margin + strings.Repeat(" ", len(questionMark)) + styleQuestion(l, false)
 		}
 	}
-	fmt.Print(strings.Join(lines, "\n"))
+	fmt.Fprint(out, strings.Join(lines, "\n"))
 	line, err := stdin.ReadString('\n')
 	if err != nil {
 		stdinClosed = true
-		fmt.Println() // no answer: keep the next output on its own line
+		fmt.Fprintln(out) // no answer: keep the next output on its own line
+	} else {
+		answered()
 	}
 	return strings.TrimSpace(line)
 }
@@ -544,7 +547,7 @@ func reviewManifests(rs []Repo) ([]int, error) {
 	k := 0
 	for i, r := range rs {
 		if len(files[i]) > 0 {
-			fmt.Printf("%s%s\n", margin, r.Name)
+			fmt.Fprintf(out, "%s%s\n", margin, bold(r.Name))
 		}
 		for _, f := range files[i] {
 			k++
@@ -552,7 +555,7 @@ func reviewManifests(rs []Repo) ([]int, error) {
 			if ok, decided := r.Manifests[f]; decided {
 				state = tr(lang, map[bool]string{true: "manifestAllowed", false: "manifestDeclined"}[ok])
 			}
-			fmt.Printf("%s  %3d  %-8s  %s\n", margin, k, state, f)
+			fmt.Fprintf(out, "%s  %3d  %s  %s\n", margin, k, dim(pad(state, 8)), f)
 		}
 	}
 	for {
@@ -612,7 +615,7 @@ func cmdDeps(dir string, args []string) error {
 			}
 			msg += fmt.Sprintf(tr(lang, "depsRepo"), r.Name, allowed, pendingManifests(r))
 		}
-		show(os.Stdout, msg)
+		show(out, settings(msg))
 		return nil
 	case "on":
 		notice(tr(lang, "depsNotice"))
