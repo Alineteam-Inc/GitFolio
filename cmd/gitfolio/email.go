@@ -114,7 +114,7 @@ func cmdEmail(dir string, args []string) error {
 		_, _ = c.me() // fresh ✓ marks; offline, the last known ones
 	}
 	if len(args) == 0 {
-		show(os.Stdout, emailList(lang, cfg, c.creds))
+		show(out, emailList(lang, cfg, c.creds))
 		return nil
 	}
 	if len(args) < 2 || !slices.Contains([]string{"add", "verify", "rm", "primary"}, args[0]) {
@@ -184,7 +184,7 @@ func cmdEmail(dir string, args []string) error {
 	if err := saveConfig(dir, cfg); err != nil {
 		return err
 	}
-	show(os.Stdout, done+emailList(lang, cfg, c.creds))
+	show(out, done+emailList(lang, cfg, c.creds))
 	return nil
 }
 

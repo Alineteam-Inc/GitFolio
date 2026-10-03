@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 )
@@ -55,7 +56,7 @@ func saveCredentials(dir string, c Credentials) error {
 // what the user changes.
 func cmdInit(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
-	fmt.Print(header() + "\n" + indent(tr(lang, "policy")) + "\n")
+	fmt.Fprint(out, header()+"\n"+indent(tr(lang, "policy"))+"\n")
 	if interactive() {
 		prompt(tr(lang, "pressEnter"))
 	}
@@ -80,13 +81,14 @@ func cmdInit(dir string, args []string) error {
 	if runtime.GOOS == "darwin" {
 		msg += tr(lang, "searchingMac")
 	}
-	show(os.Stdout, msg)
+	show(out, msg)
 	found := findRepos(roots, 5) // once: for the emails, then for the repositories
 	// Whose commits count: the emails git uses in these repositories, as the user picks them; more can be
 	// added here or later with `gitfolio email add`.
 	cfg.Emails = chooseEmails(lang, c.creds, cfg.Emails, found)
 	if len(cfg.Emails) > 0 {
-		notice("\n" + tr(lang, "identityWork") + emailList(lang, cfg, c.creds))
+		notice(tr(lang, "identityWork"))
+		notice(emailList(lang, cfg, c.creds))
 	}
 	for interactive() && !stdinClosed {
 		answer := prompt(tr(lang, "emailMoreAsk"))
@@ -146,10 +148,22 @@ func cmdInit(dir string, args []string) error {
 			return err
 		}
 	}
+	var done []string // one table of what was registered, not a line per repository
+	widest := 0
 	for _, r := range rs {
-		if err := withLock(dir, func() error { return registerRepo(dir, r, false) }); err != nil {
+		widest = max(widest, width(r.Name))
+	}
+	for _, r := range rs {
+		var n int
+		if err := withLock(dir, func() (err error) { n, err = registerRepo(dir, r, false); return err }); err != nil {
 			warn(lang, "repoFailed", tildePath(r.Path), err)
+			continue
 		}
+		done = append(done, fmt.Sprintf("  %s  %6d %s", pad(r.Name, widest), n, dim(tr(lang, "commitsUnit"))))
+	}
+	if len(done) > 0 {
+		say(lang, "registeredMany", len(done))
+		show(out, strings.Join(done, "\n"))
 	}
 
 	// Sync (the first one sends the history of the chosen repositories), then what was set up.
@@ -169,7 +183,7 @@ func cmdInit(dir string, args []string) error {
 	onOff := func(b bool) string { return tr(lang, map[bool]string{true: "on", false: "off"}[b]) }
 	daily := cmp.Or(cfg.Schedule, tr(lang, "off"))
 	blank()
-	say(lang, "initDone", len(repos), primaryEmail(cfg), onOff(!cfg.AutoSyncOff), onOff(cfg.Deps), daily)
+	sayKV(lang, "initDone", len(repos), primaryEmail(cfg), onOff(!cfg.AutoSyncOff), onOff(cfg.Deps), daily)
 	return nil
 }
 
@@ -216,7 +230,7 @@ func chooseEmails(lang string, creds Credentials, have, repos []string) []string
 		return list[:max(len(have), 1)]
 	}
 	notice("\n" + tr(lang, "emailCandidates"))
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	for i, e := range list {
 		state := ""
 		switch {
@@ -272,11 +286,18 @@ func chooseRepos(lang, dir string, found, work []string) ([]string, error) {
 		return nil, nil
 	}
 	blank()
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	for i, c := range cands {
-		fmt.Fprintf(w, "%s  %d\t%s\t%d\t%s\n", margin, i+1, tildePath(c.path), c.commits, c.last)
+	// Columns padded by display width (Korean and Japanese headers take two columns per character).
+	head := strings.Split(tr(lang, "reposColumns"), "\t")
+	wPath, wNum := width(head[0]), width(head[1])
+	for _, c := range cands {
+		wPath, wNum = max(wPath, width(tildePath(c.path))), max(wNum, len(strconv.Itoa(c.commits)))
 	}
-	w.Flush()
+	wIdx := len(strconv.Itoa(len(cands)))
+	fmt.Fprintf(out, "%s  %s  %s  %s  %s\n", margin, dim(pad("#", wIdx)), dim(pad(head[0], wPath)), dim(pad(head[1], wNum)), dim(head[2]))
+	for i, c := range cands {
+		n := strconv.Itoa(c.commits)
+		fmt.Fprintf(out, "%s  %*d  %s  %s%s  %s\n", margin, wIdx, i+1, pad(tildePath(c.path), wPath), strings.Repeat(" ", wNum-len(n)), n, c.last)
+	}
 	notice("\n" + tr(lang, "companyNotice"))
 	var sel []int
 	for interactive() && !stdinClosed {
