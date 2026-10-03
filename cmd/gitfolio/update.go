@@ -50,14 +50,46 @@ func checkUpdate(dir string) bool {
 	if stdinClosed || (a != "" && a != "y" && a != "yes") {
 		return false
 	}
-	cmd, manual := updateCommand(latest)
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	if err := cmd.Run(); err != nil {
-		warn(lang, "updateFailed", err, manual)
+	if err := installUpdate(latest); err != nil {
+		warn(lang, "failed", err)
 		return false
 	}
 	say(lang, "updated", latest)
 	return true
+}
+
+// installUpdate installs release tag latest the way this copy was installed.
+func installUpdate(latest string) error {
+	cmd, manual := updateCommand(latest)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if err := cmd.Run(); err != nil {
+		return failure("updateFailed", err, manual)
+	}
+	return nil
+}
+
+// cmdUpdate checks for a newer release now, whenever the daily check last ran, and installs it.
+func cmdUpdate(dir string) error {
+	lang := detectLang(os.Getenv)
+	if version == "dev" {
+		say(lang, "updateFromSource")
+		return nil
+	}
+	latest, err := latestRelease()
+	if err != nil {
+		return failure("updateCheckFailed", err)
+	}
+	_ = saveJSON(filepath.Join(dir, updateFile), map[string]time.Time{"checkedAt": time.Now()}) // no offer again today
+	if !newer(latest, version) {
+		say(lang, "updateLatest", version)
+		return nil
+	}
+	say(lang, "updating", version, latest)
+	if err := installUpdate(latest); err != nil {
+		return err
+	}
+	say(lang, "updatedNow", latest)
+	return nil
 }
 
 // latestRelease returns the newest release tag, e.g. "v0.2.0".

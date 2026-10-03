@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -38,6 +39,20 @@ func TestUpdateCheck(t *testing.T) {
 	// Builds from source never check or ask.
 	if checkUpdate(t.TempDir()) {
 		t.Error("a dev build offered an update")
+	}
+
+	// gitfolio update: nothing to do from source or on the newest release, and today's offer is used up.
+	dir := t.TempDir()
+	if err := cmdUpdate(dir); err != nil {
+		t.Errorf("update from a source build: %v", err)
+	}
+	defer func(v string) { version = v }(version)
+	version = "0.2.0"
+	if err := cmdUpdate(dir); err != nil {
+		t.Errorf("update on the newest release: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, updateFile)); err != nil {
+		t.Error("update did not record the check")
 	}
 }
 

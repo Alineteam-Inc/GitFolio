@@ -66,6 +66,7 @@ commands:
   schedule [HH:MM | off]
                         optional daily sync at a local time, for pushes the hooks missed
                         (launchd on macOS, systemd or cron on Linux); no argument: show it
+  update                install the newest release now (otherwise GitFolio offers it once a day)
   version               print version`
 
 func main() {
@@ -92,7 +93,7 @@ func run(args []string) error {
 		return err
 	}
 	startHistory(dir, args)
-	if args[0] != "hook" && checkUpdate(dir) {
+	if args[0] != "hook" && args[0] != "update" && checkUpdate(dir) {
 		return nil // updated: the user runs the command again with the new binary
 	}
 	if !slices.Contains([]string{"hook", "init", "login", "logout", "email"}, args[0]) {
@@ -127,6 +128,8 @@ func run(args []string) error {
 		return cmdWhoami(dir)
 	case "history":
 		return cmdHistory(dir, args[1:]) // only reads
+	case "update":
+		return cmdUpdate(dir)
 	}
 	return withLock(dir, func() error {
 		switch args[0] {
