@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -411,5 +412,45 @@ func TestRejectedTokenIsRemoved(t *testing.T) {
 	}
 	if saved, _ := loadCredentials(dir); saved.Token != "" {
 		t.Errorf("rejected token kept: %+v", saved)
+	}
+}
+
+// TestLoginAgain: when aline.team rejects the token, a person at the terminal logs in again right away
+// with a code sent to the same email and the request goes through; without a terminal (hooks,
+// scheduled runs) the token is removed and the error says to run `gitfolio login`.
+func TestLoginAgain(t *testing.T) {
+	f := &fakeAline{token: testToken, exists: true}
+	srv := httptest.NewServer(f.handler())
+	defer srv.Close()
+	t.Setenv("GITFOLIO_API_URL", srv.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	dir := t.TempDir()
+	expired := Credentials{Token: "aln_cli_expired", Email: "dev@example.com", Server: srv.URL}
+	savedInteractive, savedStdin := interactive, stdin
+	t.Cleanup(func() { interactive, stdin = savedInteractive, savedStdin })
+
+	interactive = func() bool { return false }
+	if err := saveCredentials(dir, expired); err != nil {
+		t.Fatal(err)
+	}
+	c, _ := newClient(dir)
+	if _, err := c.me(); err == nil || !strings.Contains(err.Error(), "gitfolio login") {
+		t.Errorf("rejected token without a terminal: %v, want a login hint", err)
+	}
+	if creds, _ := loadCredentials(dir); creds.Token != "" || creds.Email != "dev@example.com" {
+		t.Errorf("after the rejection: %+v, want no token and the email kept", creds)
+	}
+
+	interactive = func() bool { return true }
+	stdin = bufio.NewReader(strings.NewReader("123456\n"))
+	if err := saveCredentials(dir, expired); err != nil {
+		t.Fatal(err)
+	}
+	c, _ = newClient(dir)
+	if _, err := c.me(); err != nil {
+		t.Fatalf("logging in again: %v", err)
+	}
+	if creds, _ := loadCredentials(dir); creds.Token != testToken {
+		t.Error("the new token was not saved")
 	}
 }
