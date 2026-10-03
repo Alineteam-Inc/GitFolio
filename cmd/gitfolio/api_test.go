@@ -16,13 +16,13 @@ import (
 
 func TestAPIBase(t *testing.T) {
 	for url, ok := range map[string]bool{
-		"":                           true, // default
+		"":                            true, // default
 		"https://staging.example.com": true,
-		"http://127.0.0.1:8080":      true,
-		"http://localhost:8080":      true,
-		"http://aline.team":          false,
-		"ftp://aline.team":           false,
-		"aline.team":                 false,
+		"http://127.0.0.1:8080":       true,
+		"http://localhost:8080":       true,
+		"http://aline.team":           false,
+		"ftp://aline.team":            false,
+		"aline.team":                  false,
 	} {
 		t.Setenv("GITFOLIO_API_URL", url)
 		if _, err := apiBase(""); (err == nil) != ok {
@@ -86,7 +86,7 @@ var emailDeviceName = regexp.MustCompile(`^(macOS|Linux|Windows) [A-Za-z0-9_]{1,
 
 const testToken = "aln_cli_AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_abcde"
 
-// testAccountID has the real server's shape: a UUID string, not a number (seen on the dev server).
+// testAccountID is a UUID string, not a number, as the server sends it.
 const testAccountID = "d3bbee5d-84fc-422b-97fc-a021db3f7f66"
 
 func (f *fakeAline) handler() http.Handler {
