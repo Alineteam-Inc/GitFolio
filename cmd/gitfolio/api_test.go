@@ -453,4 +453,17 @@ func TestLoginAgain(t *testing.T) {
 	if creds, _ := loadCredentials(dir); creds.Token != testToken {
 		t.Error("the new token was not saved")
 	}
+
+	// No email to send the code to (say the login was for another server): the email is asked for.
+	stdin = bufio.NewReader(strings.NewReader("dev@example.com\n123456\n"))
+	if err := saveCredentials(dir, Credentials{Token: "aln_cli_expired", Server: srv.URL}); err != nil {
+		t.Fatal(err)
+	}
+	c, _ = newClient(dir)
+	if _, err := c.me(); err != nil {
+		t.Fatalf("logging in with the email asked for: %v", err)
+	}
+	if creds, _ := loadCredentials(dir); creds.Token != testToken || creds.Email != "dev@example.com" {
+		t.Errorf("after logging in: %+v", creds)
+	}
 }

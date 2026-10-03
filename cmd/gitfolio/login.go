@@ -23,6 +23,12 @@ func cmdLogin(dir string) error {
 	if !interactive() {
 		return failure("loginNeedsTerminal")
 	}
+	return c.login(lang)
+}
+
+// login asks for an email and signs in with a code sent to it; an email without an account is signed
+// up after showing the terms, the privacy policy and the email it will be made for.
+func (c *client) login(lang string) error {
 	section(lang, "loginTitle")
 	email := ""
 	for {
@@ -93,7 +99,7 @@ func cmdWhoami(dir string) error {
 	if err != nil {
 		return err
 	}
-	if !c.loggedIn() {
+	if !c.ensureLogin() {
 		say(lang, "notLoggedIn")
 		return nil
 	}
