@@ -81,7 +81,8 @@ func cmdInit(dir string, args []string) error {
 	if runtime.GOOS == "darwin" {
 		msg += tr(lang, "searchingMac")
 	}
-	show(out, msg)
+	notice(msg) // still working: a note, not a result
+
 	found := findRepos(roots, 5) // once: for the emails, then for the repositories
 	// Whose commits count: the emails git uses in these repositories, as the user picks them; more can be
 	// added here or later with `gitfolio email add`.

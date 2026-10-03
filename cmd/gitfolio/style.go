@@ -7,11 +7,12 @@ import (
 	"strings"
 )
 
-// What people read is set apart by kind (DESIGN 7.1): results start with a green "GitFolio >>",
-// problems with a yellow one, questions with a cyan "?" and bold text and a dim input hint, settings
-// are aligned "label  value" lines, and explanations are plain text. Paragraphs are separated by
-// exactly one empty line, wherever they are printed from. Color is used only in a terminal, and
-// never with NO_COLOR set (https://no-color.org).
+// What people read is set apart by kind (DESIGN 7.1), in the style of Inquirer.js and log-symbols:
+// questions start with a green "?" (the question bold, its input hint dim), results with a green ✔,
+// warnings with a yellow ⚠, errors with a red ✖ and notes with a blue ℹ; settings are aligned
+// "label  value" lines. Paragraphs are separated by exactly one empty line, wherever they are printed
+// from. Marks and color are used only in a terminal, never with NO_COLOR set (https://no-color.org);
+// elsewhere results and problems start with "GitFolio >> " and questions with "? ".
 
 // screen is stdout or stderr, remembering how the last output ended so gap knows whether an empty
 // line is already there. Both share the count: they end up on the same terminal.
@@ -60,6 +61,14 @@ func paint(code, s string) string {
 	}
 	return "\x1b[" + code + "m" + s + "\x1b[0m"
 }
+
+var (
+	symQuestion = paint("1;32", "?")
+	symDone     = paint("32", "✔")
+	symWarn     = paint("33", "⚠")
+	symError    = paint("31", "✖")
+	symInfo     = paint("94", "ℹ")
+)
 
 func bold(s string) string    { return paint("1", s) }
 func dim(s string) string     { return paint("2", s) }
