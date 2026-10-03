@@ -98,11 +98,21 @@ func newClient(dir string) (*client, error) {
 	if err != nil {
 		return nil, err
 	}
-	creds, err := loadCredentials(dir)
+	creds, err := credentialsFor(dir, base)
 	if err != nil {
 		return nil, err
 	}
 	return &client{base: base, http: &http.Client{Timeout: 30 * time.Second}, dir: dir, creds: creds}, nil
+}
+
+// credentialsFor loads the login for the aline.team API at base. A token issued by another server
+// (say the dev server, by a build from source) is never sent here, so this build counts as logged out.
+func credentialsFor(dir, base string) (Credentials, error) {
+	c, err := loadCredentials(dir)
+	if err != nil || c.Server == "" || c.Server == base {
+		return c, err
+	}
+	return Credentials{}, nil
 }
 
 func (c *client) loggedIn() bool { return c.creds.Token != "" }
@@ -270,6 +280,7 @@ func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), as
 			return res, err
 		}
 		c.creds.Token, c.creds.TokenExpiresAt, c.creds.Email = res.Token, res.TokenExpiresAt, res.Account.Email
+		c.creds.Server = c.base
 		c.creds.Verified = lowered(res.VerifiedEmails)
 		return res, saveCredentials(c.dir, c.creds)
 	}

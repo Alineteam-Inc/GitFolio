@@ -393,3 +393,46 @@ func dryRun(t *testing.T, dir string) string {
 	}
 	return string(out)
 }
+
+// TestServerSwitch: a login belongs to the server that issued it. A build that talks to another
+// server (a release build always uses production) counts as logged out and never sends that token,
+// and after logging in there everything is sent again, since that server has none of it yet.
+func TestServerSwitch(t *testing.T) {
+	f := &fakeAline{token: testToken}
+	srv := httptest.NewServer(f.handler())
+	defer srv.Close()
+	t.Setenv("GITFOLIO_API_URL", srv.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	home := t.TempDir() // run below finds the data folder from these, never the real one
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("AppData", filepath.Join(home, "AppData"))
+	dir, err := dataDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	const dev = "https://dev.example/api"
+	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: dev}))
+	if c, err := newClient(dir); err != nil || c.loggedIn() {
+		t.Fatalf("a token from %s counts here (%v)", dev, err)
+	}
+	if err := run([]string{"scan"}); err == nil || !strings.Contains(err.Error(), "gitfolio login") {
+		t.Errorf("scan with another server's login: %v, want a login hint", err)
+	}
+
+	must(saveConfig(dir, Config{Emails: []string{"dev@example.com"}}))
+	must(saveRepos(dir, []Repo{{ID: "r1", Path: "/x/app", Name: "app", Provider: "GITHUB", Namespace: "me/app"}}))
+	must(writeCommits(dir, []Commit{{Repo: "r1", Hash: "a1", Branch: "main", AuthorEmail: "dev@example.com",
+		Date: "2026-09-29T10:00:00+09:00", Message: "feat: one", CreationType: "HUMAN"}}))
+	must(saveSync(dir, syncState{Account: "dev@example.com", Server: dev, Commits: map[string]string{"GITHUB/me/app/a1": "sent to dev"}}))
+	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: srv.URL})) // logged in here
+	if n, err := syncData(dir, false); err != nil || n.commits != 1 {
+		t.Fatalf("sync after switching servers = %+v, %v; want the commit sent again", n, err)
+	}
+}

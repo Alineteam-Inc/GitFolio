@@ -99,10 +99,11 @@ func run(args []string) error {
 		checkEmails(dir, detectLang(os.Getenv))
 	}
 	if collects(args) {
-		creds, err := loadCredentials(dir)
+		c, err := newClient(dir) // only a login to the server this build talks to counts
 		if err != nil {
 			return err
 		}
+		creds := c.creds
 		if creds.Token == "" {
 			if args[0] == "hook" {
 				return nil // hooks do nothing before login
