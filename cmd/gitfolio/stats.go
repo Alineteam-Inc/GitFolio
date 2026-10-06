@@ -206,29 +206,39 @@ var devTypeArt = map[string][]string{
 }
 
 // devTypeColors are the xterm 256 colors nearest aline.team's (in the comments).
-var devTypeColors = map[rune]string{
-	'g': "38;5;77",  // #39D353
-	'b': "38;5;68",  // #6699CC
-	'y': "38;5;187", // #D9E0A3
-	's': "38;5;108", // #7CB687
-	'w': "38;5;255", // #E8F0EA
+var devTypeColors = map[rune]int{
+	'g': 77,  // #39D353
+	'b': 68,  // #6699CC
+	'y': 187, // #D9E0A3
+	's': 108, // #7CB687
+	'w': 255, // #E8F0EA
 }
 
-// drawDevType draws the type's picture above the result, each square two columns wide so it stays
-// square. Only in a terminal with color: without it the picture is gone.
+// drawDevType draws the type's picture above the result. A character is about twice as tall as wide,
+// so each holds two squares, one above the other: "▀" in the upper square's color on the lower one's.
+// Only in a terminal with color: without it the picture is gone.
 func drawDevType(title string) {
 	art := devTypeArt[title]
 	if art == nil || !useColor {
 		return
 	}
 	blank()
-	for _, row := range art {
+	for y := 0; y < len(art); y += 2 {
 		var b strings.Builder
-		for _, c := range strings.TrimRight(row, ".") {
-			if c == '.' {
-				b.WriteString("  ")
-			} else {
-				b.WriteString(paint(devTypeColors[c], "██"))
+		for x, top := range art[y] {
+			bottom := '.'
+			if y+1 < len(art) {
+				bottom = rune(art[y+1][x])
+			}
+			switch {
+			case top == '.' && bottom == '.':
+				b.WriteString(" ")
+			case bottom == '.':
+				b.WriteString(paint(fmt.Sprintf("38;5;%d", devTypeColors[top]), "▀"))
+			case top == '.':
+				b.WriteString(paint(fmt.Sprintf("38;5;%d", devTypeColors[bottom]), "▄"))
+			default:
+				b.WriteString(paint(fmt.Sprintf("38;5;%d;48;5;%d", devTypeColors[top], devTypeColors[bottom]), "▀"))
 			}
 		}
 		fmt.Fprintln(out, strings.TrimRight(margin+"  "+b.String(), " "))
