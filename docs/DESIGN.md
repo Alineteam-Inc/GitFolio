@@ -360,6 +360,8 @@ gitfolio version | help
 gitfolio hook post-commit|pre-push|push-wait   (내부용, 훅에서 호출)
 ```
 
+모르는 명령은 다른 처리(업데이트 확인 등)보다 먼저 거른다. 비슷한 명령이 있으면 "`gitfolio status`을(를) 찾으셨나요?"로 안내한다: `-v`·`--version`은 `version`, 입력으로 시작하는 명령(`sta` → `status`·`stats`), 철자가 1자(짧은 명령)·2자 이내로 다른 명령(글자 순서 바뀜 포함, 가까운 것부터). 없으면 `gitfolio help` 안내 (2026-10-06 사용자 요청)
+
 미구현 (데스크톱 앱·편의 기능, 필요할 때): `list --json`·`sync --json`(앱용 출력), `list`의 저장소별 미전송 수, `export --format md`·`--since`·`-o 파일`
 
 `[경로]` 생략 시 현재 디렉터리.

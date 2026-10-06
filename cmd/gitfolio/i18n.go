@@ -609,6 +609,11 @@ var messages = map[string]map[string]string{
 		"ko": "의존성 분석이 꺼져 있습니다. `gitfolio deps on`으로 켜세요.\n",
 		"ja": "依存関係の分析はオフです。`gitfolio deps on` で有効にしてください。\n",
 	},
+	"didYouMean": {
+		"en": "Unknown command %q. Did you mean %s?\n",
+		"ko": "알 수 없는 명령입니다: %q\n%s을(를) 찾으셨나요?\n",
+		"ja": "不明なコマンド %q です。%s のことですか?\n",
+	},
 	"unknownCommand": {
 		"en": "Unknown command %q. See `gitfolio help`.\n",
 		"ko": "알 수 없는 명령입니다: %q\n`gitfolio help`에서 명령 목록을 확인하세요.\n",
