@@ -118,12 +118,119 @@ func showDevType(lang string, cache devTypeCache, saved bool) {
 		}
 		return s
 	}
+	drawDevType(d.Title)
 	sayKV(lang, "statsType", d.Title, cache.Year, day(d.ComputedAt), cmp.Or(d.Description, "-"), cmp.Or(d.HashTags, "-"),
 		cmp.Or(d.Position, "-"), stat(d.Agility, d.AgilityAI), stat(d.Stability, d.StabilityAI),
 		stat(d.Contribution, d.ContribAI), stat(d.Adaptability, d.AdaptAI), stat(d.Consistency, d.ConsistAI),
 		cmp.Or(d.TitleAI, "-"))
 	if saved {
 		notice(fmt.Sprintf(tr(lang, "statsSaved"), cache.FetchedAt.Local().Format("2006-01-02")))
+	}
+}
+
+// devTypeArt is each developer type's picture as aline.team draws it, 11 squares wide: a letter is
+// a square's color in devTypeColors, "." is empty.
+var devTypeArt = map[string][]string{
+	"BUILDER": {
+		".gg........",
+		"gggg.gg....",
+		"gggggggg...",
+		"....gggg...",
+		"...........",
+		"...gg..gg..",
+		"..gggggggg.",
+		"..gggggggg.",
+	},
+	"EXPLORER": {
+		".....b.....",
+		"....bbb....",
+		"...bbbbb...",
+		"...bbybb...",
+		"...byyyb...",
+		"...bbybb...",
+		"...bbbbb...",
+		"..bbbbbbb..",
+		".bb.bbb.bb.",
+		".b..y.y..b.",
+		"....y.y....",
+	},
+	"FIXER": {
+		"..s.....s..",
+		"...s...s...",
+		"...sssss...",
+		"..sssssss..",
+		"s.sysssys.s",
+		".sssysysss.",
+		"s.sssysss.s",
+		".sssysysss.",
+		"s.sysssys.s",
+		"...sssss...",
+	},
+	"KEEPER": {
+		"..sssssss..",
+		".sssssssss.",
+		".sssssssss.",
+		".sssssswss.",
+		".ssssswwss.",
+		".swsswwsss.",
+		".swwwwssss.",
+		"..swwssss..",
+		"..sswssss..",
+		"...sssss...",
+		"....sss....",
+	},
+	"LEADER": {
+		"y....y....y",
+		"yy..yyy..yy",
+		"yyy.yyy.yyy",
+		"yyyyyyyyyyy",
+		"yyyyyyyyyyy",
+		"yybyybyybyy",
+		"yyyyyyyyyyy",
+		"yyyyyyyyyyy",
+	},
+	"SPRINTER": {
+		"....yyyyy..",
+		"...yyyyy...",
+		"...yyyy....",
+		"..yyyy.....",
+		"..yyyyyyyy.",
+		".yyyyyyyy..",
+		".....yyy...",
+		"....yyy....",
+		"...yyy.....",
+		"..yy.......",
+		".y.........",
+	},
+}
+
+// devTypeColors are the xterm 256 colors nearest aline.team's (in the comments).
+var devTypeColors = map[rune]string{
+	'g': "38;5;77",  // #39D353
+	'b': "38;5;68",  // #6699CC
+	'y': "38;5;187", // #D9E0A3
+	's': "38;5;108", // #7CB687
+	'w': "38;5;255", // #E8F0EA
+}
+
+// drawDevType draws the type's picture above the result, each square two columns wide so it stays
+// square. Only in a terminal with color: without it the picture is gone.
+func drawDevType(title string) {
+	art := devTypeArt[title]
+	if art == nil || !useColor {
+		return
+	}
+	blank()
+	for _, row := range art {
+		var b strings.Builder
+		for _, c := range strings.TrimRight(row, ".") {
+			if c == '.' {
+				b.WriteString("  ")
+			} else {
+				b.WriteString(paint(devTypeColors[c], "██"))
+			}
+		}
+		fmt.Fprintln(out, strings.TrimRight(margin+"  "+b.String(), " "))
 	}
 }
 
