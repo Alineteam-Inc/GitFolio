@@ -2,7 +2,6 @@ package main
 
 import (
 	"cmp"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -16,14 +15,15 @@ import (
 const devTypeFile = "devtype.json"
 
 type devTypeCache struct {
-	FetchedAt time.Time       `json:"fetchedAt"`
-	Year      int             `json:"year"`
-	Account   string          `json:"account"` // the account it belongs to: another login fetches again
-	Detail    json.RawMessage `json:"detail"`  // as aline.team sent it, so fields this version does not show are kept
+	FetchedAt time.Time `json:"fetchedAt"`
+	Year      int       `json:"year"`
+	Account   string    `json:"account"` // the account it belongs to: another login fetches again
+	Detail    devType   `json:"detail"`
 }
 
 // devType is what gitfolio stats shows of aline.team's developer type: the type, its five scores
-// (0-100) and the same for AI-assisted work.
+// (0-100) and the same for AI-assisted work. Only this is kept; the rest of aline.team's answer (the
+// account email, the share code, the reasons) is not.
 type devType struct {
 	Title        string `json:"devTypeTitle"`
 	Description  string `json:"devTypeDescription"`
@@ -65,44 +65,42 @@ func cmdStats(dir string, args []string) error {
 		return err
 	}
 	year := time.Now().Year()
-	saved := len(cache.Detail) > 0 && cache.Year == year && cache.Account == c.creds.Email
+	saved := cache.Detail.Title != "" && cache.Year == year && cache.Account == c.creds.Email
 	if saved && !refresh {
-		return showDevType(lang, cache, true)
+		showDevType(lang, cache, true)
+		return nil
 	}
 	if !c.ensureLogin() {
 		return failure("loginFirst")
 	}
-	var detail json.RawMessage
-	if err := c.call("GET", fmt.Sprintf("/cli/devtype?yearPeriod=%d", year), nil, &detail); err != nil {
+	var d devType
+	if err := c.call("GET", fmt.Sprintf("/cli/devtype?yearPeriod=%d", year), nil, &d); err != nil {
 		if saved { // offline or refused: what was saved still stands
 			warn(lang, "statsFetchFailed", err)
-			return showDevType(lang, cache, true)
+			showDevType(lang, cache, true)
+			return nil
 		}
 		var ne net.Error
 		if errors.As(err, &ne) && ne.Timeout() { // aline.team finishes it anyway and keeps it
-
 			return failure("statsSlow")
 		}
 		return err
 	}
-	cache = devTypeCache{FetchedAt: time.Now(), Year: year, Account: c.creds.Email, Detail: detail}
-	var d devType
-	if json.Unmarshal(detail, &d) == nil && d.Title != "" { // nothing to analyse yet is not kept
+	cache = devTypeCache{FetchedAt: time.Now(), Year: year, Account: c.creds.Email, Detail: d}
+	if d.Title != "" { // nothing to analyse yet is not kept
 		if err := saveJSON(p, cache); err != nil {
 			return err
 		}
 	}
-	return showDevType(lang, cache, false)
+	showDevType(lang, cache, false)
+	return nil
 }
 
-func showDevType(lang string, cache devTypeCache, saved bool) error {
-	var d devType
-	if err := json.Unmarshal(cache.Detail, &d); err != nil {
-		return err
-	}
+func showDevType(lang string, cache devTypeCache, saved bool) {
+	d := cache.Detail
 	if d.Title == "" {
 		say(lang, "statsEmpty")
-		return nil
+		return
 	}
 	day := func(s string) string { // "2026-10-05T09:00:00" → "2026-10-05"
 		if len(s) >= 10 {
@@ -127,7 +125,6 @@ func showDevType(lang string, cache devTypeCache, saved bool) error {
 	if saved {
 		notice(fmt.Sprintf(tr(lang, "statsSaved"), cache.FetchedAt.Local().Format("2006-01-02")))
 	}
-	return nil
 }
 
 // scoreBar draws a 0-100 score as ten blocks, the empty part dim.
