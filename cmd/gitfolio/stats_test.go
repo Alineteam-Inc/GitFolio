@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 // gitfolio stats gets the developer type from aline.team the first time, keeps it, and shows the kept
@@ -76,6 +77,14 @@ func TestStats(t *testing.T) {
 	if f.devTypeCalls != 5 || !strings.Contains(buf.String(), "nothing to make a developer type from") {
 		t.Errorf("no data: %d calls in all, shown:\n%s", f.devTypeCalls, buf.String())
 	}
+	// Made too slowly, nothing kept: aline.team finishes it, so try again shortly.
+	f.devTypeWait = 200 * time.Millisecond
+	defer func(d time.Duration) { apiTimeout = d }(apiTimeout)
+	apiTimeout = 50 * time.Millisecond
+	if err := cmdStats(dir, nil); err == nil || !strings.Contains(err.Error(), "still making") {
+		t.Errorf("timeout: %v", err)
+	}
+
 	// Not logged in, nothing kept: log in first.
 	if err := cmdStats(t.TempDir(), nil); err == nil || !strings.Contains(err.Error(), "login") {
 		t.Errorf("logged out: %v", err)

@@ -604,6 +604,11 @@ var messages = map[string]map[string]string{
 		"ko": "aline.team에서 받지 못했습니다(%v). 이 컴퓨터에 저장한 결과를 보여 드립니다.\n",
 		"ja": "aline.team から取得できませんでした(%v)。このコンピューターに保存した結果を表示します。\n",
 	},
+	"statsSlow": {
+		"en": "aline.team is still making your developer type. It keeps it when done; run `gitfolio stats` again in a minute.\n",
+		"ko": "aline.team이 아직 개발자 유형을 만드는 중입니다. 다 만들면 aline.team에 저장되니 잠시 뒤 `gitfolio stats`를 다시 실행하세요.\n",
+		"ja": "aline.team はまだ開発者タイプを作成中です。完成すると aline.team に保存されるので、少し待ってからもう一度 `gitfolio stats` を実行してください。\n",
+	},
 	"statusMore": {
 		"en": "One repository in full: gitfolio status <name>\n",
 		"ko": "저장소 하나를 자세히 보려면: gitfolio status <이름>\n",

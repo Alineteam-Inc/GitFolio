@@ -71,6 +71,7 @@ type fakeAline struct {
 	// devType is what GET /cli/devtype answers (nil: the empty shell, nothing to analyse yet).
 	devType      map[string]any
 	devTypeCalls int
+	devTypeWait  time.Duration // how long it takes to make (longer than the client waits: a timeout)
 
 	// Data API. The handler holds mu; tests lock it to read.
 	mu       sync.Mutex
@@ -220,6 +221,7 @@ func (f *fakeAline) handler() http.Handler {
 	}
 	mux.HandleFunc("GET /cli/devtype", data(func(w http.ResponseWriter, r *http.Request) {
 		f.devTypeCalls++
+		time.Sleep(f.devTypeWait)
 		if r.URL.Query().Get("yearPeriod") == "" {
 			fail(w, 400, "C001")
 			return

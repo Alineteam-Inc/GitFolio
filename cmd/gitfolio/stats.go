@@ -3,7 +3,9 @@ package main
 import (
 	"cmp"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -75,6 +77,11 @@ func cmdStats(dir string, args []string) error {
 		if saved { // offline or refused: what was saved still stands
 			warn(lang, "statsFetchFailed", err)
 			return showDevType(lang, cache, true)
+		}
+		var ne net.Error
+		if errors.As(err, &ne) && ne.Timeout() { // aline.team finishes it anyway and keeps it
+
+			return failure("statsSlow")
 		}
 		return err
 	}

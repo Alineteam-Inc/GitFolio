@@ -91,6 +91,9 @@ type client struct {
 	relogin bool // logged in again once in this run (see call)
 }
 
+// apiTimeout is how long one request to aline.team may take.
+var apiTimeout = 30 * time.Second
+
 func newClient(dir string) (*client, error) {
 	cfg, err := loadConfig(dir)
 	if err != nil {
@@ -104,7 +107,7 @@ func newClient(dir string) (*client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &client{base: base, http: &http.Client{Timeout: 30 * time.Second}, dir: dir, creds: creds}, nil
+	return &client{base: base, http: &http.Client{Timeout: apiTimeout}, dir: dir, creds: creds}, nil
 }
 
 // credentialsFor loads the login for the aline.team API at base. A token issued by another server
