@@ -340,6 +340,7 @@ gitfolio remove [경로]         등록 해제 + 훅 복원 (--purge: 로컬 삭
 gitfolio scan [경로]           증분 수집 (--all: 등록된 전체, --rebuild: 재수집). 네트워크 없음
 gitfolio sync [--dry-run]      전체 증분 수집 후 미전송·변경분 전송 (--dry-run: 보낼 요청 그대로 출력)
 gitfolio list                  등록 저장소, 커밋 수, 훅 상태, 의존성 파일, 마지막 수집
+gitfolio status [이름|경로]     저장소별로 모은 것: 내 커밋 수, 그중 aline.team에 보낸 수(인증 대기면 waiting), 파일 변경 수, 추가·삭제 줄, AI 사용 비율, 언어(확장자 기준 변경 줄 비중, 데이터·문서 파일 제외), 찾은 의존성, 마지막 커밋. 이름·경로를 주면 그 저장소의 언어 전체·AI 에이전트·의존성 목록. 이 컴퓨터의 데이터만 읽는다(서버 요청 없음, 2026-10-06 사용자 요청)
 gitfolio export                로컬 데이터를 JSON으로 출력 (전송 형태와 같은 필드)
 gitfolio deps [on|off]         의존성 분석 상태 보기·켜기·끄기 (off: 로컬 삭제. 서버 전송·삭제는 서버 2차)
 gitfolio deps review [경로]    매니저 파일 승인·거절 변경, 확인 대기 처리

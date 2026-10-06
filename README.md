@@ -69,7 +69,8 @@ and logs you in again on the spot.
 gitfolio init                    # setup: data policy, sign-up/login, choose repositories
 gitfolio login | whoami | logout # log in with an email code / show the account / log out
 gitfolio add | remove <path>     # register a repository / unregister (--purge: delete its data here and on aline.team, web link included)
-gitfolio list                    # registered repositories and their status
+gitfolio list                    # registered repositories, hooks and dependency files
+gitfolio status [name]           # per repository: commits collected and sent, file changes, lines, AI use, languages, dependencies
 gitfolio sync [--dry-run]        # send what aline.team does not have yet (--dry-run: just show it)
 gitfolio config mask add <word>  # hide a customer or project name in commit messages
 gitfolio email add <email>       # another work email of yours (verify it with the emailed code to merge
@@ -157,7 +158,8 @@ gitfolio init
 gitfolio init                    # 설정: 데이터 정책, 가입·로그인, 저장소 선택
 gitfolio login | whoami | logout # 이메일 코드로 로그인 / 계정 확인 / 로그아웃
 gitfolio add | remove <경로>     # 저장소 등록 / 해제 (--purge: 이 컴퓨터와 aline.team의 데이터·웹 연동 삭제)
-gitfolio list                    # 등록 저장소와 상태
+gitfolio list                    # 등록 저장소, 훅, 의존성 파일
+gitfolio status [이름]           # 저장소별 모은 커밋·보낸 수, 파일 변경, 줄 수, AI 사용, 언어, 의존성
 gitfolio sync [--dry-run]        # aline.team에 없는 것만 전송 (--dry-run: 보여 주기만)
 gitfolio config mask add <단어>  # 커밋 메시지 속 고객사·프로젝트명 가리기
 gitfolio email add <이메일>      # 다른 작업 이메일 추가 (메일로 온 코드로 인증하면 aline.team 웹에서도

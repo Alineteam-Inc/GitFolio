@@ -36,6 +36,8 @@ commands:
                         does not have yet (--dry-run: print it as JSON, send nothing).
                         Pushes are sent right after git push unless autosync is off
   list                  show registered repositories
+  status [name|path]    what GitFolio collected per repository: commits, how many aline.team has,
+                        file changes, lines, AI use, languages, dependencies (this computer's data only)
   export                print collected commits as JSON
   deps [on|off|review [path]]
                         dependency detection: show status, turn it on (you choose which
@@ -143,6 +145,8 @@ func run(args []string) error {
 			return cmdSync(dir, args[1:])
 		case "list":
 			return cmdList(dir)
+		case "status":
+			return cmdStatus(dir, args[1:])
 		case "export":
 			return cmdExport(dir)
 		case "config":

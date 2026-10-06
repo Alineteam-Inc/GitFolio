@@ -569,6 +569,16 @@ var messages = map[string]map[string]string{
 		"ko": "이미 등록된 저장소입니다: %s\n",
 		"ja": "%s はすでに登録されています。\n",
 	},
+	"statusRepo": {
+		"en": "%s\nRepository: %s\nCommits: %d (sent: %s)\nFile changes: %d (lines +%d -%d, files created %d)\nAI-assisted: %s (%s)\nLanguages: %s\nDependencies: %s\nLast commit: %s\n",
+		"ko": "%s\n저장소: %s\n커밋: %d (보냄: %s)\n파일 변경: %d (줄 +%d -%d, 새로 만든 파일 %d)\nAI 사용: %s (%s)\n언어: %s\n의존성: %s\n마지막 커밋: %s\n",
+		"ja": "%s\nリポジトリ: %s\nコミット: %d (送信済み: %s)\nファイル変更: %d (行 +%d -%d、新規ファイル %d)\nAI 利用: %s (%s)\n言語: %s\n依存関係: %s\n最終コミット: %s\n",
+	},
+	"statusMore": {
+		"en": "One repository in full: gitfolio status <name>\n",
+		"ko": "저장소 하나를 자세히 보려면: gitfolio status <이름>\n",
+		"ja": "1 つのリポジトリの詳細: gitfolio status <名前>\n",
+	},
 	"notRegistered": {
 		"en": "%s is not registered.\n",
 		"ko": "등록되지 않은 저장소입니다: %s\n",
