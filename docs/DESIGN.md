@@ -64,7 +64,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 | 항목 | 결정 | 이유 |
 |---|---|---|
 | 언어 | Go | 크로스 컴파일, 단일 바이너리 |
-| 라이선스 | MIT (Alineteam Inc.). 파생판 허용 | 통제는 라이선스가 아니라 이름·로고("GitFolio"·"aline.team", 파생판은 다른 이름·로고)와 aline.team API 이용약관으로 한다 (2026-10-02 사용자 결정, GPL-3.0·PolyForm Shield 검토 후 MIT 유지). `stats`의 개발자 유형 아이콘도 이름·로고처럼 라이선스에서 뺀다 (2026-10-06 사용자 결정) |
+| 라이선스 | Apache-2.0 + NOTICE (Alineteam Inc.). 파생판 허용, 원작자 표시 의무 | 2차 제작물은 LICENSE와 NOTICE(원작자 Alineteam Inc.)를 함께 배포하고 고친 파일을 표시해야 한다 (2026-10-06 사용자 결정: MIT는 저작권 문구 유지만 요구해 눈에 보이는 원작자 표시가 없음. v0.4.1까지는 MIT). 통제는 라이선스가 아니라 이름·로고("GitFolio"·"aline.team", 파생판은 다른 이름·로고)와 aline.team API 이용약관으로 한다 (2026-10-02 사용자 결정, GPL-3.0·PolyForm Shield 검토 후 MIT 유지). `stats`의 개발자 유형 아이콘도 이름·로고처럼 라이선스에서 뺀다 (2026-10-06 사용자 결정) |
 | git 연동 | `git` 명령 실행 후 출력 파싱 | 라이브러리(go-git) 불필요, 사용자 환경의 git 설정(mailmap, includeIf) 그대로 반영 |
 | CLI 파싱 | 표준 라이브러리 `flag` | 서브커맨드 수가 적어 프레임워크 불필요 |
 | 로컬 저장 | JSON (설정), JSON Lines (커밋) | 표준 라이브러리로 처리, 사람이 읽을 수 있음 |
@@ -417,7 +417,7 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
 /_/   \_\|_____||___||_| \_||_____|  |_|  |_____|/_/   \_\|_|  |_|
  =================================================================
  :: GitFolio ::                                          (v0.1.0)
- MIT License - Copyright (c) 2026 Alineteam Inc.
+ Apache License 2.0 - Copyright (c) 2026 Alineteam Inc.
 
  [Data Policy]
  - Source code is never collected.

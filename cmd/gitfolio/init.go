@@ -25,7 +25,7 @@ const logo = `    _     _      ___  _   _  _____  _____  _____     _     __  __
 // header is the logo with version and license; shown by init and version only, never by hooks.
 func header() string {
 	return indent(logo + fmt.Sprintf(" :: GitFolio :: %48s\n", "("+version+")") +
-		" MIT License - Copyright (c) 2026 Alineteam Inc.\n")
+		" Apache License 2.0 - Copyright (c) 2026 Alineteam Inc.\n")
 }
 
 // Credentials live in their own file with owner-only permissions. Nothing here is ever printed.

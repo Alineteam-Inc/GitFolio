@@ -21,7 +21,7 @@ archives:
     format_overrides:
       - goos: windows # install.ps1 unpacks it with Expand-Archive
         formats: [zip]
-    files: [LICENSE, README.md]
+    files: [LICENSE, NOTICE, README.md]
 
 checksum:
   name_template: checksums.txt
@@ -42,7 +42,7 @@ homebrew_casks:
         private_key: "{{ .Env.HOMEBREW_TAP_DEPLOY_KEY }}"
     homepage: https://aline.team
     description: Turn your git history into a verified developer portfolio
-    license: MIT
+    license: Apache-2.0
     caveats: |
       Run `gitfolio init` to choose the repositories to collect.
     # The binary is not signed or notarized yet, so macOS would block the quarantined download.
