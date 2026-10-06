@@ -68,6 +68,9 @@ type fakeAline struct {
 	noMove  bool   // an older server without the move call
 	moves   int    // repository moves made
 	pend    string // the work email a code was sent to
+	// devType is what GET /cli/devtype answers (nil: the empty shell, nothing to analyse yet).
+	devType      map[string]any
+	devTypeCalls int
 
 	// Data API. The handler holds mu; tests lock it to read.
 	mu       sync.Mutex
@@ -215,6 +218,18 @@ func (f *fakeAline) handler() http.Handler {
 			}
 		}
 	}
+	mux.HandleFunc("GET /cli/devtype", data(func(w http.ResponseWriter, r *http.Request) {
+		f.devTypeCalls++
+		if r.URL.Query().Get("yearPeriod") == "" {
+			fail(w, 400, "C001")
+			return
+		}
+		if f.devType == nil {
+			ok(w, map[string]any{"devTypeTitle": nil})
+			return
+		}
+		ok(w, f.devType)
+	}))
 	mux.HandleFunc("POST /cli/commits/batch", data(func(w http.ResponseWriter, r *http.Request) {
 		var in commitBatch // one repository per request
 		if r.ContentLength > 100<<20 || json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" || in.AuthorEmail == "" || len(in.Commits) == 0 || len(in.Commits) > batchSize || len(in.ModifiedFiles) > maxModified {
