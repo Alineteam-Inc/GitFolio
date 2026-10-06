@@ -86,3 +86,6 @@ func enableColor() bool {
 	r, _, _ := syscall.NewLazyDLL("kernel32.dll").NewProc("SetConsoleMode").Call(uintptr(h), uintptr(mode|virtualTerminalProcessing))
 	return r != 0
 }
+
+// openTTY opens the console, also when stdout and stderr go elsewhere (a git hook).
+func openTTY() (*os.File, error) { return os.OpenFile("CONOUT$", os.O_WRONLY, 0) }
