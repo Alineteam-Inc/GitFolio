@@ -87,6 +87,9 @@ func run(args []string) error {
 		fmt.Print(header())
 		return nil
 	}
+	if args[0] != "hook" && !slices.Contains(commands, args[0]) { // before anything else runs for a typo
+		return unknownCommand(args[0])
+	}
 	if _, err := exec.LookPath("git"); err != nil {
 		return failure("noGit")
 	}
@@ -158,8 +161,71 @@ func run(args []string) error {
 		case "email":
 			return cmdEmail(dir, args[1:])
 		}
-		return failure("unknownCommand", args[0])
+		return unknownCommand(args[0])
 	})
+}
+
+// commands are the commands people type; "hook" is run by git hooks only and never suggested.
+var commands = []string{"init", "login", "logout", "whoami", "add", "remove", "scan", "sync", "list", "status",
+	"export", "config", "deps", "schedule", "email", "history", "update", "version", "help"}
+
+// unknownCommand names the commands the user may have meant (similarCommands), or points to help.
+func unknownCommand(s string) error {
+	like := similarCommands(s)
+	if len(like) == 0 {
+		return failure("unknownCommand", s)
+	}
+	for i, c := range like {
+		like[i] = "`gitfolio " + c + "`"
+	}
+	return failure("didYouMean", s, strings.Join(like, ", "))
+}
+
+// similarCommands are the commands s may have meant: version for -v and --version, the commands s
+// starts (sta: status), then misspellings one or two edits away (stauts: status; one for short names).
+func similarCommands(s string) []string {
+	s = strings.ToLower(strings.TrimLeft(s, "-"))
+	if s == "v" || s == "version" {
+		return []string{"version"}
+	}
+	var prefix, close []string
+	for _, c := range commands {
+		switch d := editDistance(s, c); {
+		case len(s) >= 2 && strings.HasPrefix(c, s):
+			prefix = append(prefix, c)
+		case d <= 1 || (d == 2 && len(c) > 4):
+			close = append(close, c)
+		}
+	}
+	slices.SortStableFunc(close, func(a, b string) int { return editDistance(s, a) - editDistance(s, b) }) // closest first
+	return append(prefix, close...)
+}
+
+// editDistance counts the insertions, deletions, substitutions and swaps of neighbouring letters that
+// turn a into b (optimal string alignment distance).
+func editDistance(a, b string) int {
+	x, y := []rune(a), []rune(b)
+	d := make([][]int, len(x)+1)
+	for i := range d {
+		d[i] = make([]int, len(y)+1)
+		d[i][0] = i
+	}
+	for j := range d[0] {
+		d[0][j] = j
+	}
+	for i := 1; i <= len(x); i++ {
+		for j := 1; j <= len(y); j++ {
+			cost := 1
+			if x[i-1] == y[j-1] {
+				cost = 0
+			}
+			d[i][j] = min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+cost)
+			if i > 1 && j > 1 && x[i-1] == y[j-2] && x[i-2] == y[j-1] {
+				d[i][j] = min(d[i][j], d[i-2][j-2]+1)
+			}
+		}
+	}
+	return d[len(x)][len(y)]
 }
 
 // collects reports whether the command reads repositories. Nothing is collected before an aline.team
