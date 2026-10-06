@@ -13,7 +13,7 @@
 ## 프로젝트
 
 - GitFolio: 본인이 작성·push한 커밋의 **메타데이터만** 모아(소스 코드 없음) Alineteam Inc.의 aline.team으로 보내 개발 프로필·이력서를 만드는 CLI
-- Go, 표준 라이브러리만, `CGO_ENABLED=0`, git은 명령 실행으로 사용. MIT (Alineteam Inc.). 바이너리 `cmd/gitfolio`
+- Go, 표준 라이브러리만, `CGO_ENABLED=0`, git은 명령 실행으로 사용. Apache-2.0 + NOTICE (Alineteam Inc., v0.4.1까지 MIT). 바이너리 `cmd/gitfolio`
 - 대상 OS: **macOS·Linux·Windows** 모두 (amd64·arm64). 경로는 `filepath`, OS별 코드는 `platform_unix.go`·`platform_windows.go`
 - 서버는 별도 비공개 저장소. 계약과 서버 상태는 위 비공개 문서가 기준. CLI 상태가 바뀌면(dev 검증 통과, `main` 병합, 릴리스) 그 문서에 기록한다. 문서를 볼 수 없으면 사용자에게 확인한다
 - **이 저장소는 공개다.** 서버 내부 정보(서버 주소·기술 스택·키 형식·제한 수치·약점, DB·검색 인덱스 이름, 배포 경위, 서버 커밋), 개인 이메일, 비공개 문서의 위치·구성, 작업 계획·진행 현황·잔여 작업은 커밋하지 않고 비공개 문서에 쓴다 (2026-10-02·03 사용자 결정)
