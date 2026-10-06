@@ -269,9 +269,9 @@ var messages = map[string]map[string]string{
 		"ja": "代表メールアドレスを %s に変更しました。\naline.team にすでにあるリポジトリは最初のアドレスのまま集計され、新しいリポジトリからこのアドレスを使います。\n",
 	},
 	"emailUnverified": {
-		"en": "✓ = verified. aline.team takes commits only under verified emails, and merges the repositories\nyou linked on the web under them; verify one with `gitfolio email verify <email>`.\n",
-		"ko": "✓ = 인증됨. aline.team은 인증된 이메일의 커밋만 받고, 웹에서 그 이메일로 연동한 저장소와 하나로 합칩니다.\n`gitfolio email verify <이메일>`로 인증하세요.\n",
-		"ja": "✓ = 認証済み。aline.team は認証済みのアドレスのコミットのみを受け付け、Web でそのアドレスで連携したリポジトリと\n1 つにまとめます。`gitfolio email verify <メールアドレス>` で認証してください。\n",
+		"en": "✔ = verified. aline.team takes commits only under verified emails, and merges the repositories\nyou linked on the web under them; verify one with `gitfolio email verify <email>`.\n",
+		"ko": "✔ = 인증됨. aline.team은 인증된 이메일의 커밋만 받고, 웹에서 그 이메일로 연동한 저장소와 하나로 합칩니다.\n`gitfolio email verify <이메일>`로 인증하세요.\n",
+		"ja": "✔ = 認証済み。aline.team は認証済みのアドレスのコミットのみを受け付け、Web でそのアドレスで連携したリポジトリと\n1 つにまとめます。`gitfolio email verify <メールアドレス>` で認証してください。\n",
 	},
 	"emailVerified": {
 		"en": "%s is verified.\n",
@@ -574,6 +574,16 @@ var messages = map[string]map[string]string{
 		"ko": "%s\n저장소: %s\n커밋: %d (보냄: %s)\n파일 변경: %d (줄 +%d -%d, 새로 만든 파일 %d)\nAI 사용: %s (%s)\n언어: %s\n의존성: %s\n마지막 커밋: %s\n",
 		"ja": "%s\nリポジトリ: %s\nコミット: %d (送信済み: %s)\nファイル変更: %d (行 +%d -%d、新規ファイル %d)\nAI 利用: %s (%s)\n言語: %s\n依存関係: %s\n最終コミット: %s\n",
 	},
+	"statusTitle": {
+		"en": "%d registered repositories (this computer's data)\n",
+		"ko": "등록 저장소 %d개 (이 컴퓨터의 데이터)\n",
+		"ja": "登録リポジトリ %d 件(このコンピューターのデータ)\n",
+	},
+	"statusNone": {
+		"en": "No repositories registered yet. Add one with `gitfolio add <path>`, or choose them with `gitfolio init`.\n",
+		"ko": "등록한 저장소가 없습니다. `gitfolio add <경로>`로 추가하거나 `gitfolio init`으로 고르세요.\n",
+		"ja": "登録したリポジトリはまだありません。`gitfolio add <パス>` で追加するか、`gitfolio init` で選んでください。\n",
+	},
 	"statusMore": {
 		"en": "One repository in full: gitfolio status <name>\n",
 		"ko": "저장소 하나를 자세히 보려면: gitfolio status <이름>\n",
@@ -625,9 +635,9 @@ var messages = map[string]map[string]string{
 		"ja": "GitFolio %s が公開されています(現在 %s)。今すぐ更新しますか? [Y/n] > ",
 	},
 	"updateNotice": {
-		"en": "version %s is out (you have %s). Update with `gitfolio update`.\n",
-		"ko": "새 버전 %s이(가) 나왔습니다 (지금 %s). `gitfolio update`로 업데이트하세요.\n",
-		"ja": "新しいバージョン %s が公開されています(現在 %s)。`gitfolio update` で更新してください。\n",
+		"en": "GitFolio %s is out (you have %s). Update with `gitfolio update`.\n",
+		"ko": "GitFolio 새 버전 %s이(가) 나왔습니다 (지금 %s). `gitfolio update`로 업데이트하세요.\n",
+		"ja": "GitFolio の新しいバージョン %s が公開されています(現在 %s)。`gitfolio update` で更新してください。\n",
 	},
 	"updated": {
 		"en": "Updated GitFolio to %s. Run the command again.\n",

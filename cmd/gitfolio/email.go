@@ -57,7 +57,7 @@ func noreply(email string) bool {
 	return strings.HasPrefix(domain, "users.noreply.")
 }
 
-// emailList shows the work emails, the primary marked with ★ and, when logged in, the verified ones with ✓.
+// emailList shows the work emails, the primary marked with ★ and, when logged in, the verified ones with ✔.
 func emailList(lang string, cfg Config, creds Credentials) string {
 	if len(cfg.Emails) == 0 {
 		return tr(lang, "emailNone")
@@ -69,7 +69,7 @@ func emailList(lang string, cfg Config, creds Credentials) string {
 		case noreply(e):
 			s += " (noreply)"
 		case creds.Token != "" && verified(creds, e):
-			s += " ✓"
+			s += " " + symDone
 		case creds.Token != "":
 			unverified = true
 		}
@@ -111,7 +111,7 @@ func cmdEmail(dir string, args []string) error {
 		return err
 	}
 	if c.loggedIn() {
-		_, _ = c.me() // fresh ✓ marks; offline, the last known ones
+		_, _ = c.me() // fresh ✔ marks; offline, the last known ones
 	}
 	if len(args) == 0 {
 		show(out, emailList(lang, cfg, c.creds))

@@ -239,7 +239,7 @@ func chooseEmails(lang string, creds Credentials, have, repos []string) []string
 		case noreply(e):
 			state = "noreply"
 		case verified(creds, e):
-			state = "✓"
+			state = symDone
 		}
 		fmt.Fprintf(w, "%s  %d\t%s\t%s\t%s\n", margin, i+1, e, fmt.Sprintf(tr(lang, "emailRepoCount"), uses[e]), state)
 	}
