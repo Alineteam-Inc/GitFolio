@@ -1,6 +1,6 @@
 # GitFolio 기획·설계 문서
 
-> 상태: 초안 (2026-09-27) · 구현 전 합의 사항 기록 · 구현 순서와 진행 현황은 비공개 로드맵
+> 상태: 초안 (2026-09-27) · 구현 전 합의 사항 기록
 
 ---
 
@@ -84,7 +84,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 | 커밋 해시 | `%H` | 원본 그대로 저장·전송. git 서비스에서 커밋 실재를 검증하는 근거 (`hash`) |
 | 작성자 이메일 | `%aE` (mailmap 반영) | 본인 식별에 쓴 이메일 (`authorEmail`) |
 | 작성 형태 | `%aN`, `%aE`, 메시지 트레일러·문구 (5장) | 마스킹 **전** 원문으로 판정. `creationType`(`HUMAN` / `HUMAN_CO_AI` / `AI_CO_HUMAN`), `aiAgents`(예: `["claude-code"]`) |
-| 저장소 namespace | `git remote get-url --push origin` (없으면 첫 번째 원격). push 주소가 가져오기 주소와 다르면 push 주소, 여럿이면 첫 번째 — 커밋이 실제로 올라간 곳. push 주소가 git 서비스가 아니면(로컬 미러 등) 가져오기 주소. 등록 저장소의 주소가 바뀌면(`git remote set-url`, 이 규칙 변경) scan이 주소 변경을 대기열에 넣고, 다음 sync가 커밋보다 먼저 aline.team에 알려 서버의 저장소 이름을 바꾸게 한다 — 커밋을 새 이름으로 다시 보내지 않아 이중 집계가 없다. 이 기능을 모르는 서버면 예전처럼 새 이름으로 다시 보낸다 (2026-10-02 사용자 결정, 서버 계약 확정 대기) (2026-10-02 사용자 결정. 그 전에는 가져오기 주소라 가져오기 GitLab·push GitHub 저장소가 GitLab으로 잡혔다) | 원격 URL에서 `소유자/저장소`만 추출 (`namespace`, 예: `Alineteam-Inc/GitFolio`). 호스트·인증 정보(`https://user:token@…`)·포트·`.git`은 버림. aline.team 서버가 이 값으로 git 서비스 API를 조회해 저장소를 확정하고 커밋 실재를 검증 |
+| 저장소 namespace | `git remote get-url --push origin` (없으면 첫 번째 원격). push 주소가 가져오기 주소와 다르면 push 주소, 여럿이면 첫 번째 — 커밋이 실제로 올라간 곳. push 주소가 git 서비스가 아니면(로컬 미러 등) 가져오기 주소. 등록 저장소의 주소가 바뀌면(`git remote set-url`, 이 규칙 변경) scan이 주소 변경을 대기열에 넣고, 다음 sync가 커밋보다 먼저 aline.team에 알려 서버의 저장소 이름을 바꾸게 한다 — 커밋을 새 이름으로 다시 보내지 않아 이중 집계가 없다. 이 기능을 모르는 서버면 예전처럼 새 이름으로 다시 보낸다 (2026-10-02 사용자 결정. 그 전에는 가져오기 주소라 가져오기 GitLab·push GitHub 저장소가 GitLab으로 잡혔다) | 원격 URL에서 `소유자/저장소`만 추출 (`namespace`, 예: `Alineteam-Inc/GitFolio`). 호스트·인증 정보(`https://user:token@…`)·포트·`.git`은 버림. aline.team 서버가 이 값으로 git 서비스 API를 조회해 저장소를 확정하고 커밋 실재를 검증 |
 | git 서비스 | 원격 URL의 호스트 | `provider`: `GITHUB`, `GITLAB`, `BITBUCKET`, `DEVOPS`(Azure DevOps: `dev.azure.com`, `*.visualstudio.com`), 그 외(사내 서버 포함)는 `OTHER`. 호스트 자체는 전송하지 않음. Azure DevOps의 `namespace`는 `조직/프로젝트/저장소` (`_git`·`v3`·`DefaultCollection` 제거, 옛 `조직.visualstudio.com`은 호스트의 조직명을 앞에 붙임) — aline.team이 이것으로 `https://dev.azure.com/조직/프로젝트/_git/저장소`를 만듦. **원칙: `provider`+`namespace`로 서버가 만드는 주소는 git 서비스 웹 UI의 공유 주소와 같아야 한다** (GitHub `https://github.com/소유자/저장소`, GitLab `https://gitlab.com/그룹/하위그룹/프로젝트`, Bitbucket `https://bitbucket.org/워크스페이스/저장소`, Azure DevOps `https://dev.azure.com/조직/프로젝트/_git/저장소`, 경로 조각마다 퍼센트 인코딩). 원격 URL 형태별 기대 주소는 `scan_test.go` `TestRemoteGivesWebURL` |
 | 시점 | `%aI` (author date) | ISO 8601, 타임존 포함 |
 | 브랜치 | 원격 추적 브랜치 (`refs/remotes/…`) | 커밋이 있는 원격 브랜치 이름 하나 (`branch`, 원격 이름 제외). 기본 브랜치(`origin/HEAD`)에 들어간 커밋은 그 이름, 아니면 push된 브랜치. 웹 GitHub 연동 결과와 같은 커밋으로 합쳐지는 기준. **마스킹하지 않음** (사용자 결정 2026-09-29: 웹 연동 결과와 같은 문서로 합쳐지도록 원래 이름 그대로. 금지어도 적용 안 함) |
@@ -269,7 +269,6 @@ my-web
 | 토큰 취급 | 사용자에게 표시하지 않음. 로그·에러 메시지·`--dry-run` 출력에도 표시하지 않음. 커밋 메시지에 섞이면 마스킹(`aln_cli_` 패턴) |
 | 수명 | **활동 기반 슬라이딩 만료**: 인증된 호출(push 직후 전송·sync)이 있으면 연장, **일정 기간 활동이 없으면 서버가 폐기**. 평소 push하는 사용자는 로그인이 유지됨 |
 | 만료·폐기 | 서버가 `A001`(또는 `A000`)로 거부하면 로컬 토큰을 삭제한다. 터미널에서 실행 중이면 안내만 하지 않고 **바로 로그인으로 이어진다**: 등록된 계정 이메일로 확인 코드를 곧바로 보내고, 등록된 이메일이 없거나 그 이메일로 실패하면 이메일을 다시 입력받아 로그인한다. 로그인되면 실패한 요청을 한 번 다시 보낸다(실행당 한 번). 로그인이 필요한 명령(`add`·`scan`·`sync`·`deps on|review|scan`·`whoami`·`email verify`)도 로그인이 없으면 같은 흐름으로 들어간다. 훅·예약 실행처럼 물을 수 없으면 토큰만 지우고, 다음 대화형 명령이 로그인시킨다. 만료 후 재로그인 경로에서는 새 계정을 만들지 않는다(이메일을 다시 입력한 경우는 일반 로그인과 같음). **토큰 자동 재발급은 없음** (2026-10-03 사용자 결정) |
-| 기기 분실·교체 | aline.team 웹에서 기기별 토큰을 폐기할 수 있게 한다 (예정) |
 | 로그아웃 | `logout`: 서버에 토큰 폐기 요청(실패해도 진행) + 로컬 토큰 삭제 |
 
 - **기기 키(ed25519) 방식은 채택하지 않음** (서버 결정, 2026-09-29): 개인 키와 토큰이 같은 `credentials.json`에 있어 보안 이득이 작다는 판단. 토큰 만료 시 재로그인
@@ -343,7 +342,7 @@ gitfolio list                  등록 저장소, 커밋 수, 훅 상태, 의존�
 gitfolio status [이름|경로]     저장소별로 모은 것: 내 커밋 수, 그중 aline.team에 보낸 수(인증 대기면 waiting), 파일 변경 수, 추가·삭제 줄, AI 사용 비율, 언어(확장자 기준 변경 줄 비중, 데이터·문서 파일 제외), 찾은 의존성, 마지막 커밋. 이름·경로를 주면 그 저장소의 언어 전체·AI 에이전트·의존성 목록. 출력은 7.1 규칙대로: 요약은 결과(✔) 문단 아래 표(머리줄 흐리게), 상세는 정렬된 "항목: 값", 의존성 목록과 안내는 ℹ, 인증 대기는 ⚠. 이 컴퓨터의 데이터만 읽는다(서버 요청 없음, 2026-10-06 사용자 요청)
 gitfolio stats [--refresh]      aline.team이 보낸 커밋으로 만든 개발자 유형(유형·설명·해시태그·주 포지션, 민첩성·안정성·기여도·적응성·일관성 0~100과 AI 활용 값). 이 컴퓨터에 저장한 것이 있으면(올해·같은 계정) 그것을 보여 주고, 없거나 --refresh면 aline.team에서 받는다(aline.team은 없으면 그때 만든다) → 화면에 쓰는 값만 devtype.json에 저장(계정 이메일·공유 코드·이유 문구 등 나머지는 저장하지 않음). 받지 못하면 저장본과 경고. 저장본 없이 시간 초과(요청 30초)면 aline.team이 마저 만들어 저장하므로 잠시 뒤 다시 실행하라고 안내. 분석할 데이터가 없으면 저장하지 않고 안내. 데이터 잠금 밖에서 실행(서버를 기다리는 동안 push가 막히지 않게) (2026-10-06 사용자 요청)
 gitfolio export                로컬 데이터를 JSON으로 출력 (전송 형태와 같은 필드)
-gitfolio deps [on|off]         의존성 분석 상태 보기·켜기·끄기 (off: 로컬 삭제. 서버 전송·삭제는 서버 2차)
+gitfolio deps [on|off]         의존성 분석 상태 보기·켜기·끄기 (off: 로컬 삭제)
 gitfolio deps review [경로]    매니저 파일 승인·거절 변경, 확인 대기 처리
 gitfolio deps scan [경로] [--all]  승인한 매니저 파일을 다시 읽어 의존성 갱신 (push·scan·sync는 읽지 않음, 3.5)
 gitfolio config                현재 설정 출력
@@ -362,8 +361,6 @@ gitfolio hook post-commit|pre-push|push-wait   (내부용, 훅에서 호출)
 ```
 
 모르는 명령은 다른 처리(업데이트 확인 등)보다 먼저 거른다. 비슷한 명령이 있으면 "`gitfolio status`을(를) 찾으셨나요?"로 안내한다: `-v`·`--version`은 `version`, 입력으로 시작하는 명령(`sta` → `status`·`stats`), 철자가 1자(짧은 명령)·2자 이내로 다른 명령(글자 순서 바뀜 포함, 가까운 것부터). 없으면 `gitfolio help` 안내 (2026-10-06 사용자 요청)
-
-미구현 (데스크톱 앱·편의 기능, 필요할 때): `list --json`·`sync --json`(앱용 출력), `list`의 저장소별 미전송 수, `export --format md`·`--since`·`-o 파일`
 
 `[경로]` 생략 시 현재 디렉터리.
 
