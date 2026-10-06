@@ -97,3 +97,36 @@ func TestStats(t *testing.T) {
 		t.Errorf("logged out: %v", err)
 	}
 }
+
+// Each developer type has its picture, 11 squares wide in known colors, drawn only in color.
+func TestDevTypeArt(t *testing.T) {
+	for _, title := range []string{"BUILDER", "EXPLORER", "FIXER", "KEEPER", "LEADER", "SPRINTER"} {
+		art := devTypeArt[title]
+		if len(art) == 0 {
+			t.Errorf("%s has no picture", title)
+		}
+		for _, row := range art {
+			bad := strings.IndexFunc(row, func(c rune) bool { _, ok := devTypeColors[c]; return !ok && c != '.' })
+			if len(row) != 11 || bad >= 0 {
+				t.Errorf("%s row %q", title, row)
+			}
+		}
+	}
+	var buf bytes.Buffer
+	defer func(o io.Writer, c bool) { out, useColor = o, c }(out, useColor)
+	out = &buf
+	useColor = false
+	drawDevType("EXPLORER")
+	if buf.Len() != 0 {
+		t.Errorf("drawn without color:\n%s", buf.String())
+	}
+	useColor = true
+	drawDevType("EXPLORER")
+	if n := strings.Count(buf.String(), "\n"); n != len(devTypeArt["EXPLORER"]) || !strings.Contains(buf.String(), "\x1b[38;5;68m██") {
+		t.Errorf("EXPLORER drawn in %d lines:\n%s", n, buf.String())
+	}
+	n := buf.Len()
+	if drawDevType("UNKNOWN"); buf.Len() != n { // a type this version does not know
+		t.Error("an unknown type was drawn")
+	}
+}
