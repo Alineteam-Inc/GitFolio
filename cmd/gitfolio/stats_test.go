@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"io"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +17,7 @@ func TestStats(t *testing.T) {
 	f := &fakeAline{token: testToken, devType: map[string]any{
 		"devTypeTitle": "ARCHITECT", "devTypeDescription": "Designs systems", "devTypeComputedAt": "2026-10-05T09:00:00",
 		"agilityStat": 72, "agilityStatAi": 65, "stabilityStat": 80, "devTypeTitleAi": "PIONEER", "dominantPosition": "BACKEND",
+		"userEmail": "dev@example.com", "sharedCode": "shareXYZ", "devTypeReason": "because",
 	}}
 	ts := httptest.NewServer(f.handler())
 	defer ts.Close()
@@ -37,6 +40,10 @@ func TestStats(t *testing.T) {
 	if f.devTypeCalls != 1 || !strings.Contains(buf.String(), "ARCHITECT") || !strings.Contains(buf.String(), "72") ||
 		!strings.Contains(buf.String(), "AI 65") || !strings.Contains(buf.String(), "PIONEER") {
 		t.Fatalf("first run: %d calls, shown:\n%s", f.devTypeCalls, buf.String())
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, devTypeFile)); !strings.Contains(string(b), "ARCHITECT") ||
+		strings.Contains(string(b), "shareXYZ") || strings.Contains(string(b), "userEmail") || strings.Contains(string(b), "because") {
+		t.Errorf("kept more than is shown:\n%s", b)
 	}
 	buf.Reset()
 	must(cmdStats(dir, nil)) // kept: no request
