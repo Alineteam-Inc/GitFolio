@@ -122,7 +122,8 @@ func TestDevTypeArt(t *testing.T) {
 	}
 	useColor = true
 	drawDevType("EXPLORER")
-	if n := strings.Count(buf.String(), "\n"); n != len(devTypeArt["EXPLORER"]) || !strings.Contains(buf.String(), "\x1b[38;5;68m██") {
+	// two squares a line: blue over yellow where the window starts
+	if n := strings.Count(buf.String(), "\n"); n != (len(devTypeArt["EXPLORER"])+1)/2 || !strings.Contains(buf.String(), "\x1b[38;5;68;48;5;187m▀") {
 		t.Errorf("EXPLORER drawn in %d lines:\n%s", n, buf.String())
 	}
 	n := buf.Len()
