@@ -38,6 +38,8 @@ commands:
   list                  show registered repositories
   status [name|path]    what GitFolio collected per repository: commits, how many aline.team has,
                         file changes, lines, AI use, languages, dependencies (this computer's data only)
+  stats [--refresh]     your developer type and its five scores from aline.team, saved here after the
+                        first time (--refresh: get it again; aline.team makes it if it has none yet)
   export                print collected commits as JSON
   deps [on|off|review [path]]
                         dependency detection: show status, turn it on (you choose which
@@ -135,6 +137,8 @@ func run(args []string) error {
 		return cmdHistory(dir, args[1:]) // only reads
 	case "update":
 		return cmdUpdate(dir)
+	case "stats":
+		return cmdStats(dir, args[1:]) // outside the lock: it may wait on aline.team
 	}
 	return withLock(dir, func() error {
 		switch args[0] {
@@ -167,7 +171,7 @@ func run(args []string) error {
 
 // commands are the commands people type; "hook" is run by git hooks only and never suggested.
 var commands = []string{"init", "login", "logout", "whoami", "add", "remove", "scan", "sync", "list", "status",
-	"export", "config", "deps", "schedule", "email", "history", "update", "version", "help"}
+	"stats", "export", "config", "deps", "schedule", "email", "history", "update", "version", "help"}
 
 // unknownCommand names the commands the user may have meant (similarCommands), or points to help.
 func unknownCommand(s string) error {

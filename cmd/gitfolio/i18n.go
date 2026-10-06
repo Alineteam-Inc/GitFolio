@@ -584,6 +584,26 @@ var messages = map[string]map[string]string{
 		"ko": "등록한 저장소가 없습니다. `gitfolio add <경로>`로 추가하거나 `gitfolio init`으로 고르세요.\n",
 		"ja": "登録したリポジトリはまだありません。`gitfolio add <パス>` で追加するか、`gitfolio init` で選んでください。\n",
 	},
+	"statsType": {
+		"en": "Developer type: %s (%d, made %s)\nDescription: %s\nHashtags: %s\nMain position: %s\nAgility: %s\nStability: %s\nContribution: %s\nAdaptability: %s\nConsistency: %s\nWith AI: %s\n",
+		"ko": "개발자 유형: %s (%d년, 산출 %s)\n설명: %s\n해시태그: %s\n주 포지션: %s\n민첩성: %s\n안정성: %s\n기여도: %s\n적응성: %s\n일관성: %s\nAI 활용 유형: %s\n",
+		"ja": "開発者タイプ: %s (%d年、算出 %s)\n説明: %s\nハッシュタグ: %s\n主なポジション: %s\n俊敏性: %s\n安定性: %s\n貢献度: %s\n適応性: %s\n一貫性: %s\nAI 活用タイプ: %s\n",
+	},
+	"statsEmpty": {
+		"en": "aline.team has nothing to make a developer type from yet. Send commits first (`gitfolio sync`), then run `gitfolio stats` again.\n",
+		"ko": "aline.team에 아직 개발자 유형을 만들 데이터가 없습니다. 먼저 커밋을 보낸 뒤(`gitfolio sync`) `gitfolio stats`를 다시 실행하세요.\n",
+		"ja": "aline.team にはまだ開発者タイプを作るデータがありません。先にコミットを送信し(`gitfolio sync`)、もう一度 `gitfolio stats` を実行してください。\n",
+	},
+	"statsSaved": {
+		"en": "Saved here on %s. Get it again from aline.team: gitfolio stats --refresh\n",
+		"ko": "%s에 이 컴퓨터에 저장한 결과입니다. aline.team에서 다시 받으려면: gitfolio stats --refresh\n",
+		"ja": "%s にこのコンピューターに保存した結果です。aline.team から取り直すには: gitfolio stats --refresh\n",
+	},
+	"statsFetchFailed": {
+		"en": "Could not get it from aline.team (%v); here is the one saved on this computer.\n",
+		"ko": "aline.team에서 받지 못했습니다(%v). 이 컴퓨터에 저장한 결과를 보여 드립니다.\n",
+		"ja": "aline.team から取得できませんでした(%v)。このコンピューターに保存した結果を表示します。\n",
+	},
 	"statusMore": {
 		"en": "One repository in full: gitfolio status <name>\n",
 		"ko": "저장소 하나를 자세히 보려면: gitfolio status <이름>\n",

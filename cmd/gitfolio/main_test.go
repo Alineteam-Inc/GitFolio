@@ -10,9 +10,10 @@ func TestSimilarCommands(t *testing.T) {
 	for in, want := range map[string][]string{
 		"-v":        {"version"},
 		"--version": {"version"},
-		"sta":       {"status"},
-		"st":        {"status"},
-		"stauts":    {"status"},
+		"sta":       {"status", "stats"},
+		"st":        {"status", "stats"},
+		"stat":      {"status", "stats"},
+		"stauts":    {"status", "stats"}, // one swap from status, one letter from stats
 		"lsit":      {"list"},
 		"lgoin":     {"login"},
 		"verison":   {"version"},
