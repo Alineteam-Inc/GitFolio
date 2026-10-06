@@ -96,7 +96,13 @@ func noticeUpdate(dir string) {
 		return // no terminal: the next push tries again
 	}
 	defer w.Close()
-	fmt.Fprint(w, statusPrefix+fmt.Sprintf(tr(detectLang(os.Getenv), "updateNotice"), strings.TrimPrefix(st.Latest, "v"), version))
+	// A note among git's own output: the blue ℹ in a terminal that takes color (DESIGN 7.1). The line
+	// names GitFolio itself, so it needs no "GitFolio : " in front where there is no mark.
+	mark := ""
+	if os.Getenv("NO_COLOR") == "" && os.Getenv("TERM") != "dumb" && runtime.GOOS != "windows" {
+		mark = "\x1b[94mℹ\x1b[0m "
+	}
+	fmt.Fprint(w, mark+fmt.Sprintf(tr(detectLang(os.Getenv), "updateNotice"), strings.TrimPrefix(st.Latest, "v"), version))
 	st.NoticedAt = time.Now()
 	_ = saveJSON(p, st)
 }

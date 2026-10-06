@@ -64,7 +64,7 @@ commands:
   email [add <email>... | verify <email> | rm <email> | primary <email>]
                         your work emails: commits by any of them count as yours, and aline.team
                         gets all of them under the primary one (the first, marked ★); verified
-                        ones (✓, email code) merge the repositories linked on aline.team with them
+                        ones (✔, email code) merge the repositories linked on aline.team with them
   schedule [HH:MM | off]
                         optional daily sync at a local time, for pushes the hooks missed
                         (launchd on macOS, systemd or cron on Linux); no argument: show it

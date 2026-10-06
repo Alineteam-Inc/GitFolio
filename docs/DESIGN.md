@@ -72,7 +72,7 @@ GitFolio는 개발자의 로컬 git 이력에서 **본인이 작성한 커밋의
 | 예약 실행 | macOS `launchd`, Linux `systemd --user` 타이머 (없으면 `crontab`), Windows 작업 스케줄러(`schtasks`) | OS 기본 스케줄러 사용, 상주 프로세스 없음 |
 | 화면 언어 | 영어 기본, 한국어·일본어 지원 (7.1). 그 밖의 언어(중국어 등)는 영어, 추가 계획 없음 (2026-10-01 사용자 결정) | 공개 배포 대상 |
 | 배포 | GitHub Releases + Homebrew tap(macOS·Linux) + `install.sh`(macOS·Linux) + `install.ps1`(Windows) | GoReleaser로 자동화. Windows는 zip |
-| 업데이트 확인 | 릴리스 빌드가 터미널에서 실행될 때 하루 한 번 `github.com/…/releases/latest` 리다이렉트로 최신 태그 확인 → 더 새 버전이면 "지금 업데이트할까요? [Y/n]" → 설치 방법대로 실행: Homebrew cask(`Caskroom` 경로)는 `brew update && brew upgrade --cask gitfolio`, Windows는 `install.ps1`, 그 밖은 `install.sh`(같은 폴더·그 버전). 성공하면 명령을 멈추고 다시 실행하게 한다. 훅·예약 실행·출력 리디렉션·소스 빌드에서는 확인하지 않음 (2026-10-01 사용자 요청). push만 하는 사용자에게도 알린다(2026-10-06 사용자 요청): push 직후 백그라운드 전송이 하루 한 번 최신 태그를 찾아 `update.json`에 두고, 다음 `git push` 때 pre-push 훅이 그 값을 읽어 git을 실행한 터미널(`/dev/tty`, Windows는 `CONOUT$`)에 "새 버전 X이(가) 나왔습니다 … `gitfolio update`" 한 줄을 하루 한 번 쓴다. 훅에서는 네트워크를 쓰지 않으며, 터미널이 없으면(GUI git 클라이언트) 아무것도 쓰지 않고 다음 push에 다시 시도. 대화형 질문과 push 알림은 각자 하루 한 번(`askedAt`·`noticedAt`) | API 호출 한도 없음, 설치 스크립트의 SHA-256 검증 재사용. 설치 스크립트는 실행 중인 바이너리를 덮어쓰지 않고 바꿔치기(이름 변경) |
+| 업데이트 확인 | 릴리스 빌드가 터미널에서 실행될 때 하루 한 번 `github.com/…/releases/latest` 리다이렉트로 최신 태그 확인 → 더 새 버전이면 "지금 업데이트할까요? [Y/n]" → 설치 방법대로 실행: Homebrew cask(`Caskroom` 경로)는 `brew update && brew upgrade --cask gitfolio`, Windows는 `install.ps1`, 그 밖은 `install.sh`(같은 폴더·그 버전). 성공하면 명령을 멈추고 다시 실행하게 한다. 훅·예약 실행·출력 리디렉션·소스 빌드에서는 확인하지 않음 (2026-10-01 사용자 요청). push만 하는 사용자에게도 알린다(2026-10-06 사용자 요청): push 직후 백그라운드 전송이 하루 한 번 최신 태그를 찾아 `update.json`에 두고, 다음 `git push` 때 pre-push 훅이 그 값을 읽어 git을 실행한 터미널(`/dev/tty`, Windows는 `CONOUT$`)에 "ℹ GitFolio 새 버전 X이(가) 나왔습니다 … `gitfolio update`" 한 줄을 하루 한 번 쓴다(git 출력 사이에 섞이므로 문구가 GitFolio를 직접 밝힘, 색을 쓸 수 있는 터미널에서만 파란 ℹ). 훅에서는 네트워크를 쓰지 않으며, 터미널이 없으면(GUI git 클라이언트) 아무것도 쓰지 않고 다음 push에 다시 시도. 대화형 질문과 push 알림은 각자 하루 한 번(`askedAt`·`noticedAt`) | API 호출 한도 없음, 설치 스크립트의 SHA-256 검증 재사용. 설치 스크립트는 실행 중인 바이너리를 덮어쓰지 않고 바꿔치기(이름 변경) |
 | 대상 OS | **macOS·Linux·Windows** × amd64/arm64 (2026-09-30 사용자 결정: 세 OS 모두 지원·테스트) | CI(`.github/workflows/ci.yml`)가 push마다 세 OS에서 vet·test·설치 스크립트를 실행하고, 릴리스는 세 OS 통과 후에만 진행 |
 
 ## 3. 수집 규칙
@@ -340,7 +340,7 @@ gitfolio remove [경로]         등록 해제 + 훅 복원 (--purge: 로컬 삭
 gitfolio scan [경로]           증분 수집 (--all: 등록된 전체, --rebuild: 재수집). 네트워크 없음
 gitfolio sync [--dry-run]      전체 증분 수집 후 미전송·변경분 전송 (--dry-run: 보낼 요청 그대로 출력)
 gitfolio list                  등록 저장소, 커밋 수, 훅 상태, 의존성 파일, 마지막 수집
-gitfolio status [이름|경로]     저장소별로 모은 것: 내 커밋 수, 그중 aline.team에 보낸 수(인증 대기면 waiting), 파일 변경 수, 추가·삭제 줄, AI 사용 비율, 언어(확장자 기준 변경 줄 비중, 데이터·문서 파일 제외), 찾은 의존성, 마지막 커밋. 이름·경로를 주면 그 저장소의 언어 전체·AI 에이전트·의존성 목록. 이 컴퓨터의 데이터만 읽는다(서버 요청 없음, 2026-10-06 사용자 요청)
+gitfolio status [이름|경로]     저장소별로 모은 것: 내 커밋 수, 그중 aline.team에 보낸 수(인증 대기면 waiting), 파일 변경 수, 추가·삭제 줄, AI 사용 비율, 언어(확장자 기준 변경 줄 비중, 데이터·문서 파일 제외), 찾은 의존성, 마지막 커밋. 이름·경로를 주면 그 저장소의 언어 전체·AI 에이전트·의존성 목록. 출력은 7.1 규칙대로: 요약은 결과(✔) 문단 아래 표(머리줄 흐리게), 상세는 정렬된 "항목: 값", 의존성 목록과 안내는 ℹ, 인증 대기는 ⚠. 이 컴퓨터의 데이터만 읽는다(서버 요청 없음, 2026-10-06 사용자 요청)
 gitfolio export                로컬 데이터를 JSON으로 출력 (전송 형태와 같은 필드)
 gitfolio deps [on|off]         의존성 분석 상태 보기·켜기·끄기 (off: 로컬 삭제. 서버 전송·삭제는 서버 2차)
 gitfolio deps review [경로]    매니저 파일 승인·거절 변경, 확인 대기 처리

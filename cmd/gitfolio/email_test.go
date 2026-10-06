@@ -64,7 +64,7 @@ func TestWorkEmails(t *testing.T) {
 }
 
 // A work email is verified with a code (a wrong code is asked again), an already verified one needs no
-// code, the ✓ marks follow what aline.team says, and removing a verified email removes it there too.
+// code, the ✔ marks follow what aline.team says, and removing a verified email removes it there too.
 func TestVerifyWorkEmail(t *testing.T) {
 	f := &fakeAline{token: testToken}
 	srv := httptest.NewServer(f.handler())
@@ -97,10 +97,10 @@ func TestVerifyWorkEmail(t *testing.T) {
 		t.Errorf("verifying again: %v", err)
 	}
 	cfg := Config{Emails: []string{"me@work.com", "me@home.com"}}
-	if got := emailList("en", cfg, c.creds); !strings.Contains(got, "★ me@work.com ✓\n") || !strings.Contains(got, "  me@home.com\n") || !strings.Contains(got, "verify") {
+	if got := emailList("en", cfg, c.creds); !strings.Contains(got, "★ me@work.com ✔\n") || !strings.Contains(got, "  me@home.com\n") || !strings.Contains(got, "verify") {
 		t.Errorf("list:\n%s", got)
 	}
-	if got := emailList("en", cfg, Credentials{}); strings.Contains(got, "✓") || strings.Contains(got, "verify") {
+	if got := emailList("en", cfg, Credentials{}); strings.Contains(got, "✔") || strings.Contains(got, "verify") {
 		t.Errorf("logged out, the list shows verification:\n%s", got)
 	}
 	full := f.work

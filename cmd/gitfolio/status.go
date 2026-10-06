@@ -204,7 +204,14 @@ func cmdStatus(dir string, args []string) error {
 		}
 		return nil
 	}
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	if len(repos) == 0 {
+		say(lang, "statusNone")
+		return nil
+	}
+	// A result paragraph like the others (DESIGN 7.1): the title after the mark, the table under it.
+	// The table is aligned first and its header dimmed after, so color codes do not shift the columns.
+	var b strings.Builder
+	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "NAME\tCOMMITS\tSENT\tFILE CHANGES\tLINES\tAI\tLANGUAGES\tDEPENDENCIES\tLAST COMMIT")
 	for _, r := range repos {
 		s := statusOf(r, commits, deps, st)
@@ -214,10 +221,11 @@ func cmdStatus(dir string, args []string) error {
 	if err := w.Flush(); err != nil {
 		return err
 	}
+	header, rows, _ := strings.Cut(b.String(), "\n")
+	title := strings.TrimRight(fmt.Sprintf(tr(lang, "statusTitle"), len(repos)), "\n")
+	show(out, title+"\n"+dim(strings.TrimRight(header, " "))+"\n"+rows)
 	waitingNotice(lang, st.Waiting)
-	if len(repos) > 0 {
-		notice(tr(lang, "statusMore"))
-	}
+	notice(tr(lang, "statusMore"))
 	return nil
 }
 
