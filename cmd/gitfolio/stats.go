@@ -129,7 +129,8 @@ func showDevType(lang string, cache devTypeCache, saved bool) {
 }
 
 // devTypeArt is each developer type's picture as aline.team draws it, 11 squares wide: a letter is
-// a square's color in devTypeColors, "." is empty.
+// a square's color in devTypeColors, "." is empty. The icons are aline.team's and, like its name and
+// logo, not part of the MIT license (README).
 var devTypeArt = map[string][]string{
 	"BUILDER": {
 		".gg........",

@@ -85,9 +85,10 @@ gitfolio help                    # everything else
 
 ## License and name
 
-The code is [MIT](LICENSE): use it, change it, fork it. The **name "GitFolio", "aline.team" and their
-logos are not part of the license** — a modified or forked version must use its own name and logo and
-must not suggest that Alineteam made or endorses it. Using the aline.team API is subject to the
+The code is [MIT](LICENSE): use it, change it, fork it. The **name "GitFolio", "aline.team", their
+logos and the developer type icons (`gitfolio stats`) are not part of the license** — a modified or
+forked version must use its own name, logo and icons and must not suggest that Alineteam made or
+endorses it. Using the aline.team API is subject to the
 [aline.team Terms of Service](https://aline.team/terms).
 
 © 2026 Alineteam Inc. · Design and policy details: [docs/DESIGN.md](docs/DESIGN.md)
@@ -175,8 +176,8 @@ gitfolio help                    # 그 밖의 명령
 
 ### 라이선스와 이름
 
-코드는 [MIT](LICENSE)입니다. 자유롭게 쓰고, 고치고, 포크할 수 있습니다. 다만 **"GitFolio"·"aline.team" 이름과 로고는
-라이선스에 포함되지 않습니다.** 고치거나 포크한 버전은 다른 이름과 로고를 써야 하고, Alineteam이 만들었거나 보증한 것처럼
-보여서는 안 됩니다. aline.team API 사용은 [aline.team 이용약관](https://aline.team/terms)을 따릅니다.
+코드는 [MIT](LICENSE)입니다. 자유롭게 쓰고, 고치고, 포크할 수 있습니다. 다만 **"GitFolio"·"aline.team" 이름과 로고,
+개발자 유형 아이콘(`gitfolio stats`)은 라이선스에 포함되지 않습니다.** 고치거나 포크한 버전은 다른 이름·로고·아이콘을
+써야 하고, Alineteam이 만들었거나 보증한 것처럼 보여서는 안 됩니다. aline.team API 사용은 [aline.team 이용약관](https://aline.team/terms)을 따릅니다.
 
 © 2026 Alineteam Inc. · 설계·정책 상세: [docs/DESIGN.md](docs/DESIGN.md)
