@@ -42,3 +42,6 @@ func waitExit(pid int, max time.Duration) {
 
 // enableColor reports whether the terminal shows ANSI colors; Unix terminals do.
 func enableColor() bool { return true }
+
+// openTTY opens the controlling terminal, also when stdout and stderr go elsewhere (a git hook).
+func openTTY() (*os.File, error) { return os.OpenFile("/dev/tty", os.O_WRONLY, 0) }

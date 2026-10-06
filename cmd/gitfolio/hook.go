@@ -208,6 +208,7 @@ func cmdHook(dir string, args []string) error {
 			// through env, whose exec leaves no parent link. Wait for the push to update the refs instead.
 			wait = "refs:" + remoteRefs(".")
 		}
+		noticeUpdate(dir)
 		return exec.Command(exe, "hook", "push-wait", wait).Start()
 	case "push-wait":
 		signal.Ignore(syscall.SIGHUP) // keep going if the terminal closes right after the push
@@ -221,6 +222,9 @@ func cmdHook(dir string, args []string) error {
 		top, err := topLevel(".")
 		if err != nil {
 			return err
+		}
+		if version != "dev" { // what the next push tells about a newer release (noticeUpdate), outside the lock
+			defer lookUpLatest(dir)
 		}
 		// Only commits on remote-tracking refs are sent (pending), so a rejected push adds nothing.
 		return withLock(dir, func() error {

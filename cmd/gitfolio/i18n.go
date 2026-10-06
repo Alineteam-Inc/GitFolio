@@ -614,6 +614,11 @@ var messages = map[string]map[string]string{
 		"ko": "GitFolio %s 버전이 나왔습니다 (지금 %s). 지금 업데이트할까요? [Y/n] > ",
 		"ja": "GitFolio %s が公開されています(現在 %s)。今すぐ更新しますか? [Y/n] > ",
 	},
+	"updateNotice": {
+		"en": "version %s is out (you have %s). Update with `gitfolio update`.\n",
+		"ko": "새 버전 %s이(가) 나왔습니다 (지금 %s). `gitfolio update`로 업데이트하세요.\n",
+		"ja": "新しいバージョン %s が公開されています(現在 %s)。`gitfolio update` で更新してください。\n",
+	},
 	"updated": {
 		"en": "Updated GitFolio to %s. Run the command again.\n",
 		"ko": "GitFolio를 %s(으)로 업데이트했습니다. 명령을 다시 실행하세요.\n",

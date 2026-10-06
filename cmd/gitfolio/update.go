@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -24,27 +25,46 @@ const (
 	updateEvery = 24 * time.Hour
 )
 
-// checkUpdate looks for a newer release at most once a day and offers to install it the way this copy
-// was installed (Homebrew, install.sh or install.ps1). It reports whether it updated, so the caller
-// stops and the user runs the command again with the new binary. Builds from source never check, and
-// nothing is asked unless a person is at the terminal (not hooks, scheduled runs or redirected output).
+// updateState is update.json: the newest release as last looked up, and when the user was last asked
+// about it at a terminal or told about it during a push.
+type updateState struct {
+	CheckedAt time.Time `json:"checkedAt"`
+	Latest    string    `json:"latest,omitempty"` // the newest release then, e.g. "v0.5.0"
+	AskedAt   time.Time `json:"askedAt,omitempty"`
+	NoticedAt time.Time `json:"noticedAt,omitempty"`
+}
+
+// lookUpLatest looks up the newest release at most once a day and keeps what it found. Offline or not,
+// the next look is a day away.
+func lookUpLatest(dir string) updateState {
+	p := filepath.Join(dir, updateFile)
+	var st updateState
+	if loadJSON(p, &st) == nil && time.Since(st.CheckedAt) < updateEvery {
+		return st
+	}
+	st.CheckedAt = time.Now()
+	if latest, err := latestRelease(); err == nil {
+		st.Latest = latest
+	}
+	_ = saveJSON(p, st)
+	return st
+}
+
+// checkUpdate offers, at most once a day, to install a newer release the way this copy was installed
+// (Homebrew, install.sh or install.ps1). It reports whether it updated, so the caller stops and the user
+// runs the command again with the new binary. Builds from source never check, and nothing is asked
+// unless a person is at the terminal (not hooks, scheduled runs or redirected output).
 func checkUpdate(dir string) bool {
 	if version == "dev" || !interactive() || !terminal(os.Stdout) {
 		return false
 	}
-	p := filepath.Join(dir, updateFile)
-	var st struct {
-		CheckedAt time.Time `json:"checkedAt"`
-	}
-	if loadJSON(p, &st) == nil && time.Since(st.CheckedAt) < updateEvery {
+	st := lookUpLatest(dir)
+	if !newer(st.Latest, version) || time.Since(st.AskedAt) < updateEvery {
 		return false
 	}
-	st.CheckedAt = time.Now()
-	_ = saveJSON(p, st) // offline or not, the next check is a day away
-	latest, err := latestRelease()
-	if err != nil || !newer(latest, version) {
-		return false
-	}
+	st.AskedAt = time.Now()
+	_ = saveJSON(filepath.Join(dir, updateFile), st)
+	latest := st.Latest
 	lang := detectLang(os.Getenv)
 	a := strings.ToLower(prompt(fmt.Sprintf(tr(lang, "updateAsk"), latest, version)))
 	if stdinClosed || (a != "" && a != "y" && a != "yes") {
@@ -56,6 +76,29 @@ func checkUpdate(dir string) bool {
 	}
 	say(lang, "updated", latest)
 	return true
+}
+
+// ttyOut opens the terminal git runs in. A hook's own output goes nowhere (the hook script discards it),
+// and a GUI git client has no terminal: then it fails and nothing is shown.
+var ttyOut = func() (io.WriteCloser, error) { return openTTY() }
+
+// noticeUpdate tells the person pushing, at most once a day, that a newer release is out: someone who
+// only pushes never sees the question an interactive command asks. It reads what an earlier look found,
+// so a push never waits on the network (the push's background sync looks it up, lookUpLatest).
+func noticeUpdate(dir string) {
+	p := filepath.Join(dir, updateFile)
+	var st updateState
+	if version == "dev" || loadJSON(p, &st) != nil || !newer(st.Latest, version) || time.Since(st.NoticedAt) < updateEvery {
+		return
+	}
+	w, err := ttyOut()
+	if err != nil {
+		return // no terminal: the next push tries again
+	}
+	defer w.Close()
+	fmt.Fprint(w, statusPrefix+fmt.Sprintf(tr(detectLang(os.Getenv), "updateNotice"), strings.TrimPrefix(st.Latest, "v"), version))
+	st.NoticedAt = time.Now()
+	_ = saveJSON(p, st)
 }
 
 // installUpdate installs release tag latest the way this copy was installed.
@@ -79,7 +122,8 @@ func cmdUpdate(dir string) error {
 	if err != nil {
 		return failure("updateCheckFailed", err)
 	}
-	_ = saveJSON(filepath.Join(dir, updateFile), map[string]time.Time{"checkedAt": time.Now()}) // no offer again today
+	now := time.Now() // looked up and asked: no offer again today
+	_ = saveJSON(filepath.Join(dir, updateFile), updateState{CheckedAt: now, Latest: latest, AskedAt: now})
 	if !newer(latest, version) {
 		say(lang, "updateLatest", version)
 		return nil
