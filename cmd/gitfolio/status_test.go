@@ -52,7 +52,11 @@ func TestStatusOf(t *testing.T) {
 	if got := bin.languageShares(0); got != "-" {
 		t.Errorf("a file with no changed lines counts for %q", got)
 	}
-	for file, want := range map[string]string{"build/Dockerfile": "Dockerfile", "Makefile": "Makefile", "go.sum": "", "docs/a.yaml": ""} {
+	for file, want := range map[string]string{
+		"build/Dockerfile": "", "Makefile": "", "go.sum": "", "docs/a.yaml": "", ".bashrc": "", "a.": "",
+		"web/App.TSX": "TypeScript", "lib/index.cjs": "JavaScript", "style.scss": "CSS", "deploy.ps1": "PowerShell",
+		"rtl/top.sv": "Verilog", "game/player.gd": "GDScript", "conf/app.properties": "Java Properties",
+	} {
 		if got := languageOf(file); got != want {
 			t.Errorf("languageOf(%q) = %q, want %q", file, got, want)
 		}
