@@ -332,7 +332,7 @@ func batches(commits []Commit) [][]Commit {
 	return out
 }
 
-type syncCounts struct{ commits, deletes, moves, deps, noRemote int }
+type syncCounts struct{ commits, deletes, moves, deps, depsCleared, noRemote int }
 
 // syncData sends what aline.team does not have yet and records when it tried and whether it worked.
 // Callers hold the data lock.
@@ -455,10 +455,11 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 		key := req.Provider + "/" + req.Namespace
 		if len(req.Dependencies) == 0 {
 			delete(st.Deps, key)
+			n.depsCleared++
 		} else {
 			st.Deps[key] = depsPrint(req.Dependencies)
+			n.deps++
 		}
-		n.deps++
 	}
 	return n, save()
 }
@@ -579,11 +580,14 @@ func cmdSync(dir string, args []string) error {
 	switch {
 	case n.commits+n.deletes > 0:
 		say(lang, "synced", n.commits, n.deletes)
-	case len(st.Waiting) == 0 && n.moves == 0 && n.deps == 0:
+	case len(st.Waiting) == 0 && n.moves == 0 && n.deps+n.depsCleared == 0:
 		say(lang, "upToDate")
 	}
 	if n.deps > 0 {
 		say(lang, "depsSynced", n.deps)
+	}
+	if n.depsCleared > 0 {
+		say(lang, "depsCleared", n.depsCleared)
 	}
 	if n.moves > 0 {
 		say(lang, "repoMoved", n.moves)

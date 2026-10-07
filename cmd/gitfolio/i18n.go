@@ -868,9 +868,9 @@ var messages = map[string]map[string]string{
 		"ja": "リポジトリごとに `gitfolio deps review` を実行して、読み取るファイルを選んでください。\n",
 	},
 	"depsOff": {
-		"en": "Dependency detection is off; collected dependencies were deleted.\n",
-		"ko": "의존성 분석을 껐고, 수집한 의존성은 삭제했습니다.\n",
-		"ja": "依存関係の分析をオフにし、収集した依存関係を削除しました。\n",
+		"en": "Dependency detection is off; collected dependencies were deleted. The next sync deletes them on aline.team too.\n",
+		"ko": "의존성 분석을 껐고, 수집한 의존성은 삭제했습니다. 다음 동기화 때 aline.team에서도 지웁니다.\n",
+		"ja": "依存関係の分析をオフにし、収集した依存関係を削除しました。次回の同期で aline.team からも削除します。\n",
 	},
 	"synced": {
 		"en": "Synced with aline.team: %d commit(s) sent, %d repository deletion(s).\nDashboards and profiles show them after aline.team's next analysis run.\n",
@@ -881,6 +881,11 @@ var messages = map[string]map[string]string{
 		"en": "Sent the dependencies of %d repository(ies); aline.team adds the frameworks and libraries they show to your tech stack.\n",
 		"ko": "저장소 %d개의 의존성을 보냈습니다. aline.team이 그 프레임워크·라이브러리를 기술 스택에 넣습니다.\n",
 		"ja": "リポジトリ %d 件の依存関係を送信しました。aline.team がそのフレームワーク・ライブラリを技術スタックに加えます。\n",
+	},
+	"depsCleared": {
+		"en": "Deleted the dependencies of %d repository(ies) on aline.team.\n",
+		"ko": "aline.team에서 저장소 %d개의 의존성을 지웠습니다.\n",
+		"ja": "aline.team からリポジトリ %d 件の依存関係を削除しました。\n",
 	},
 	"syncLater": {
 		"en": "Could not send to aline.team: %v\nNothing is lost: what was not sent goes with the next push or sync.\n",

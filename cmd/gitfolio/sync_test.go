@@ -498,7 +498,7 @@ func TestSyncDependencies(t *testing.T) {
 		t.Errorf("a new dependency: %+v, aline.team has %v", n, f.deps)
 	}
 	must(saveJSON(filepath.Join(dir, "deps.json"), []Dependency{})) // deps off
-	if n := must2(); n.deps != 1 || len(f.deps["GITHUB/me/app"]) != 0 {
+	if n := must2(); n.deps != 0 || n.depsCleared != 1 || len(f.deps["GITHUB/me/app"]) != 0 {
 		t.Errorf("deps off: %+v, aline.team still has %v", n, f.deps)
 	}
 	calls = f.depsCalls
