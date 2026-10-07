@@ -51,12 +51,19 @@ and logs you in again on the spot.
 - **Only after you log in, only from repositories you chose, only your own pushed commits.**
 - **Only under emails you verified:** aline.team takes your commits under an email verified with a code
   sent to it (`gitfolio init`, `gitfolio email verify`), or a GitHub or GitLab noreply address.
-- **Sent:** repository (`owner/repo`), commit hash, branch, time, message (masked on your computer),
-  file paths with lines added/deleted, AI agent use.
-- **Never collected:** source code or file contents, where repositories are on your computer,
-  credentials, other people's commits.
+- **Sent for each of your commits:** the repository (git service and `owner/repo`), commit hash,
+  branch, time, message (masked on your computer), whether AI agents helped and which, and for each
+  file its path in the repository, lines added/deleted and whether the commit created it. All of them
+  go under one email, your primary work email (`gitfolio email`).
+- **For files you created:** when someone else first changed them (path and time only, not who or how).
+- **Your account and this computer:** your email and the work emails you verify; at login, the OS and
+  CPU type (e.g. `macOS arm64`), screen language and time zone; with every request, the GitFolio
+  version, OS and CPU type.
+- **Never collected:** source code or file contents, where repositories are on your computer, the
+  remote address and credentials, other people's commits and emails.
 - **Package manager files** (`package.json`, …) are read only if you approve each file, and only when
-  you ask (`gitfolio deps scan`, or `gitfolio deps auto on`). Pushes never read them.
+  you ask (`gitfolio deps scan`, or `gitfolio deps auto on`). Pushes never read them. The dependencies
+  found stay on this computer (`gitfolio status`, `gitfolio export`); they are not sent.
 - **Check it yourself:** `gitfolio sync --dry-run` shows what would be sent, `gitfolio history`
   shows every git command GitFolio ran (recorded by git itself), and
   `gh attestation verify <archive> -R Alineteam-Inc/GitFolio` proves a release was built from this source.
@@ -146,11 +153,17 @@ gitfolio init
 - **로그인한 뒤, 내가 고른 저장소에서, 내가 push한 내 커밋만** 수집합니다.
 - **인증한 이메일로만:** aline.team은 메일로 받은 코드로 인증한 이메일(`gitfolio init`, `gitfolio email verify`)이나
   GitHub·GitLab noreply 주소로 쓴 커밋만 받습니다.
-- **보내는 것:** 저장소(`소유자/저장소`), 커밋 해시·브랜치·시각, 커밋 메시지(이 컴퓨터에서 마스킹),
-  파일 경로와 추가·삭제 줄 수, AI 에이전트 사용 여부
-- **수집하지 않는 것:** 소스 코드·파일 내용, 내 컴퓨터의 저장소 위치, 인증 정보, 다른 사람의 커밋
+- **내 커밋마다 보내는 것:** 저장소(git 서비스와 `소유자/저장소`), 커밋 해시·브랜치·시각, 커밋 메시지(이 컴퓨터에서
+  마스킹), AI 에이전트 사용 여부와 종류, 파일마다 저장소 안 경로·추가·삭제 줄 수·이 커밋에서 새로 만든 파일인지.
+  모두 대표 작업 이메일(`gitfolio email`) 하나로 보냅니다.
+- **내가 만든 파일:** 다른 사람이 처음 고친 시각(경로와 시각만, 누가 무엇을 고쳤는지는 보내지 않음)
+- **계정과 이 컴퓨터:** 계정 이메일과 인증한 작업 이메일, 로그인할 때 OS·CPU 종류(예: `macOS arm64`)·화면 언어·시간대,
+  요청마다 GitFolio 버전·OS·CPU 종류
+- **수집하지 않는 것:** 소스 코드·파일 내용, 내 컴퓨터의 저장소 위치, 원격 저장소 주소와 인증 정보,
+  다른 사람의 커밋과 이메일
 - **패키지 매니저 파일**(`package.json` 등)은 파일별로 승인한 것만, 요청할 때만 읽습니다
-  (`gitfolio deps scan` 또는 `gitfolio deps auto on`). push 때는 읽지 않습니다.
+  (`gitfolio deps scan` 또는 `gitfolio deps auto on`). push 때는 읽지 않습니다. 찾은 의존성은 이 컴퓨터에만 두고
+  보내지 않습니다(`gitfolio status`, `gitfolio export`).
 - **직접 확인:** `gitfolio sync --dry-run`으로 보낼 내용을, `gitfolio history`로 실행한 git 명령(git이 직접 기록)을 봅니다.
   `gh attestation verify <파일> -R Alineteam-Inc/GitFolio`로 릴리스가 이 소스로 빌드됐음을 확인합니다.
 - HTTPS로만 Alineteam Inc.(Google Cloud, 미국)에 보냅니다. [이용약관](https://aline.team/terms) ·
