@@ -352,7 +352,6 @@ gitfolio config mask add|rm <금지어>   커밋 메시지에 적용
 gitfolio config api-url <url>|default  서버 주소 (GITFOLIO_API_URL이 우선). 개발 전용: help에 없고, 릴리스 빌드는 거부·무시하고 항상 운영 주소 (2026-10-01 사용자 결정)
 gitfolio config autosync on|off        push 직후 전송 켜기·끄기 (기본 on)
 gitfolio config git-history on|off     git 명령 기록 켜기·끄기 (기본 on, off: 기록 삭제) (7.8)
-gitfolio config git-history-size <크기> git 명령 기록 최대 크기 (기본 1MB, 16KB–100MB)
 gitfolio history [--all]       gitfolio가 실행한 git 명령, 실행별 (기본 최근 20회) (7.8)
 gitfolio email [add|rm|primary <이메일>]  작업 이메일 목록·대표 이메일(★, 첫 번째) 관리 (3.2)
 gitfolio schedule [HH:MM|off]  예약 동기화 설정·해제, 인자 없으면 예약 시각·마지막 동기화 결과 (7.5)
@@ -581,7 +580,7 @@ Enable dependency detection? [y/N]
 - 기본 켜짐. gitfolio가 실행하는 모든 git 명령에 `GIT_TRACE=<데이터 폴더>/git-history.log`를 붙인다. 명령 한 줄은 git이 직접 쓴다
 - git을 처음 실행하기 전에 실행마다 머리줄 하나(`# <날짜·시각> gitfolio <명령>`)를 gitfolio가 쓴다. git의 기록에는 날짜가 없어서다
 - `gitfolio history`: 실행별로 날짜·gitfolio 명령, 그 아래 git 명령(시각, `built-in`·`exec` 줄). 기본 최근 20회, `--all` 전부. 원본 파일에는 git이 쓴 모든 줄이 남는다
-- 크기 상한 기본 1MB(`config git-history-size`, 16KB–100MB). 넘으면 오래된 실행부터 지워 상한의 약 3/4로 줄인다(매 실행마다 다시 쓰지 않게). 자른 뒤에도 실행 머리줄부터 시작한다
+- 크기 상한 1MB (2026-10-07: 크기 설정은 쓰는 사람이 없어 뺐다). 넘으면 오래된 실행부터 지워 상한의 약 3/4로 줄인다(매 실행마다 다시 쓰지 않게). 자른 뒤에도 실행 머리줄부터 시작한다
 - `config git-history off`: 기록 중단 + 파일 삭제. 사용자가 직접 `GIT_TRACE`를 설정하면 그쪽을 존중하고 기록에는 쓰지 않는다
 - 사용자가 직접 확인하는 방법(README는 요약만): `gitfolio history --all | grep cat-file` → 승인한 매니저 파일만. 따로 기록하려면 `GIT_TRACE=$PWD/git-trace.txt gitfolio deps scan --all`(PowerShell: `$env:GIT_TRACE="$PWD\git-trace.txt"`). git을 거치지 않는 파일 열기까지 보려면 `strace -f -e trace=openat`(Linux), `sudo fs_usage -w -f filesys gitfolio`(macOS), Process Monitor(Windows). 보낼 내용은 `sync --dry-run`, 설치본 출처는 `gh attestation verify <파일> -R Alineteam-Inc/GitFolio`(v0.1.1부터)
 - 한계: 동시에 도는 gitfolio 두 개(push 직후 전송과 수동 명령 등)의 줄은 섞일 수 있고, 자르는 순간 다른 실행이 쓴 한 줄이 빠질 수 있다. 파일은 데이터 폴더(본인만 접근) 안, 권한 0600
@@ -601,7 +600,7 @@ Enable dependency detection? [y/N]
 | `deps.json` | 저장소·모듈별 의존성 (의존성 기능 사용 시에만 생성) |
 | `sync.json` | 전송한 계정과 서버(바뀌면 처음부터 다시 전송), 레코드 ID(`provider/namespace/hash`)별 전송 지문(내용 해시), 대기 중인 저장소 삭제 요청, 마지막 동기화 시각·실패 사유 |
 | `schedule.log` | 예약 동기화 실행 기록 (macOS·cron) |
-| `git-history.log` | gitfolio가 실행한 git 명령 기록 (`GIT_TRACE`, 7.8). 기본 최대 1MB |
+| `git-history.log` | gitfolio가 실행한 git 명령 기록 (`GIT_TRACE`, 7.8). 최대 1MB |
 
 커밋 레코드 예:
 

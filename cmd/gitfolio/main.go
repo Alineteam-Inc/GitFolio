@@ -59,9 +59,6 @@ commands:
   config git-history on|off
                         keep git's own record of the git commands gitfolio runs (on by default;
                         off deletes it)
-  config git-history-size <size>
-                        size limit of that record, e.g. 1MB (default) or 512KB; the oldest runs
-                        are removed first
   history [--all]       the git commands gitfolio ran, newest last (--all: every run kept)
   email [add <email>... | verify <email> | rm <email> | primary <email>]
                         your work emails: commits by any of them count as yours, and aline.team
@@ -589,22 +586,6 @@ func cmdConfig(dir string, args []string) error {
 		say(lang, "historyTurnedOn")
 		return nil
 	}
-	if args[0] == "git-history-size" && len(args) == 2 {
-		n, ok := parseSize(args[1])
-		if !ok {
-			return failure("usage", "gitfolio config git-history-size <16KB–100MB, e.g. 1MB>")
-		}
-		cfg.GitHistoryMax = n
-		if n == defaultHistoryMax {
-			cfg.GitHistoryMax = 0
-		}
-		if err := saveConfig(dir, cfg); err != nil {
-			return err
-		}
-		trimHistory(filepath.Join(dir, historyFile), n)
-		say(detectLang(os.Getenv), "historySize", sizeText(n))
-		return nil
-	}
 	// Development only: not in the help, and release builds refuse it (apiBase ignores it there too).
 	if args[0] == "api-url" && version == "dev" { // aline.team server, e.g. the development server; "default" = production
 		cfg.APIURL = ""
@@ -625,7 +606,7 @@ func cmdConfig(dir string, args []string) error {
 		return nil
 	}
 	if len(args) < 3 || args[0] != "mask" || (args[1] != "add" && args[1] != "rm") {
-		return failure("usage", "gitfolio config mask add|rm <word>... | config autosync on|off | config git-history on|off | config git-history-size <size>")
+		return failure("usage", "gitfolio config mask add|rm <word>... | config autosync on|off | config git-history on|off")
 	}
 	for _, w := range args[2:] {
 		if w = strings.TrimSpace(w); w == "" {
