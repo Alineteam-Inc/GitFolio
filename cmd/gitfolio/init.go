@@ -356,10 +356,10 @@ func applyDeps(dir string, deps bool) error {
 }
 
 // askYesNo asks a yes/no question; Enter keeps def.
-func askYesNo(lang, key string, def bool) bool {
+func askYesNo(lang, key string, def bool, args ...any) bool {
 	hint := map[bool]string{true: " [Y/n] > ", false: " [y/N] > "}[def]
 	for {
-		switch a := strings.ToLower(prompt(tr(lang, key) + hint)); {
+		switch a := strings.ToLower(prompt(fmt.Sprintf(tr(lang, key), args...) + hint)); {
 		case a == "" || stdinClosed:
 			return def
 		case a == "y" || a == "yes":

@@ -211,7 +211,7 @@ func checkEmails(dir, lang string) {
 		return
 	}
 	notice("\n" + fmt.Sprintf(tr(lang, "emailCheckOnce"), strings.Join(unverified, ", ")))
-	if a := strings.ToLower(prompt(tr(lang, "emailVerifyNow"))); !stdinClosed && (a == "" || a == "y" || a == "yes") {
+	if askYesNo(lang, "emailVerifyNow", true) && !stdinClosed {
 		verifyEmails(lang, c, unverified)
 	}
 	blank()

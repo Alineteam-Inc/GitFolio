@@ -341,9 +341,9 @@ var messages = map[string]map[string]string{
 		"ja": "GitFolio 0.2.0 から、aline.team はアカウントで認証済みのメールアドレスのコミットのみを受け付けます。\n(GitHub・GitLab の noreply アドレスは不要) まだ認証していないアドレス: %s\n",
 	},
 	"emailVerifyNow": {
-		"en": "Verify them now with an email code? [Y/n] > ",
-		"ko": "지금 이메일 코드로 인증할까요? [Y/n] > ",
-		"ja": "今メールのコードで認証しますか? [Y/n] > ",
+		"en": "Verify them now with an email code?",
+		"ko": "지금 이메일 코드로 인증할까요?",
+		"ja": "今メールのコードで認証しますか?",
 	},
 	"sendWaiting": {
 		"en": "Not sent yet: aline.team takes these repositories only after %s is verified for your account.\n  %s\nVerify it with `gitfolio email verify %s`; the next push or sync sends them.\n",
@@ -436,14 +436,14 @@ var messages = map[string]map[string]string{
 		"ja": "%s の aline.team アカウントがないため、新しいアカウントを作成します。\n登録すると、以下に同意したものとみなされます。\n  利用規約: https://aline.team/terms\n  プライバシーポリシー: https://aline.team/privacy\n",
 	},
 	"signupAsk": {
-		"en": "Create the account? (check the email for typos) [Y/n] > ",
-		"ko": "계정을 만들까요? (이메일에 오타가 없는지 확인하세요) [Y/n] > ",
-		"ja": "アカウントを作成しますか?(メールアドレスに誤りがないかご確認ください) [Y/n] > ",
+		"en": "Create the account? (check the email for typos)",
+		"ko": "계정을 만들까요? (이메일에 오타가 없는지 확인하세요)",
+		"ja": "アカウントを作成しますか?(メールアドレスに誤りがないかご確認ください)",
 	},
 	"notifyAsk": {
-		"en": "Receive aline.team service notifications by email? [y/N] > ",
-		"ko": "aline.team 서비스 알림을 이메일로 받을까요? [y/N] > ",
-		"ja": "aline.team のサービス通知をメールで受け取りますか? [y/N] > ",
+		"en": "Receive aline.team service notifications by email?",
+		"ko": "aline.team 서비스 알림을 이메일로 받을까요?",
+		"ja": "aline.team のサービス通知をメールで受け取りますか?",
 	},
 	"signupCancelled": {
 		"en": "No account was created. Run `gitfolio login` again with the right email.\n",
@@ -662,9 +662,9 @@ var messages = map[string]map[string]string{
 		"ja": "フックが .git の外にあるため(%s、例: 共有の core.hooksPath・husky 5–8)、変更していません。\n次の行をご自身で追加してください:\n  pre-push:    gitfolio hook pre-push \"$PPID\"\n  post-commit: gitfolio hook post-commit\n",
 	},
 	"updateAsk": {
-		"en": "GitFolio %s is available (you have %s). Update now? [Y/n] > ",
-		"ko": "GitFolio %s 버전이 나왔습니다 (지금 %s). 지금 업데이트할까요? [Y/n] > ",
-		"ja": "GitFolio %s が公開されています(現在 %s)。今すぐ更新しますか? [Y/n] > ",
+		"en": "GitFolio %s is available (you have %s). Update now?",
+		"ko": "GitFolio %s 버전이 나왔습니다 (지금 %s). 지금 업데이트할까요?",
+		"ja": "GitFolio %s が公開されています(現在 %s)。今すぐ更新しますか?",
 	},
 	"updateNotice": {
 		"en": "GitFolio %s is out (you have %s). Update with `gitfolio update`.\n",

@@ -74,8 +74,6 @@ const (
 	codeTokenInvalid  = "A001" // token invalid, expired or revoked
 	codeNotLoggedIn   = "A000" // no valid login: the token is unknown to this server
 	codeWrongCode     = "A008" // email code does not match
-	codeExpiredCode   = "A009" // email code expired or tried too often
-	codeUnverifiedWeb = "U004" // account made on the web without verifying its email
 	codeEmailVerified = "A011" // the work email is already verified for this account
 	codeTooManyEmails = "A012" // the account has as many verified work emails as it may have
 	codeUnverified    = "A013" // a repository's commits wait until error.email is verified (from 0.2.0)

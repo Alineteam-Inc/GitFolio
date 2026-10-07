@@ -102,10 +102,8 @@ func setSchedule(dir, lang, when string) error {
 }
 
 func parseHHMM(s string) (h, m int, ok bool) {
-	hh, mm, found := strings.Cut(s, ":")
-	h, err1 := strconv.Atoi(hh)
-	m, err2 := strconv.Atoi(mm)
-	return h, m, found && err1 == nil && err2 == nil && len(mm) == 2 && h >= 0 && h < 24 && m >= 0 && m < 60
+	t, err := time.Parse("15:04", s)
+	return t.Hour(), t.Minute(), err == nil
 }
 
 // gitfolioPath is the command the scheduler runs: the one on PATH (a Homebrew link keeps working across

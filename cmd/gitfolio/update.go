@@ -66,8 +66,7 @@ func checkUpdate(dir string) bool {
 	_ = saveJSON(filepath.Join(dir, updateFile), st)
 	latest := st.Latest
 	lang := detectLang(os.Getenv)
-	a := strings.ToLower(prompt(fmt.Sprintf(tr(lang, "updateAsk"), latest, version)))
-	if stdinClosed || (a != "" && a != "y" && a != "yes") {
+	if !askYesNo(lang, "updateAsk", true, latest, version) || stdinClosed {
 		return false
 	}
 	if err := installUpdate(latest); err != nil {
