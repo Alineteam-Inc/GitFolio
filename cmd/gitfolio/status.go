@@ -13,27 +13,36 @@ import (
 	"time"
 )
 
-// languages maps a file extension, or a whole file name, to the language its changed lines count for.
-// Data, prose and lock files (JSON, YAML, Markdown, ...) count for none, as in GitHub's language bar.
+// languages maps a file extension to the language its changed lines count for: the languages aline.team
+// counts as a tech stack, with the same extensions, so the shares match what it shows. Data, prose and
+// build files (JSON, YAML, Markdown, Dockerfile, ...) count for none.
 var languages = map[string]string{
-	".go": "Go", ".js": "JavaScript", ".mjs": "JavaScript", ".cjs": "JavaScript", ".jsx": "JavaScript",
-	".ts": "TypeScript", ".tsx": "TypeScript", ".py": "Python", ".java": "Java", ".kt": "Kotlin", ".kts": "Kotlin",
-	".swift": "Swift", ".m": "Objective-C", ".mm": "Objective-C", ".c": "C", ".h": "C", ".cc": "C++", ".cpp": "C++",
-	".cxx": "C++", ".hpp": "C++", ".cs": "C#", ".rb": "Ruby", ".php": "PHP", ".rs": "Rust", ".scala": "Scala",
-	".dart": "Dart", ".lua": "Lua", ".r": "R", ".sh": "Shell", ".bash": "Shell", ".zsh": "Shell",
-	".ps1": "PowerShell", ".sql": "SQL", ".html": "HTML", ".htm": "HTML", ".css": "CSS", ".scss": "SCSS",
-	".sass": "SCSS", ".less": "Less", ".vue": "Vue", ".svelte": "Svelte", ".groovy": "Groovy", ".gradle": "Groovy",
-	".tf": "HCL", ".ex": "Elixir", ".exs": "Elixir", ".erl": "Erlang", ".hs": "Haskell", ".clj": "Clojure",
-	".fs": "F#", ".pl": "Perl", ".proto": "Protocol Buffers", "dockerfile": "Dockerfile", "makefile": "Makefile",
+	"c": "C", "h": "C", "cpp": "C++", "c++": "C++", "cc": "C++", "cxx": "C++", "hpp": "C++", "hxx": "C++",
+	"cs": "C#", "java": "Java", "jsp": "Java", "properties": "Java Properties",
+	"js": "JavaScript", "jsx": "JavaScript", "mjs": "JavaScript", "cjs": "JavaScript",
+	"ts": "TypeScript", "tsx": "TypeScript", "mts": "TypeScript", "cts": "TypeScript",
+	"py": "Python", "pyi": "Python", "pyw": "Python", "go": "Go", "rs": "Rust",
+	"rb": "Ruby", "rake": "Ruby", "gemspec": "Ruby", "php": "PHP", "php3": "PHP", "php4": "PHP", "php5": "PHP",
+	"swift": "Swift", "kt": "Kotlin", "kts": "Kotlin", "scala": "Scala", "sc": "Scala",
+	"sh": "Shell", "bash": "Shell", "zsh": "Shell", "fish": "Shell",
+	"html": "HTML", "htm": "HTML", "xhtml": "HTML", "css": "CSS", "scss": "CSS", "sass": "CSS", "less": "CSS",
+	"sql": "SQL", "dart": "Dart", "r": "R", "lua": "Lua", "perl": "Perl", "pl": "Perl", "asm": "Assembly", "s": "Assembly",
+	"ex": "Elixir", "exs": "Elixir", "m": "Objective-C", "mm": "Objective-C", "groovy": "Groovy", "gvy": "Groovy",
+	"clj": "Clojure", "cljs": "Clojure", "cljc": "Clojure", "hs": "Haskell", "lhs": "Haskell",
+	"erl": "Erlang", "hrl": "Erlang", "fs": "F#", "fsi": "F#", "fsx": "F#", "jl": "Julia", "sol": "Solidity",
+	"ps1": "PowerShell", "psm1": "PowerShell", "psd1": "PowerShell", "v": "Verilog", "vh": "Verilog",
+	"sv": "Verilog", "svh": "Verilog", "vhd": "VHDL", "vhdl": "VHDL", "zig": "Zig", "gd": "GDScript",
 }
 
-// languageOf is the language of a file path in the repository, "" for none.
+// languageOf is the language of a file path in the repository, "" for none. Only the extension counts,
+// in any case; a name without one, or a hidden file like ".bashrc", has none.
 func languageOf(file string) string {
-	base := strings.ToLower(path.Base(file))
-	if l, ok := languages[base]; ok {
-		return l
+	base := path.Base(file)
+	ext := path.Ext(base)
+	if ext == base || len(ext) < 2 {
+		return ""
 	}
-	return languages[path.Ext(base)]
+	return languages[strings.ToLower(ext[1:])]
 }
 
 // repoStatus is what GitFolio holds for one repository: the user's commits collected on this computer,
