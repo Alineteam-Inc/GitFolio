@@ -170,7 +170,8 @@ var messages = map[string]map[string]string{
    repository, lines added/deleted, AI usage, and repository
    namespaces (owner/repo).
  - Files are read only with your approval, and only package
-   manager files, only to detect dependencies.
+   manager files, only to detect dependencies. The names of
+   the dependencies found (no versions or contents) are sent.
  - Sensitive parts of commit messages (tokens, URLs, emails,
    ticket numbers, blocked words) are masked on this computer.
    Data is sent to aline.team (Alineteam Inc., United States)
@@ -185,7 +186,7 @@ var messages = map[string]map[string]string{
    시점, 저장소 안 파일 경로, 추가·삭제 줄 수, AI 사용 여부,
    저장소 namespace(소유자/저장소)
  - 파일 읽기는 사용자가 승인한 패키지 매니저 파일에 한하며,
-   의존성 파악에만 사용합니다.
+   의존성 파악에만 사용합니다. 찾은 의존성의 이름만(버전·내용 제외) 보냅니다.
  - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
    이 컴퓨터에서 가립니다. 데이터는 git push 직후와 동기화할 때
    aline.team(Alineteam Inc., 미국)으로 전송되며
@@ -199,7 +200,8 @@ var messages = map[string]map[string]string{
    コミットメッセージ(マスキング済み)、ブランチ名、日時、リポジトリ内のファイルパス、
    追加・削除行数、AI の利用有無、リポジトリ(オーナー/リポジトリ)
  - ファイルの読み取りは、承認されたパッケージマネージャーの
-   ファイルに限り、依存関係の把握にのみ使用します。
+   ファイルに限り、依存関係の把握にのみ使用します。見つかった
+   依存関係の名前のみ(バージョン・内容を除く)を送信します。
  - コミットメッセージの機密部分(トークン・URL・メールアドレス・
    チケット番号・ブロックワード)はこのコンピューターでマスキングします。
    データは git push の直後と同期時に aline.team(Alineteam Inc.、米国)へ
@@ -379,9 +381,9 @@ var messages = map[string]map[string]string{
 		"ja": "\ngit の user.email が設定されていないため、あなたのコミットを識別できません。\n設定方法: git config --global user.email you@example.com\n",
 	},
 	"depsNotice": {
-		"en": "Dependency detection reads the package manager files you select (package.json, go.mod,\npom.xml, build.gradle, ...) in each repository, only to detect dependencies.\nOnly dependency names and versions are kept; file contents and paths are never stored or sent.\nThey are read only when you ask: right after you approve them, with `gitfolio deps scan`,\nor by scan, sync and the daily sync if you turn that on (`gitfolio deps auto on`). Pushes never read them.\n",
-		"ko": "의존성 분석은 저장소마다 사용자가 고른 패키지 매니저 파일(package.json, go.mod,\npom.xml, build.gradle 등)만, 의존성 파악 용도로만 읽습니다.\n의존성 이름과 버전만 남기며, 파일 원문과 경로는 저장하지도 전송하지도 않습니다.\n읽는 때는 요청할 때뿐입니다: 승인한 직후, `gitfolio deps scan` 실행 시, 켜 두었다면 scan·sync·예약 동기화 때\n(`gitfolio deps auto on`). push 때는 읽지 않습니다.\n",
-		"ja": "依存関係の分析では、リポジトリごとにあなたが選んだパッケージマネージャーのファイル\n(package.json、go.mod、pom.xml、build.gradle など)のみを、依存関係の把握のためだけに読み取ります。\n依存関係の名前とバージョンのみを保持し、ファイルの内容とパスは保存も送信もしません。\n読むのは求められたときだけです: 承認した直後、`gitfolio deps scan` の実行時、オンにした場合は scan・sync・予約同期のとき\n(`gitfolio deps auto on`)。push のときは読みません。\n",
+		"en": "Dependency detection reads the package manager files you select (package.json, go.mod,\npom.xml, build.gradle, ...) in each repository, only to detect dependencies.\nOnly dependency names and versions are kept, and only the names of those in modules your commits changed\nare sent to aline.team, which adds them to your tech stack. File contents and paths are never stored or sent.\nThey are read only when you ask: right after you approve them, with `gitfolio deps scan`,\nor by scan, sync and the daily sync if you turn that on (`gitfolio deps auto on`). Pushes never read them.\n",
+		"ko": "의존성 분석은 저장소마다 사용자가 고른 패키지 매니저 파일(package.json, go.mod,\npom.xml, build.gradle 등)만, 의존성 파악 용도로만 읽습니다.\n의존성 이름과 버전만 남기고, 그중 내 커밋이 바꾼 모듈의 의존성 이름만 aline.team에 보내 기술 스택에 넣습니다.\n파일 원문과 경로는 저장하지도 전송하지도 않습니다.\n읽는 때는 요청할 때뿐입니다: 승인한 직후, `gitfolio deps scan` 실행 시, 켜 두었다면 scan·sync·예약 동기화 때\n(`gitfolio deps auto on`). push 때는 읽지 않습니다.\n",
+		"ja": "依存関係の分析では、リポジトリごとにあなたが選んだパッケージマネージャーのファイル\n(package.json、go.mod、pom.xml、build.gradle など)のみを、依存関係の把握のためだけに読み取ります。\n依存関係の名前とバージョンのみを保持し、そのうち自分のコミットが変更したモジュールの依存関係の名前だけを\naline.team に送信して技術スタックに加えます。ファイルの内容とパスは保存も送信もしません。\n読むのは求められたときだけです: 承認した直後、`gitfolio deps scan` の実行時、オンにした場合は scan・sync・予約同期のとき\n(`gitfolio deps auto on`)。push のときは読みません。\n",
 	},
 	"depsAsk": {
 		"en": "Turn on dependency detection? You will choose the files per repository.",
@@ -874,6 +876,11 @@ var messages = map[string]map[string]string{
 		"en": "Synced with aline.team: %d commit(s) sent, %d repository deletion(s).\nDashboards and profiles show them after aline.team's next analysis run.\n",
 		"ko": "aline.team에 동기화했습니다: 커밋 %d개 전송, 저장소 삭제 %d건\n대시보드·프로필에는 aline.team의 다음 분석 때 반영됩니다.\n",
 		"ja": "aline.team と同期しました: コミット %d 件を送信、リポジトリ削除 %d 件\nダッシュボード・プロフィールには aline.team の次回の分析時に反映されます。\n",
+	},
+	"depsSynced": {
+		"en": "Sent the dependencies of %d repository(ies); aline.team adds the frameworks and libraries they show to your tech stack.\n",
+		"ko": "저장소 %d개의 의존성을 보냈습니다. aline.team이 그 프레임워크·라이브러리를 기술 스택에 넣습니다.\n",
+		"ja": "リポジトリ %d 件の依存関係を送信しました。aline.team がそのフレームワーク・ライブラリを技術スタックに加えます。\n",
 	},
 	"syncLater": {
 		"en": "Could not send to aline.team: %v\nNothing is lost: what was not sent goes with the next push or sync.\n",

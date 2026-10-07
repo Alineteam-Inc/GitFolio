@@ -62,8 +62,10 @@ and logs you in again on the spot.
 - **Never collected:** source code or file contents, where repositories are on your computer, the
   remote address and credentials, other people's commits and emails.
 - **Package manager files** (`package.json`, …) are read only if you approve each file, and only when
-  you ask (`gitfolio deps scan`, or `gitfolio deps auto on`). Pushes never read them. The dependencies
-  found stay on this computer (`gitfolio status`, `gitfolio export`); they are not sent.
+  you ask (`gitfolio deps scan`, or `gitfolio deps auto on`). Pushes never read them. Only the names
+  of the dependencies in modules your commits changed are sent (no versions or file paths), and
+  aline.team adds the frameworks and libraries they show to your tech stack. `gitfolio deps off`
+  removes them there too.
 - **Check it yourself:** `gitfolio sync --dry-run` shows what would be sent, `gitfolio history`
   shows every git command GitFolio ran (recorded by git itself), and
   `gh attestation verify <archive> -R Alineteam-Inc/GitFolio` proves a release was built from this source.
@@ -162,8 +164,9 @@ gitfolio init
 - **수집하지 않는 것:** 소스 코드·파일 내용, 내 컴퓨터의 저장소 위치, 원격 저장소 주소와 인증 정보,
   다른 사람의 커밋과 이메일
 - **패키지 매니저 파일**(`package.json` 등)은 파일별로 승인한 것만, 요청할 때만 읽습니다
-  (`gitfolio deps scan` 또는 `gitfolio deps auto on`). push 때는 읽지 않습니다. 찾은 의존성은 이 컴퓨터에만 두고
-  보내지 않습니다(`gitfolio status`, `gitfolio export`).
+  (`gitfolio deps scan` 또는 `gitfolio deps auto on`). push 때는 읽지 않습니다. 내 커밋이 바꾼 모듈의 의존성
+  이름만 보내고(버전·파일 경로 제외), aline.team이 그 프레임워크·라이브러리를 기술 스택에 넣습니다.
+  `gitfolio deps off`로 끄면 aline.team에서도 지웁니다.
 - **직접 확인:** `gitfolio sync --dry-run`으로 보낼 내용을, `gitfolio history`로 실행한 git 명령(git이 직접 기록)을 봅니다.
   `gh attestation verify <파일> -R Alineteam-Inc/GitFolio`로 릴리스가 이 소스로 빌드됐음을 확인합니다.
 - HTTPS로만 Alineteam Inc.(Google Cloud, 미국)에 보냅니다. [이용약관](https://aline.team/terms) ·

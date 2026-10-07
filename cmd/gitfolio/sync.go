@@ -26,6 +26,7 @@ type syncState struct {
 	Deletes   []deletion        `json:"deletes,omitempty"`   // repository deletions not yet accepted by the server
 	Moves     []repoMove        `json:"moves,omitempty"`     // git service address changes not yet sent (remote set-url)
 	Changed   map[string]string `json:"changed,omitempty"`   // provider/namespace/path → modifiedAt sent (modifiedFiles)
+	Deps      map[string]string `json:"deps,omitempty"`      // provider/namespace → fingerprint of the dependencies sent
 	LastSync  string            `json:"lastSync,omitempty"`  // last attempt, shown by `gitfolio schedule`
 	LastError string            `json:"lastError,omitempty"` // why it failed; empty when it went through
 	// Waiting maps provider/namespace to the email aline.team wants verified before it takes that
@@ -53,6 +54,7 @@ type syncPayload struct {
 	Deletes  []deletion                `json:"deletes"`
 	Commits  []Commit                  `json:"commits"`
 	modified map[string][]modifiedFile // provider/namespace → first changes by others not sent yet
+	deps     map[string][]depName      // provider/namespace → dependencies of the modules the user's commits touched
 	noRemote int                       // commits of repositories without a git service remote, never sent
 }
 
@@ -60,6 +62,19 @@ type syncPayload struct {
 type modifiedFile struct {
 	Name       string `json:"name"`
 	ModifiedAt string `json:"modifiedAt"`
+}
+
+// depsRequest is one PUT /cli/dependencies request: one repository's dependencies, which aline.team turns
+// into its tech stack. Names only: versions and the files they were found in stay here.
+type depsRequest struct {
+	Provider     string    `json:"provider"`
+	Namespace    string    `json:"namespace"`
+	Dependencies []depName `json:"dependencies"`
+}
+
+type depName struct {
+	Ecosystem string `json:"ecosystem"`
+	Name      string `json:"name"`
 }
 
 // commitBatch is one POST /cli/commits/batch request: one repository and its commits.
@@ -90,6 +105,8 @@ const (
 	maxFilesSent  = 1000
 	maxModified   = 5000 // modifiedFiles per request
 	maxNamespace  = 200  // longest owner/repo aline.team takes
+	maxDeps       = 5000 // dependencies per repository
+	maxDepName    = 214  // longest dependency name
 	syncStateFile = "sync.json"
 )
 
@@ -100,6 +117,9 @@ func loadSync(dir string) (st syncState, err error) {
 	}
 	if st.Changed == nil {
 		st.Changed = map[string]string{}
+	}
+	if st.Deps == nil {
+		st.Deps = map[string]string{}
 	}
 	return st, err
 }
@@ -192,7 +212,7 @@ func sendable(c Commit) Commit {
 // pending works out what aline.team does not have yet. Records are the ones `gitfolio export` shows,
 // cut to the server's limits.
 func pending(dir string, st syncState) (syncPayload, error) {
-	p := syncPayload{Deletes: append([]deletion{}, st.Deletes...), Commits: []Commit{}, modified: map[string][]modifiedFile{}}
+	p := syncPayload{Deletes: append([]deletion{}, st.Deletes...), Commits: []Commit{}, modified: map[string][]modifiedFile{}, deps: map[string][]depName{}}
 	out, err := buildExport(dir)
 	if err != nil {
 		return p, err
@@ -209,6 +229,19 @@ func pending(dir string, st syncState) (syncPayload, error) {
 		if st.Commits[commitKey(c)] != fingerprint(c) {
 			p.Commits = append(p.Commits, c)
 		}
+	}
+	for _, d := range out.Dependencies {
+		if d.Namespace != "" && len(d.Namespace) <= maxNamespace && len(d.Name) <= maxDepName {
+			key := d.Provider + "/" + d.Namespace
+			p.deps[key] = append(p.deps[key], depName{d.Ecosystem, d.Name})
+		}
+	}
+	for key, list := range p.deps {
+		slices.SortFunc(list, func(a, b depName) int {
+			return cmp.Or(strings.Compare(a.Ecosystem, b.Ecosystem), strings.Compare(a.Name, b.Name))
+		})
+		list = slices.Compact(list)
+		p.deps[key] = list[:min(len(list), maxDeps)]
 	}
 	repos, err := loadRepos(dir)
 	if err != nil {
@@ -235,6 +268,50 @@ func (p *syncPayload) takeModified(key string) []modifiedFile {
 	return m[:n]
 }
 
+// depsChanged lists the dependency requests aline.team does not have yet: for repositories it has commits
+// of (it ignores dependencies of a repository it does not know), and an empty list where all are gone
+// (deps off, or no module touched any more). Repositories waiting for a verified email wait for these too.
+func (p syncPayload) depsChanged(st syncState, known map[string]bool) []depsRequest {
+	keys := slices.Collect(maps.Keys(p.deps))
+	for key := range st.Deps {
+		if _, ok := p.deps[key]; !ok {
+			keys = append(keys, key)
+		}
+	}
+	slices.Sort(keys)
+	var out []depsRequest
+	for _, key := range keys {
+		list := p.deps[key]
+		_, waiting := st.Waiting[key]
+		if waiting || (!known[key] && st.Deps[key] == "") || st.Deps[key] == depsPrint(list) {
+			continue
+		}
+		provider, namespace, _ := strings.Cut(key, "/")
+		out = append(out, depsRequest{provider, namespace, append([]depName{}, list...)})
+	}
+	return out
+}
+
+// depsPrint is the fingerprint of a dependency list as sent; "" for none.
+func depsPrint(list []depName) string {
+	if len(list) == 0 {
+		return ""
+	}
+	return fingerprint(list)
+}
+
+// sentRepos is the repositories aline.team has commits of, as provider/namespace.
+func sentRepos(st syncState, more []Commit) map[string]bool {
+	known := map[string]bool{}
+	for key := range st.Commits {
+		known[key[:strings.LastIndex(key, "/")]] = true
+	}
+	for _, c := range more {
+		known[c.Provider+"/"+c.Namespace] = true
+	}
+	return known
+}
+
 // batches splits commits into requests of one repository each, at most batchSize records.
 func batches(commits []Commit) [][]Commit {
 	commits = slices.Clone(commits)
@@ -255,7 +332,7 @@ func batches(commits []Commit) [][]Commit {
 	return out
 }
 
-type syncCounts struct{ commits, deletes, moves, noRemote int }
+type syncCounts struct{ commits, deletes, moves, deps, noRemote int }
 
 // syncData sends what aline.team does not have yet and records when it tried and whether it worked.
 // Callers hold the data lock.
@@ -290,7 +367,7 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 	}
 	if st.Account != c.creds.Email || st.Server != c.creds.Server {
 		if st.Account != "" { // another account or server: it has none of this device's records yet
-			st = syncState{Commits: map[string]string{}, Changed: map[string]string{}}
+			st = syncState{Commits: map[string]string{}, Changed: map[string]string{}, Deps: map[string]string{}}
 		}
 		st.Account, st.Server = c.creds.Email, c.creds.Server
 	}
@@ -322,7 +399,8 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 			Moves         []repoMove    `json:"moves,omitempty"`
 			Deletes       []deletion    `json:"deletes"`
 			CommitBatches []commitBatch `json:"commitBatches"`
-		}{st.Moves, p.Deletes, []commitBatch{}}
+			Dependencies  []depsRequest `json:"dependencies,omitempty"`
+		}{st.Moves, p.Deletes, []commitBatch{}, p.depsChanged(st, sentRepos(st, p.Commits))}
 		for _, b := range batches(p.Commits) {
 			out.CommitBatches = append(out.CommitBatches, request(b, author, p.takeModified(b[0].Provider+"/"+b[0].Namespace)))
 		}
@@ -368,6 +446,19 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 		if serr := save(); err != nil || serr != nil {
 			return n, errors.Join(err, serr)
 		}
+	}
+	// Dependencies after the commits: aline.team keeps them only for a repository it has.
+	for _, req := range p.depsChanged(st, sentRepos(st, nil)) {
+		if err := c.call("PUT", "/cli/dependencies", req, nil); err != nil {
+			return n, errors.Join(err, save())
+		}
+		key := req.Provider + "/" + req.Namespace
+		if len(req.Dependencies) == 0 {
+			delete(st.Deps, key)
+		} else {
+			st.Deps[key] = depsPrint(req.Dependencies)
+		}
+		n.deps++
 	}
 	return n, save()
 }
@@ -488,8 +579,11 @@ func cmdSync(dir string, args []string) error {
 	switch {
 	case n.commits+n.deletes > 0:
 		say(lang, "synced", n.commits, n.deletes)
-	case len(st.Waiting) == 0 && n.moves == 0:
+	case len(st.Waiting) == 0 && n.moves == 0 && n.deps == 0:
 		say(lang, "upToDate")
+	}
+	if n.deps > 0 {
+		say(lang, "depsSynced", n.deps)
 	}
 	if n.moves > 0 {
 		say(lang, "repoMoved", n.moves)

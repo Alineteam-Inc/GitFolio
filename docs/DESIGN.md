@@ -154,7 +154,7 @@ my-web
 | 결정 기록 | 승인·거절은 로컬 `repos.json`에만 기록, 서버로 전송하지 않음. 거절한 파일은 다시 묻지 않음 |
 | 새 파일 | 훅 실행 중(비대화형) 새로 발견된 파일은 읽지 않고 **확인 대기**. 다음 대화형 명령 실행 시 알림, `gitfolio deps review`로 처리 |
 | 읽는 시점 | 요청할 때만: 파일을 승인한 직후(`init`·`deps on`·`deps review`), `gitfolio deps scan [경로] [--all]`, 그리고 `deps auto on`일 때 `scan`·`sync`·예약 동기화(예약도 `sync`). `deps auto`는 하나의 옵션으로 셋을 함께 켜고 끄며 기본 off. push 직후 수집과 `add`는 읽지 않고, 승인 경로로 모듈 ID만 정함(내용 미열람) (2026-10-01 사용자 결정) |
-| 철회 | `deps off` → 로컬 의존성 데이터와 승인 기록 삭제 (의존성은 보내지 않으므로 서버에 지울 것이 없음). `deps review`에서 개별 파일 승인 취소 가능 |
+| 철회 | `deps off` → 로컬 의존성 데이터와 승인 기록 삭제. 다음 sync 때 보냈던 저장소마다 빈 목록을 보내 aline.team에서도 지운다. `deps review`에서 개별 파일 승인 취소 가능 |
 
 **1차 지원 파일**
 
@@ -174,8 +174,8 @@ my-web
 
 1. 승인된 매니저 파일이 있는 디렉터리 = 모듈. 상위 모듈은 하위 모듈에 속하지 않는 나머지를 담당
 2. scan 시 각 변경 파일의 경로로 **가장 가까운 상위 모듈**을 찾아 로컬 커밋 레코드에 모듈 ID를 기록 (모듈 ID는 로컬 전용). 모듈 ID는 디렉터리 경로의 SHA-256 앞 8자리
-3. `status`·`export`는 **본인 커밋이 수정한 모듈의 의존성만** 저장소별 목록으로 보여 준다. 모듈 ID는 로컬 전용
-4. 의존성은 aline.team에 보내지 않는다. 전송 요청에는 커밋만 있다 (2026-10-07 확인)
+3. sync는 **본인 커밋이 수정한 모듈의 의존성만** 저장소별 목록으로 보낸다(`status`·`export`도 같은 목록). 이름과 생태계만 보내고 버전·파일 경로·모듈 ID는 보내지 않는다. 커밋 다음에, aline.team이 커밋을 받은 저장소에만(인증 대기 저장소는 기다림), 목록이 바뀐 때만 보낸다(`sync.json`의 `deps`에 보낸 목록의 지문)
+4. aline.team은 이름을 웹 git 연동과 같은 방식으로 기술 스택(프레임워크·라이브러리·도구)으로 바꿔 그 저장소에 붙인다 (2026-10-07 사용자 결정: 그전까지는 보내지 않았음)
 
 | 지표 | 의미 |
 |---|---|
@@ -306,7 +306,7 @@ my-web
 
 | 항목 | 설계 |
 |---|---|
-| 전송 내용 | 마스킹된 레코드 (3.1 항목). 로컬 경로, 원격 URL(호스트·인증 정보), 매니저 파일 경로·원문은 전송하지 않음 |
+| 전송 내용 | 마스킹된 레코드 (3.1 항목)와, 의존성 분석을 켰으면 의존성 이름 (3.5). 로컬 경로, 원격 URL(호스트·인증 정보), 매니저 파일 경로·원문은 전송하지 않음 |
 | 레코드 ID | 저장소 + 커밋 해시. 여러 PC에서도 같은 커밋은 같은 ID |
 | 재전송 | 금지어 추가로 재마스킹된 레코드는 같은 ID로 덮어씀 |
 | 삭제 | `remove --purge`로 생긴 삭제 요청을 다음 sync 때 전송 |
@@ -428,7 +428,8 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
    repository, lines added/deleted, AI usage, and repository
    namespaces (owner/repo).
  - Files are read only with your approval, and only package
-   manager files, only to detect dependencies.
+   manager files, only to detect dependencies. The names of
+   the dependencies found (no versions or contents) are sent.
  - Sensitive parts of commit messages (tokens, URLs, emails,
    ticket numbers, blocked words) are masked on this computer.
    Data is sent to aline.team (Alineteam Inc., United States)
@@ -449,7 +450,7 @@ brew·`curl | sh` 설치 과정에서는 사용자 입력을 받을 수 없으�
    시점, 저장소 안 파일 경로, 추가·삭제 줄 수, AI 사용 여부,
    저장소 namespace(소유자/저장소)
  - 파일 읽기는 사용자가 승인한 패키지 매니저 파일에 한하며,
-   의존성 파악에만 사용합니다.
+   의존성 파악에만 사용합니다. 찾은 의존성의 이름만(버전·내용 제외) 보냅니다.
  - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
    이 컴퓨터에서 가립니다. 데이터는 git push 직후와 동기화할 때
    aline.team(Alineteam Inc., 미국)으로 전송되며
@@ -493,8 +494,10 @@ GitFolio can detect frameworks and libraries by reading package
 manager files (package.json, go.mod, pom.xml, build.gradle, ...).
 You will choose exactly which files may be read, per repository.
 - Files are used only to detect dependencies.
-- Only dependency names and versions are kept; file contents and
-  paths are never stored or sent.
+- Only dependency names and versions are kept, and only the names of
+  those in modules your commits changed are sent to aline.team, which
+  adds them to your tech stack. File contents and paths are never
+  stored or sent.
 Enable dependency detection? [y/N]
 ```
 

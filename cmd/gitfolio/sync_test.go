@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -434,5 +435,74 @@ func TestServerSwitch(t *testing.T) {
 	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: srv.URL})) // logged in here
 	if n, err := syncData(dir, false); err != nil || n.commits != 1 {
 		t.Fatalf("sync after switching servers = %+v, %v; want the commit sent again", n, err)
+	}
+}
+
+// Dependencies go after the commits, per repository and only when they changed: names only, of the
+// modules the user's commits touched, for repositories aline.team has; deps off empties them there.
+func TestSyncDependencies(t *testing.T) {
+	f := &fakeAline{token: testToken, waitFor: map[string]string{"me/wait": "work@example.com"}}
+	srv := httptest.NewServer(f.handler())
+	defer srv.Close()
+	t.Setenv("GITFOLIO_API_URL", srv.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	dir := t.TempDir()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com"}))
+	must(saveConfig(dir, Config{Emails: []string{"dev@example.com"}, Deps: true}))
+	must(saveRepos(dir, []Repo{
+		{ID: "r1", Name: "app", Provider: "GITHUB", Namespace: "me/app"},
+		{ID: "r2", Name: "wait", Provider: "GITHUB", Namespace: "me/wait"}, // waits for a verified email (A013)
+		{ID: "r3", Name: "new", Provider: "GITHUB", Namespace: "me/new"},   // never pushed: aline.team has no such repository
+	}))
+	commit := func(repo, hash, branch string) Commit {
+		return Commit{Repo: repo, Hash: hash, Branch: branch, AuthorEmail: "dev@example.com", Date: "2026-10-07T10:00:00+09:00",
+			Message: "feat", Files: []FileStat{{Name: "main.go", Add: 1, Module: "m1"}}, CreationType: "HUMAN"}
+	}
+	must(writeCommits(dir, []Commit{commit("r1", "a1", "main"), commit("r2", "b1", "main"), commit("r3", "c1", "")}))
+	deps := []Dependency{
+		{Repo: "r1", Module: "m1", Ecosystem: "npm", Name: "react", Version: "18.2.0"},
+		{Repo: "r1", Module: "m1", Ecosystem: "npm", Name: "next"},
+		{Repo: "r1", Module: "m1", Ecosystem: "npm", Name: strings.Repeat("x", 215)}, // longer than aline.team takes
+		{Repo: "r1", Module: "m2", Ecosystem: "npm", Name: "vue"},                    // a module the user never touched
+		{Repo: "r2", Module: "m1", Ecosystem: "npm", Name: "express"},
+		{Repo: "r3", Module: "m1", Ecosystem: "go", Name: "github.com/gin-gonic/gin"},
+	}
+	must(saveJSON(filepath.Join(dir, "deps.json"), deps))
+
+	n, err := syncData(dir, false)
+	if err != nil || n.commits != 1 || n.deps != 1 {
+		t.Fatalf("sync = %+v, %v; want 1 commit and 1 repository's dependencies", n, err)
+	}
+	if got := f.deps["GITHUB/me/app"]; !slices.Equal(got, []string{"npm:next", "npm:react"}) || len(f.deps) != 1 {
+		t.Fatalf("aline.team has dependencies %v", f.deps)
+	}
+	calls := f.depsCalls
+	must2 := func() syncCounts {
+		t.Helper()
+		n, err := syncData(dir, false)
+		must(err)
+		return n
+	}
+	if must2(); f.depsCalls != calls {
+		t.Error("unchanged dependencies were sent again")
+	}
+	deps = append(deps, Dependency{Repo: "r1", Module: "m1", Ecosystem: "npm", Name: "vite"})
+	must(saveJSON(filepath.Join(dir, "deps.json"), deps))
+	if n := must2(); n.deps != 1 || len(f.deps["GITHUB/me/app"]) != 3 {
+		t.Errorf("a new dependency: %+v, aline.team has %v", n, f.deps)
+	}
+	must(saveJSON(filepath.Join(dir, "deps.json"), []Dependency{})) // deps off
+	if n := must2(); n.deps != 1 || len(f.deps["GITHUB/me/app"]) != 0 {
+		t.Errorf("deps off: %+v, aline.team still has %v", n, f.deps)
+	}
+	calls = f.depsCalls
+	if must2(); f.depsCalls != calls {
+		t.Error("the empty list was sent again")
 	}
 }

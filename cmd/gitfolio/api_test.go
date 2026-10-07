@@ -71,7 +71,9 @@ type fakeAline struct {
 	// devType is what GET /cli/devtype answers (nil: the empty shell, nothing to analyse yet).
 	devType      map[string]any
 	devTypeCalls int
-	devTypeWait  time.Duration // how long it takes to make (longer than the client waits: a timeout)
+	devTypeWait  time.Duration       // how long it takes to make (longer than the client waits: a timeout)
+	deps         map[string][]string // PUT /cli/dependencies: provider/namespace → "ecosystem:name"
+	depsCalls    int
 
 	// Data API. The handler holds mu; tests lock it to read.
 	mu       sync.Mutex
@@ -261,6 +263,30 @@ func (f *fakeAline) handler() http.Handler {
 		}
 		f.batches++
 		ok(w, map[string]any{"upserted": len(in.Commits)})
+	}))
+	mux.HandleFunc("PUT /cli/dependencies", data(func(w http.ResponseWriter, r *http.Request) {
+		f.depsCalls++
+		var in struct {
+			Provider, Namespace string
+			Dependencies        []struct{ Ecosystem, Name string }
+		}
+		if json.NewDecoder(r.Body).Decode(&in) != nil || in.Namespace == "" || in.Dependencies == nil || len(in.Dependencies) > 5000 {
+			fail(w, 400, "C001")
+			return
+		}
+		list := []string{}
+		for _, d := range in.Dependencies {
+			if !slices.Contains([]string{"npm", "go", "maven", "pypi", "cargo"}, d.Ecosystem) || d.Name == "" || len(d.Name) > 214 {
+				fail(w, 400, "C001")
+				return
+			}
+			list = append(list, d.Ecosystem+":"+d.Name)
+		}
+		if f.deps == nil {
+			f.deps = map[string][]string{}
+		}
+		f.deps[in.Provider+"/"+in.Namespace] = list
+		ok(w, nil)
 	}))
 	mux.HandleFunc("DELETE /cli/repositories", data(func(w http.ResponseWriter, r *http.Request) {
 		key := r.URL.Query().Get("provider") + "/" + r.URL.Query().Get("namespace")
