@@ -45,12 +45,10 @@ func (c *client) login(lang string) error {
 	}
 	confirmSignup := func() (ok, notify bool) {
 		notice("\n" + fmt.Sprintf(tr(lang, "signupNotice"), email))
-		a := strings.ToLower(prompt(tr(lang, "signupAsk")))
-		if stdinClosed || (a != "" && a != "y" && a != "yes") {
+		if !askYesNo(lang, "signupAsk", true) || stdinClosed { // no input left is no account
 			return false, false
 		}
-		n := strings.ToLower(prompt(tr(lang, "notifyAsk"))) // opt-in: only an explicit yes
-		return true, n == "y" || n == "yes"
+		return true, askYesNo(lang, "notifyAsk", false) // opt-in: only an explicit yes
 	}
 	res, err := c.signIn(email, confirmSignup, askCode(lang, email, false))
 	if errors.Is(err, errSignupCancelled) {

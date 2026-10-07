@@ -1,8 +1,9 @@
 package main
 
 import (
+	"cmp"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 )
 
@@ -44,7 +45,7 @@ func newMasker(words []string) masker {
 	if len(parts) == 0 {
 		return masker{}
 	}
-	sort.Slice(parts, func(i, j int) bool { return len(parts[i]) > len(parts[j]) }) // longest first
+	slices.SortFunc(parts, func(a, b string) int { return cmp.Compare(len(b), len(a)) }) // longest first
 	return masker{regexp.MustCompile(`(?i)` + strings.Join(parts, "|"))}
 }
 
