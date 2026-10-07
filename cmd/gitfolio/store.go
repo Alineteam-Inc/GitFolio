@@ -87,10 +87,8 @@ type Config struct {
 	Emails []string `json:"emails,omitempty"`
 	// Schedule is the daily sync time ("09:00", local) registered with the OS scheduler; empty = none.
 	Schedule string `json:"schedule,omitempty"`
-	// GitHistoryOff stops keeping git's record of the commands gitfolio runs (history.go); GitHistoryMax
-	// is that record's size limit in bytes, 0 = 1 MB (config git-history, git-history-size).
-	GitHistoryOff bool  `json:"gitHistoryOff,omitempty"`
-	GitHistoryMax int64 `json:"gitHistoryMax,omitempty"`
+	// GitHistoryOff stops keeping git's record of the commands gitfolio runs (history.go, config git-history).
+	GitHistoryOff bool `json:"gitHistoryOff,omitempty"`
 	// DepsAuto makes scan and sync, the daily one included, also read the approved package manager
 	// files (deps auto); off, they are read only by deps scan and right after approving.
 	DepsAuto bool `json:"depsAuto,omitempty"`

@@ -77,16 +77,3 @@ func TestGitHistory(t *testing.T) {
 		t.Error("git-history off was not saved")
 	}
 }
-
-func TestParseSize(t *testing.T) {
-	for in, want := range map[string]int64{"1MB": 1 << 20, "512kb": 512 << 10, "16KB": 16 << 10, "100MB": 100 << 20, "2097152": 2 << 20, " 3 mb ": 3 << 20} {
-		if got, ok := parseSize(in); !ok || got != want {
-			t.Errorf("parseSize(%q) = %d, %v; want %d", in, got, ok, want)
-		}
-	}
-	for _, in := range []string{"15KB", "101MB", "0", "-1MB", "1GB", "abc", ""} {
-		if got, ok := parseSize(in); ok {
-			t.Errorf("parseSize(%q) = %d, want refused", in, got)
-		}
-	}
-}

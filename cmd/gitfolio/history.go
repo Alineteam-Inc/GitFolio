@@ -2,11 +2,9 @@ package main
 
 import (
 	"bytes"
-	"cmp"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,14 +14,13 @@ import (
 // of it: each run that calls git adds a dated header line, then git appends one line per command.
 // `gitfolio history` shows it; the oldest runs go first once the file passes its size limit.
 const (
-	historyFile       = "git-history.log"
-	defaultHistoryMax = 1 << 20 // 1 MB
-	historyHeader     = "# "
+	historyFile   = "git-history.log"
+	historyMax    = 1 << 20 // 1 MB
+	historyHeader = "# "
 )
 
 var (
 	gitTrace    string   // file git() points GIT_TRACE at; "" = no history (off, or not started by run)
-	historyMax  int64    // size limit of gitTrace
 	historyArgs []string // the gitfolio command, for the run's header
 	historyOnce sync.Once
 )
@@ -34,7 +31,7 @@ func startHistory(dir string, args []string) {
 	if err != nil || cfg.GitHistoryOff {
 		return
 	}
-	gitTrace, historyMax, historyArgs = filepath.Join(dir, historyFile), cmp.Or(cfg.GitHistoryMax, defaultHistoryMax), args
+	gitTrace, historyArgs = filepath.Join(dir, historyFile), args
 }
 
 // traceEnv returns the GIT_TRACE setting for a git command, writing the run's header before the first
@@ -143,34 +140,6 @@ func cmdHistory(dir string, args []string) error {
 		}
 	}
 	fmt.Println()
-	say(lang, "historyShown", len(shown), len(runs), tildePath(p), sizeText(cmp.Or(cfg.GitHistoryMax, defaultHistoryMax)))
+	say(lang, "historyShown", len(shown), len(runs), tildePath(p))
 	return nil
-}
-
-// parseSize reads a history size limit: "1MB", "512KB" or a number of bytes, from 16 KB to 100 MB.
-func parseSize(s string) (int64, bool) {
-	s = strings.ToUpper(strings.TrimSpace(s))
-	unit := int64(1)
-	for _, u := range []struct {
-		suffix string
-		n      int64
-	}{{"MB", 1 << 20}, {"KB", 1 << 10}, {"B", 1}} {
-		if v, ok := strings.CutSuffix(s, u.suffix); ok {
-			s, unit = strings.TrimSpace(v), u.n
-			break
-		}
-	}
-	n, err := strconv.ParseInt(s, 10, 64)
-	if err != nil || n <= 0 || n > (100<<20)/unit {
-		return 0, false
-	}
-	n *= unit
-	return n, n >= 16<<10
-}
-
-func sizeText(n int64) string {
-	if n%(1<<20) == 0 {
-		return fmt.Sprintf("%d MB", n>>20)
-	}
-	return fmt.Sprintf("%d KB", n>>10)
 }
