@@ -293,12 +293,14 @@ func launchdSchedule(exe, logFile string, h, m int) error {
 	return nil
 }
 
-func systemdDir() string {
+// systemdDir is where user units go. Without $XDG_CONFIG_HOME and $HOME it fails rather than mean the
+// current folder.
+func systemdDir() (string, error) {
 	base, err := os.UserConfigDir() // $XDG_CONFIG_HOME or ~/.config
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return filepath.Join(base, "systemd", "user")
+	return filepath.Join(base, "systemd", "user"), nil
 }
 
 // systemdUnits are a oneshot service and a daily timer; Persistent=true runs a missed time at the next boot.
@@ -326,7 +328,10 @@ func systemdSchedule(exe string, h, m int) error {
 	if _, err := exec.LookPath("systemctl"); err != nil {
 		return err
 	}
-	d := systemdDir()
+	d, err := systemdDir()
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(d, 0o755); err != nil {
 		return err
 	}
@@ -346,7 +351,10 @@ func systemdSchedule(exe string, h, m int) error {
 }
 
 func removeSystemd() {
-	d := systemdDir()
+	d, err := systemdDir()
+	if err != nil {
+		return
+	}
 	if _, err := os.Stat(filepath.Join(d, systemdUnit+".timer")); err != nil {
 		return
 	}

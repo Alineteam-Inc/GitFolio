@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -86,5 +87,23 @@ func TestTaskXML(t *testing.T) {
 	want := `/d /c "set "GITFOLIO_LANG=ko" & "C:\my apps\gitfolio.exe" sync >> "C:\data\schedule.log" 2>&1"`
 	if task.Start != "2026-09-30T09:05:00" || !task.Late || task.Cmd != "cmd.exe" || task.Args != want {
 		t.Errorf("task = %+v\nwant args %s", task, want)
+	}
+}
+
+// Without a home or config folder, no unit is read, written or removed in the current folder.
+func TestSystemdNeedsConfigDir(t *testing.T) {
+	for _, k := range []string{"HOME", "XDG_CONFIG_HOME", "AppData", "home"} {
+		t.Setenv(k, "")
+	}
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile(systemdUnit+".timer", nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := systemdDir(); err == nil {
+		t.Fatal("systemdDir found a folder without a home")
+	}
+	removeSystemd()
+	if _, err := os.Stat(systemdUnit + ".timer"); err != nil {
+		t.Error("a unit in the current folder was removed")
 	}
 }
