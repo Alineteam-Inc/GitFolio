@@ -383,6 +383,26 @@ var messages = map[string]map[string]string{
 		"ko": "의존성 분석은 저장소마다 사용자가 고른 패키지 매니저 파일(package.json, go.mod,\npom.xml, build.gradle 등)만, 의존성 파악 용도로만 읽습니다.\n의존성 이름과 버전만 남기고, 그중 내 커밋이 바꾼 모듈의 의존성 이름만 aline.team에 보내 기술 스택에 넣습니다.\n파일 원문과 경로는 저장하지도 전송하지도 않습니다.\n읽는 때는 요청할 때뿐입니다: 승인한 직후, `gitfolio deps scan` 실행 시, 켜 두었다면 scan·sync·예약 동기화 때\n(`gitfolio deps auto on`). push 때는 읽지 않습니다.\n",
 		"ja": "依存関係の分析では、リポジトリごとにあなたが選んだパッケージマネージャーのファイル\n(package.json、go.mod、pom.xml、build.gradle など)のみを、依存関係の把握のためだけに読み取ります。\n依存関係の名前とバージョンのみを保持し、そのうち自分のコミットが変更したモジュールの依存関係の名前だけを\naline.team に送信して技術スタックに加えます。ファイルの内容とパスは保存も送信もしません。\n読むのは求められたときだけです: 承認した直後、`gitfolio deps scan` の実行時、オンにした場合は scan・sync・予約同期のとき\n(`gitfolio deps auto on`)。push のときは読みません。\n",
 	},
+	"syncModeNotice": {
+		"en": "Choose how GitFolio syncs with aline.team.\nAutomatic: sends right after each git push, and every day if you schedule it, so your profile stays current.\nLocal mode: sends nothing by itself; `gitfolio stats` sends your statistics when you run it and shows your developer type.\n",
+		"ko": "aline.team과 동기화하는 방식을 고릅니다.\n자동 동기화: git push 직후에, 예약했다면 매일도 보내 프로필을 최신으로 유지합니다.\n로컬 모드: 스스로는 보내지 않습니다. `gitfolio stats`를 실행할 때만 통계를 보내 개발자 유형을 보여 줍니다.\n",
+		"ja": "aline.team との同期方法を選びます。\n自動同期: git push の直後と、予約すれば毎日送信し、プロフィールを最新に保ちます。\nローカルモード: 自分からは送信しません。`gitfolio stats` を実行したときだけ統計を送り、開発者タイプを表示します。\n",
+	},
+	"syncModeAsk": {
+		"en": "Sync automatically? (No = local mode)",
+		"ko": "자동으로 동기화할까요? (아니요 = 로컬 모드)",
+		"ja": "自動で同期しますか? (いいえ = ローカルモード)",
+	},
+	"syncAuto": {
+		"en": "automatic",
+		"ko": "자동",
+		"ja": "自動",
+	},
+	"syncLocal": {
+		"en": "local mode",
+		"ko": "로컬 모드",
+		"ja": "ローカルモード",
+	},
 	"depsAsk": {
 		"en": "Turn on dependency detection? You will choose the files per repository.",
 		"ko": "의존성 분석을 켤까요? 읽을 파일은 저장소마다 직접 고릅니다.",
@@ -424,9 +444,9 @@ var messages = map[string]map[string]string{
 		"ja": "ターミナルで `gitfolio init` を実行して選ぶか、`gitfolio add <パス>` で1件ずつ登録してください。\n",
 	},
 	"initDone": {
-		"en": "Setup is done.\nRepositories: %d\nPrimary email: %s\nSend right after git push: %s\nDependency detection: %s\nDaily sync: %s\nChange these any time by running `gitfolio init` again, or with `gitfolio config`, `email`, `deps` and `schedule`.\n",
-		"ko": "설정을 마쳤습니다.\n등록 저장소: %d개\n대표 이메일: %s\npush 직후 자동 전송: %s\n의존성 분석: %s\n예약 동기화: %s\n언제든 `gitfolio init`을 다시 실행하거나 `gitfolio config`·`email`·`deps`·`schedule`로 바꿀 수 있습니다.\n",
-		"ja": "設定が完了しました。\n登録リポジトリ: %d 件\n代表メールアドレス: %s\ngit push 直後の自動送信: %s\n依存関係の分析: %s\n予約同期: %s\nいつでも `gitfolio init` を再実行するか、`gitfolio config`・`email`・`deps`・`schedule` で変更できます。\n",
+		"en": "Setup is done.\nRepositories: %d\nPrimary email: %s\nSync: %s\nDependency detection: %s\nDaily sync: %s\nChange these any time by running `gitfolio init` again, or with `gitfolio config`, `email`, `deps` and `schedule`.\n",
+		"ko": "설정을 마쳤습니다.\n등록 저장소: %d개\n대표 이메일: %s\n동기화: %s\n의존성 분석: %s\n예약 동기화: %s\n언제든 `gitfolio init`을 다시 실행하거나 `gitfolio config`·`email`·`deps`·`schedule`로 바꿀 수 있습니다.\n",
+		"ja": "設定が完了しました。\n登録リポジトリ: %d 件\n代表メールアドレス: %s\n同期: %s\n依存関係の分析: %s\n予約同期: %s\nいつでも `gitfolio init` を再実行するか、`gitfolio config`・`email`・`deps`・`schedule` で変更できます。\n",
 	},
 	"signupNotice": {
 		"en": "There is no aline.team account for %s, so a new one will be created.\nSigning up means you agree to\n  Terms of Service: https://aline.team/terms\n  Privacy Policy:   https://aline.team/privacy\n",
