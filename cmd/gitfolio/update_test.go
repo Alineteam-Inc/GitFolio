@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -137,5 +138,18 @@ func TestUpdateNoticeOnPush(t *testing.T) {
 	}
 	if tty.Len() != told {
 		t.Errorf("told on the newest release or a source build: %q", tty.String()[told:])
+	}
+}
+
+// The install script replaces this copy where it is; where that is unknown, it never gets "." for it.
+func TestInstallEnv(t *testing.T) {
+	has := func(env []string, kv string) bool { return slices.Contains(env, kv) }
+	if env := installEnv("v0.5.0", filepath.Join("opt", "bin", "gitfolio")); !has(env, "GITFOLIO_VERSION=v0.5.0") || !has(env, "GITFOLIO_INSTALL_DIR="+filepath.Join("opt", "bin")) {
+		t.Errorf("known copy: %v", env[len(env)-2:])
+	}
+	for _, kv := range installEnv("v0.5.0", "") {
+		if strings.HasPrefix(kv, "GITFOLIO_INSTALL_DIR=") {
+			t.Errorf("unknown copy got %s", kv)
+		}
 	}
 }

@@ -192,7 +192,9 @@ func newer(a, b string) bool {
 func updateCommand(tag string) (*exec.Cmd, string) {
 	exe, err := os.Executable()
 	if err == nil {
-		exe, _ = filepath.EvalSymlinks(exe)
+		if real, err := filepath.EvalSymlinks(exe); err == nil {
+			exe = real
+		}
 	}
 	sep := string(filepath.Separator)
 	switch {
@@ -202,14 +204,24 @@ func updateCommand(tag string) (*exec.Cmd, string) {
 	case runtime.GOOS == "windows":
 		s := "irm " + installPs1 + " | iex"
 		c := exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", s)
-		c.Env = append(os.Environ(), "GITFOLIO_VERSION="+tag, "GITFOLIO_INSTALL_DIR="+filepath.Dir(exe))
+		c.Env = installEnv(tag, exe)
 		return c, s
 	default:
 		s := "curl -fsSL " + installSh + " | sh"
 		c := exec.Command("sh", "-c", s)
-		c.Env = append(os.Environ(), "GITFOLIO_VERSION="+tag, "GITFOLIO_INSTALL_DIR="+filepath.Dir(exe))
+		c.Env = installEnv(tag, exe)
 		return c, s
 	}
+}
+
+// installEnv tells the install script the version and to replace this copy where it is. When where is
+// unknown (exe ""), the script uses its own default folder, never the current one.
+func installEnv(tag, exe string) []string {
+	env := append(os.Environ(), "GITFOLIO_VERSION="+tag)
+	if exe != "" {
+		env = append(env, "GITFOLIO_INSTALL_DIR="+filepath.Dir(exe))
+	}
+	return env
 }
 
 // terminal reports whether f is a terminal: a character device other than the null device, which is
