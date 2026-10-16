@@ -912,6 +912,11 @@ var messages = map[string]map[string]string{
 		"ko": "저장소 %d개의 통계를 보냈습니다. aline.team이 이것으로 개발자 유형과 기술 스택 기간을 냅니다.\n",
 		"ja": "リポジトリ %d 件の統計を送信しました。aline.team がこれから開発者タイプと技術スタックの期間を算出します。\n",
 	},
+	"scheduleLocal": {
+		"en": "Local mode sends nothing by itself, so it has no daily sync. Turn automatic sync on first: gitfolio config autosync on\n",
+		"ko": "로컬 모드는 스스로 보내지 않으므로 예약 동기화가 없습니다. 먼저 자동 동기화를 켜세요: gitfolio config autosync on\n",
+		"ja": "ローカルモードは自分から送信しないため、予約同期はありません。先に自動同期をオンにしてください: gitfolio config autosync on\n",
+	},
 	"statsUpdate": {
 		"en": "aline.team takes the statistics in a newer form; run `gitfolio update`, then they are sent.\n",
 		"ko": "aline.team이 새 형식의 통계를 받습니다. `gitfolio update`로 업데이트하면 보냅니다.\n",
