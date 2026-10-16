@@ -75,11 +75,10 @@ func newRepo(path string) Repo {
 }
 
 type Config struct {
-	Mask      []string `json:"mask,omitempty"`      // blocked words: customer and internal project names
-	Deps      bool     `json:"deps"`                // user allowed dependency detection (DESIGN 3.5)
-	DepsAsked bool     `json:"depsAsked,omitempty"` // init asked once; later changes go through `gitfolio deps`
-	Roots     []string `json:"roots,omitempty"`     // folders where the user keeps repositories (init)
-	APIURL    string   `json:"apiUrl,omitempty"`    // aline.team API root; empty = production (config api-url)
+	Mask   []string `json:"mask,omitempty"`   // blocked words: customer and internal project names
+	Deps   bool     `json:"deps"`             // user allowed dependency detection (DESIGN 3.5)
+	Roots  []string `json:"roots,omitempty"`  // folders where the user keeps repositories (init)
+	APIURL string   `json:"apiUrl,omitempty"` // aline.team API root; empty = production (config api-url)
 	// AutoSyncOff stops sending right after git push; sync still sends (config autosync).
 	AutoSyncOff bool `json:"autoSyncOff,omitempty"`
 	// Emails are the user's work emails (gitfolio email); the first is the primary one, the author
