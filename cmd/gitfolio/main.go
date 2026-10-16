@@ -42,6 +42,8 @@ commands:
   stats [--refresh]     your developer type and its five scores from aline.team, saved here after the
                         first time (--refresh: get it again; aline.team makes it if it has none yet).
                         In local mode it sends the statistics first and gets the type each time
+  stack                 how long you used each language, framework and library, from aline.team
+                        (local mode: sends the statistics first)
   export                print collected commits, dependencies and statistics as JSON
   deps [on|off|review [path]]
                         dependency detection: show status, turn it on (you choose which
@@ -138,6 +140,8 @@ func run(args []string) error {
 		return cmdUpdate(dir)
 	case "stats":
 		return cmdStats(dir, args[1:]) // outside the lock: it may wait on aline.team
+	case "stack":
+		return cmdStack(dir, args[1:]) // the same
 	}
 	return withLock(dir, func() error {
 		switch args[0] {
@@ -170,7 +174,7 @@ func run(args []string) error {
 
 // commands are the commands people type; "hook" is run by git hooks only and never suggested.
 var commands = []string{"init", "login", "logout", "whoami", "add", "remove", "scan", "sync", "list", "status",
-	"stats", "export", "config", "deps", "schedule", "email", "history", "update", "version", "help"}
+	"stats", "stack", "export", "config", "deps", "schedule", "email", "history", "update", "version", "help"}
 
 // unknownCommand names the commands the user may have meant (similarCommands), or points to help.
 func unknownCommand(s string) error {

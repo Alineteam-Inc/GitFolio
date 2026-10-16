@@ -912,6 +912,26 @@ var messages = map[string]map[string]string{
 		"ko": "저장소 %d개의 통계를 보냈습니다. aline.team이 이것으로 개발자 유형과 기술 스택 기간을 냅니다.\n",
 		"ja": "リポジトリ %d 件の統計を送信しました。aline.team がこれから開発者タイプと技術スタックの期間を算出します。\n",
 	},
+	"statsUpdate": {
+		"en": "aline.team takes the statistics in a newer form; run `gitfolio update`, then they are sent.\n",
+		"ko": "aline.team이 새 형식의 통계를 받습니다. `gitfolio update`로 업데이트하면 보냅니다.\n",
+		"ja": "aline.team は新しい形式の統計を受け付けます。`gitfolio update` で更新すると送信します。\n",
+	},
+	"stackTitle": {
+		"en": "Your tech stack on aline.team, from the first to the last commit of the repositories using each:\n",
+		"ko": "aline.team의 기술 스택 사용 기간입니다. 각 기술을 쓴 저장소의 첫 커밋부터 마지막 커밋까지:\n",
+		"ja": "aline.team の技術スタックの使用期間です。各技術を使ったリポジトリの最初から最後のコミットまで:\n",
+	},
+	"stackEmpty": {
+		"en": "aline.team has no tech stack for you yet. It comes from the repositories you send (`gitfolio sync`).\n",
+		"ko": "aline.team에 아직 기술 스택이 없습니다. 보낸 저장소에서 만들어집니다(`gitfolio sync`).\n",
+		"ja": "aline.team にはまだ技術スタックがありません。送信したリポジトリから作られます(`gitfolio sync`)。\n",
+	},
+	"stackHidden": {
+		"en": "hidden",
+		"ko": "숨김",
+		"ja": "非表示",
+	},
 	"statsRejected": {
 		"en": "aline.team did not accept the statistics of %s; they are sent again when they change: %v\n",
 		"ko": "aline.team이 %s의 통계를 받지 않았습니다. 바뀌면 다시 보냅니다: %v\n",

@@ -77,6 +77,7 @@ const (
 	codeEmailVerified = "A011" // the work email is already verified for this account
 	codeTooManyEmails = "A012" // the account has as many verified work emails as it may have
 	codeUnverified    = "A013" // a repository's commits wait until error.email is verified (from 0.2.0)
+	codeNewerFormat   = "A014" // aline.team takes a newer snapshot format: GitFolio needs an update
 	codeRateLimited   = "R001"
 	codeBadInput      = "C001" // malformed request
 )

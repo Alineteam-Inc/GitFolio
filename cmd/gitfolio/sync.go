@@ -488,6 +488,9 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 			continue
 		case errors.As(err, &ae) && ae.Code == codeBadInput: // not sent again on every push, until it changes
 			warn(lang, "statsRejected", s.Namespace, ae)
+		case errors.As(err, &ae) && ae.Code == codeNewerFormat: // all snapshots wait for the update
+			warn(lang, "statsUpdate")
+			return n, save()
 		default:
 			return n, errors.Join(err, save())
 		}

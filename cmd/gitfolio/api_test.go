@@ -76,12 +76,14 @@ type fakeAline struct {
 	depsCalls    int
 
 	// Data API. The handler holds mu; tests lock it to read.
-	mu       sync.Mutex
-	commits  map[string]Commit   // provider/namespace/hash → record
-	stats    map[string]snapshot // provider/namespace → snapshot (PUT /cli/stats)
-	modified map[string]string   // provider/namespace/name → modifiedAt
-	batches  int                 // accepted commit batches
-	down     bool                // answer data calls with 503
+	mu          sync.Mutex
+	commits     map[string]Commit   // provider/namespace/hash → record
+	stats       map[string]snapshot // provider/namespace → snapshot (PUT /cli/stats)
+	newerFormat bool                // answer PUT /cli/stats with A014
+	techUsages  map[string]any      // what GET /cli/tech-usages answers
+	modified    map[string]string   // provider/namespace/name → modifiedAt
+	batches     int                 // accepted commit batches
+	down        bool                // answer data calls with 503
 }
 
 // me is the body of GET /cli/me: the account email first, then the verified work emails.
@@ -271,6 +273,10 @@ func (f *fakeAline) handler() http.Handler {
 			fail(w, 400, "C001")
 			return
 		}
+		if f.newerFormat {
+			fail(w, 400, "A014")
+			return
+		}
 		if e := f.waitFor[in.Namespace]; e != "" && !slices.Contains(f.me()["verifiedEmails"].([]string), e) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(403)
@@ -284,6 +290,9 @@ func (f *fakeAline) handler() http.Handler {
 		}
 		f.stats[in.Provider+"/"+in.Namespace] = in
 		ok(w, nil)
+	}))
+	mux.HandleFunc("GET /cli/tech-usages", data(func(w http.ResponseWriter, r *http.Request) {
+		ok(w, f.techUsages)
 	}))
 	mux.HandleFunc("PUT /cli/dependencies", data(func(w http.ResponseWriter, r *http.Request) {
 		f.depsCalls++

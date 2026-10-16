@@ -561,4 +561,16 @@ func TestSyncSnapshots(t *testing.T) {
 	if _, ok := f.stats["GITHUB/me/wait"]; ok {
 		t.Error("a repository waiting for a verified email had its snapshot taken")
 	}
+
+	// aline.team takes a newer format: nothing is marked sent until GitFolio is updated.
+	f.newerFormat = true
+	must(appendCommits(dir, []Commit{commit("r1", "a3", "2026-10-09T10:00:00+09:00")}))
+	before := f.stats["GITHUB/me/app"]
+	if n, err := syncData(dir, false); err != nil || n.stats != 0 {
+		t.Errorf("newer format: %+v, %v", n, err)
+	}
+	f.newerFormat = false
+	if n, err := syncData(dir, false); err != nil || n.stats != 1 || f.stats["GITHUB/me/app"].Days["2026-10-09"] == nil || before.Days["2026-10-09"] != nil {
+		t.Errorf("after the update the snapshot was not sent: %+v, %v", n, err)
+	}
 }
