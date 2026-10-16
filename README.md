@@ -102,7 +102,7 @@ version must use its own name, logo and icons and must not suggest that Alinetea
 Using the aline.team API is subject to the [aline.team Terms of Service](https://aline.team/terms).
 Releases up to v0.4.1 were published under MIT.
 
-© 2026 Alineteam Inc. · Design and policy details: [docs/DESIGN.md](docs/DESIGN.md)
+© 2026 Alineteam Inc.
 
 ---
 
@@ -201,4 +201,4 @@ gitfolio help                    # 그 밖의 명령
 안 됩니다. aline.team API 사용은 [aline.team 이용약관](https://aline.team/terms)을 따릅니다. v0.4.1까지의 릴리스는
 MIT로 배포했습니다.
 
-© 2026 Alineteam Inc. · 설계·정책 상세: [docs/DESIGN.md](docs/DESIGN.md)
+© 2026 Alineteam Inc.
