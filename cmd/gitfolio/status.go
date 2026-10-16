@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"text/tabwriter"
@@ -200,7 +201,7 @@ func cmdStatus(dir string, args []string) error {
 			agents = strings.Join(parts, ", ")
 		}
 		where := cmp.Or(strings.TrimSpace(r.Provider+" "+r.Namespace), "-")
-		sayKV(lang, "statusRepo", r.Name, where, s.commits, s.sentCount(r, st), s.changes, s.add, s.del, s.created,
+		sayKV(lang, "statusRepo", r.Name, where, s.commits, s.sentCount(r, st), s.changes, gitLines(fmt.Sprintf("+%d -%d", s.add, s.del)), s.created,
 			s.aiShare(), agents, s.languageShares(0), s.depCounts(cfg.Deps), s.lastCommit())
 		if cfg.Deps {
 			for _, eco := range slices.Sorted(maps.Keys(s.deps)) {
@@ -232,10 +233,23 @@ func cmdStatus(dir string, args []string) error {
 	}
 	header, rows, _ := strings.Cut(b.String(), "\n")
 	title := strings.TrimRight(fmt.Sprintf(tr(lang, "statusTitle"), len(repos)), "\n")
-	show(out, title+"\n"+dim(strings.TrimRight(header, " "))+"\n"+rows)
+	show(out, title+"\n"+dim(strings.TrimRight(header, " "))+"\n"+gitLines(rows))
 	waitingNotice(lang, st.Waiting)
 	notice(tr(lang, "statusMore"))
 	return nil
+}
+
+// lineCounts is a "+added -deleted" pair of changed-line counts.
+var lineCounts = regexp.MustCompile(`\+(\d+) -(\d+)`)
+
+// gitLines colors changed-line counts the way git does: added green, deleted red. It works on text
+// already aligned, so the color codes never shift a column, and ends each color with the default
+// color only (39), so a bold value stays bold after it.
+func gitLines(s string) string {
+	if !useColor {
+		return s
+	}
+	return lineCounts.ReplaceAllString(s, "\x1b[32m+${1}\x1b[39m \x1b[31m-${2}\x1b[39m")
 }
 
 // findRepo finds a registered repository by its name or by a path inside it.

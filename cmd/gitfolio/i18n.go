@@ -570,9 +570,9 @@ var messages = map[string]map[string]string{
 		"ja": "%s はすでに登録されています。\n",
 	},
 	"statusRepo": {
-		"en": "%s\nRepository: %s\nCommits: %d (sent: %s)\nFile changes: %d (lines +%d -%d, files created %d)\nAI-assisted: %s (%s)\nLanguages: %s\nDependencies: %s\nLast commit: %s\n",
-		"ko": "%s\n저장소: %s\n커밋: %d (보냄: %s)\n파일 변경: %d (줄 +%d -%d, 새로 만든 파일 %d)\nAI 사용: %s (%s)\n언어: %s\n의존성: %s\n마지막 커밋: %s\n",
-		"ja": "%s\nリポジトリ: %s\nコミット: %d (送信済み: %s)\nファイル変更: %d (行 +%d -%d、新規ファイル %d)\nAI 利用: %s (%s)\n言語: %s\n依存関係: %s\n最終コミット: %s\n",
+		"en": "%s\nRepository: %s\nCommits: %d (sent: %s)\nFile changes: %d (lines %s, files created %d)\nAI-assisted: %s (%s)\nLanguages: %s\nDependencies: %s\nLast commit: %s\n",
+		"ko": "%s\n저장소: %s\n커밋: %d (보냄: %s)\n파일 변경: %d (줄 %s, 새로 만든 파일 %d)\nAI 사용: %s (%s)\n언어: %s\n의존성: %s\n마지막 커밋: %s\n",
+		"ja": "%s\nリポジトリ: %s\nコミット: %d (送信済み: %s)\nファイル変更: %d (行 %s、新規ファイル %d)\nAI 利用: %s (%s)\n言語: %s\n依存関係: %s\n最終コミット: %s\n",
 	},
 	"statusTitle": {
 		"en": "%d registered repositories (this computer's data)\n",

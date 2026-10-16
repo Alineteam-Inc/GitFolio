@@ -52,6 +52,17 @@ func TestStatusOf(t *testing.T) {
 	if got := bin.languageShares(0); got != "-" {
 		t.Errorf("a file with no changed lines counts for %q", got)
 	}
+	// Changed lines are colored like git, only where color is used, and nothing else that has a dash.
+	defer func(c bool) { useColor = c }(useColor)
+	useColor = false
+	if got := gitLines("app  +5 -3  2026-10-16"); got != "app  +5 -3  2026-10-16" {
+		t.Errorf("without color: %q", got)
+	}
+	useColor = true
+	if got := gitLines("app  +5 -3  2026-10-16"); got != "app  \x1b[32m+5\x1b[39m \x1b[31m-3\x1b[39m  2026-10-16" {
+		t.Errorf("with color: %q", got)
+	}
+	useColor = false
 	for file, want := range map[string]string{
 		"build/Dockerfile": "", "Makefile": "", "go.sum": "", "docs/a.yaml": "", ".bashrc": "", "a.": "",
 		"web/App.TSX": "TypeScript", "lib/index.cjs": "JavaScript", "style.scss": "CSS", "deploy.ps1": "PowerShell",
