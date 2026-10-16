@@ -178,7 +178,7 @@ func TestStack(t *testing.T) {
 	if err := cmdStack(dir, nil); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"KIND", "language", "Go", "2025-03", "2026-10", "framework", "Spring Boot (hidden)", "2024-01"} {
+	for _, want := range []string{"KIND", "language", "Go", "2025-03", "2026-10", "framework", "Spring Boot *", "2024-01", "* hidden on your aline.team profile"} {
 		if !strings.Contains(buf.String(), want) {
 			t.Errorf("stack shows no %q:\n%s", want, buf.String())
 		}

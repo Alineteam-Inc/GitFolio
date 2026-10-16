@@ -933,9 +933,9 @@ var messages = map[string]map[string]string{
 		"ja": "aline.team にはまだ技術スタックがありません。送信したリポジトリから作られます(`gitfolio sync`)。\n",
 	},
 	"stackHidden": {
-		"en": "hidden",
-		"ko": "숨김",
-		"ja": "非表示",
+		"en": "* hidden on your aline.team profile\n",
+		"ko": "* aline.team 프로필에서 숨긴 기술\n",
+		"ja": "* aline.team のプロフィールで非表示にした技術\n",
 	},
 	"statsRejected": {
 		"en": "aline.team did not accept the statistics of %s; they are sent again when they change: %v\n",

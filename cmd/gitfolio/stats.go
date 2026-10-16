@@ -161,6 +161,7 @@ func cmdStack(dir string, args []string) error {
 		return fmt.Sprint(*v)
 	}
 	var b strings.Builder
+	hidden := false
 	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "KIND\tNAME\tFROM\tTO\tMONTHS\tPROJECTS")
 	for _, g := range []struct {
@@ -169,8 +170,8 @@ func cmdStack(dir string, args []string) error {
 	}{{"language", u.Languages}, {"framework", u.Frameworks}, {"library", u.Libraries}} {
 		for _, t := range g.items {
 			name := t.Name
-			if t.Hidden {
-				name += " (" + tr(lang, "stackHidden") + ")"
+			if t.Hidden { // a mark, not a word: the columns count letters, and Korean ones are two wide
+				name, hidden = name+" *", true
 			}
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", g.kind, name, month(t.StartDate), month(t.EndDate), num(t.CareerMonths), num(t.ProjectCount))
 		}
@@ -180,6 +181,9 @@ func cmdStack(dir string, args []string) error {
 	}
 	header, rows, _ := strings.Cut(b.String(), "\n")
 	show(out, strings.TrimRight(tr(lang, "stackTitle"), "\n")+"\n"+dim(strings.TrimRight(header, " "))+"\n"+rows)
+	if hidden {
+		notice(tr(lang, "stackHidden"))
+	}
 	return nil
 }
 
