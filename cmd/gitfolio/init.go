@@ -119,13 +119,28 @@ func cmdInit(dir string, args []string) error {
 		return err
 	}
 
-	// Settings. Collecting on a schedule is the daily sync; otherwise the user runs sync by hand.
-	// Sending right after git push stays on (config autosync) and is shown in the summary.
+	// Settings. Syncing automatically sends right after git push (config autosync) and, when scheduled,
+	// every day; local mode sends nothing by itself, only when a command needs aline.team's answer.
 	section(lang, "settingsTitle")
+	notice(tr(lang, "syncModeNotice"))
+	auto := askYesNo(lang, "syncModeAsk", !cfg.AutoSyncOff)
 	notice(tr(lang, "depsNotice"))
 	deps := askYesNo(lang, "depsAsk", cfg.Deps)
-	when := askSchedule(lang, cfg.Schedule)
+	when := ""
+	if auto {
+		when = askSchedule(lang, cfg.Schedule)
+	}
 	blank()
+	if err := withLock(dir, func() error {
+		c, err := loadConfig(dir)
+		if err != nil {
+			return err
+		}
+		c.AutoSyncOff = !auto
+		return saveConfig(dir, c)
+	}); err != nil {
+		return err
+	}
 	if err := withLock(dir, func() error { return applyDeps(dir, deps) }); err != nil {
 		return err
 	}
@@ -167,7 +182,7 @@ func cmdInit(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(repos) > 0 {
+	if len(repos) > 0 && auto {
 		section(lang, "syncTitle")
 		if err := withLock(dir, func() error { return cmdSync(dir, nil) }); err != nil {
 			warn(lang, "failed", err) // sent by the next push or sync
@@ -179,7 +194,7 @@ func cmdInit(dir string, args []string) error {
 	onOff := func(b bool) string { return tr(lang, map[bool]string{true: "on", false: "off"}[b]) }
 	daily := cmp.Or(cfg.Schedule, tr(lang, "off"))
 	blank()
-	sayKV(lang, "initDone", len(repos), primaryEmail(cfg), onOff(!cfg.AutoSyncOff), onOff(cfg.Deps), daily)
+	sayKV(lang, "initDone", len(repos), primaryEmail(cfg), tr(lang, map[bool]string{true: "syncAuto", false: "syncLocal"}[!cfg.AutoSyncOff]), onOff(cfg.Deps), daily)
 	return nil
 }
 
