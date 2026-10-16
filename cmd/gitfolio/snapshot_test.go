@@ -35,18 +35,20 @@ func TestSnapshots(t *testing.T) {
 		{ID: "c"}, // no git service remote: never sent
 	}
 	commits := []Commit{
-		{Repo: "a", Hash: "1", Date: "2026-09-01T23:30:00-02:00", Message: "feat: login", CreationType: creationHuman,
+		{Repo: "a", Hash: "1", Date: "2026-09-01T23:30:00-02:00", Branch: "main", Message: "feat: login", CreationType: creationHuman,
 			Files: []FileStat{{Name: "src/login.go", Created: true}, {Name: "src/main.go"}, {Name: "db/schema.sql"}, {Name: "Dockerfile"}}},
-		{Repo: "a", Hash: "2", Date: "2026-09-02T10:00:00+09:00", Message: "fix login", CreationType: creationHumanCoAI,
+		{Repo: "a", Hash: "2", Date: "2026-09-02T10:00:00+09:00", Branch: "main", Message: "fix login", CreationType: creationHumanCoAI,
 			Files: []FileStat{{Name: "web/Login.vue", Created: true}}},
-		{Repo: "a", Hash: "3", Date: "2026-09-02T10:00:00+09:00", Message: "fix login", CreationType: creationHumanCoAI, // amended copy
+		{Repo: "a", Hash: "3", Date: "2026-09-02T10:00:00+09:00", Branch: "main", Message: "fix login", CreationType: creationHumanCoAI, // amended copy
 			Files: []FileStat{{Name: "web/Login.vue", Created: true}}},
-		{Repo: "a", Hash: "4", Date: "2026-09-02T11:00:00+09:00", Message: "Merge branch 'x'", CreationType: creationHuman,
+		{Repo: "a", Hash: "4", Date: "2026-09-02T11:00:00+09:00", Branch: "main", Message: "Merge branch 'x'", CreationType: creationHuman,
 			Files: []FileStat{{Name: "infra/main.tf", Created: true}, {Name: "a.py"}}},
-		{Repo: "a", Hash: "5", Date: "2026-09-02T12:00:00+09:00", Message: "update docs", CreationType: creationHuman,
+		{Repo: "a", Hash: "5", Date: "2026-09-02T12:00:00+09:00", Branch: "main", Message: "update docs", CreationType: creationHuman,
 			Files: []FileStat{{Name: "README.md"}}},
-		{Repo: "b", Hash: "1", Date: "2026-09-02T01:30:00Z", Message: "feat: login", CreationType: creationHuman,
+		{Repo: "b", Hash: "1", Date: "2026-09-02T01:30:00Z", Branch: "main", Message: "feat: login", CreationType: creationHuman,
 			Files: []FileStat{{Name: "src/login.go", Created: true}}},
+		{Repo: "a", Hash: "6", Date: "2026-09-04T10:00:00Z", Message: "feat: not pushed yet", CreationType: creationHuman,
+			Files: []FileStat{{Name: "src/next.go", Created: true}}},
 		{Repo: "c", Hash: "9", Date: "2026-09-02T01:30:00Z", Message: "feat: x", CreationType: creationHuman},
 	}
 	got := snapshots(repos, commits, "me@example.com")

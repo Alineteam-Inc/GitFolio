@@ -154,7 +154,7 @@ func snapshots(repos []Repo, commits []Commit, author string) []snapshot {
 		marks, langs := map[string]bool{}, map[string]bool{}
 		for _, c := range byRepo[r.ID] {
 			at, err := time.Parse(time.RFC3339, c.Date)
-			if err != nil {
+			if err != nil || c.Branch == "" { // not pushed yet (read from HEAD before the first push)
 				continue
 			}
 			for _, f := range c.Files {
