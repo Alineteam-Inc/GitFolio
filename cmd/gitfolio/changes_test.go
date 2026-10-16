@@ -99,7 +99,7 @@ func TestFirstChanges(t *testing.T) {
 		t.Errorf("first changes = %v, want %v", r.Changed, want)
 	}
 	// The same history as later changes to the user's files: the release does not count, the rename is
-	// not followed, and only a's first change is within 14 days of being made.
+	// not followed, and a file changed again within 14 days counts once, on the first such day.
 	wantChurn := map[string]churn{
 		"2026-09-02": {Touches: pair{1}, Corrective: pair{1}, Early: pair{1}},
 		"2026-09-05": {Touches: pair{1}, Early: pair{1}},
