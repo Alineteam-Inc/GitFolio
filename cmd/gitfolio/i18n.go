@@ -123,8 +123,7 @@ func showMarked(w io.Writer, mark, text string) {
 
 // notice prints an explanation with the margin, as its own paragraph; it ends a status paragraph.
 func notice(s string) {
-	inParagraph = false
-	gap(out)
+	blank()
 	s = strings.TrimLeft(s, "\n")
 	if useColor { // an info mark, the lines after it aligned under the text
 		s = symInfo + " " + strings.ReplaceAll(strings.TrimRight(s, "\n"), "\n", "\n  ") + s[len(strings.TrimRight(s, "\n")):]
@@ -146,8 +145,7 @@ func failure(key string, args ...any) error {
 
 // section prints the separator that opens an interactive command.
 func section(lang, titleKey string) {
-	inParagraph = false
-	gap(out)
+	blank()
 	fmt.Fprintf(out, "%s%s\n", margin, heading("===== GitFolio · "+strings.TrimSpace(tr(lang, titleKey))+" ====="))
 }
 

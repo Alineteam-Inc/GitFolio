@@ -62,12 +62,7 @@ func agentByEmail(email string) string {
 func detectAgents(authorName, authorEmail, message string) []string {
 	var agents []string
 	add := func(a string) {
-		for _, x := range agents {
-			if x == a {
-				return
-			}
-		}
-		if a != "" {
+		if a != "" && !slices.Contains(agents, a) {
 			agents = append(agents, a)
 		}
 	}

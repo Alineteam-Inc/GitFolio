@@ -70,11 +70,7 @@ func remote(repo string) (provider, namespace string) {
 		}
 		name = strings.Fields(names)[0]
 	}
-	for _, push := range []bool{true, false} {
-		args := []string{"remote", "get-url", name}
-		if push {
-			args = []string{"remote", "get-url", "--push", name}
-		}
+	for _, args := range [][]string{{"remote", "get-url", "--push", name}, {"remote", "get-url", name}} {
 		if out, err := git(repo, args...); err == nil {
 			first, _, _ := strings.Cut(strings.TrimSpace(out), "\n")
 			if provider, namespace = parseRemote(strings.TrimSpace(first)); provider != "" {

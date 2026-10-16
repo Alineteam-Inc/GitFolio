@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"html"
@@ -36,10 +37,7 @@ func cmdSchedule(dir string, args []string) error {
 		if err != nil {
 			return err
 		}
-		when := tr(lang, "off")
-		if cfg.Schedule != "" {
-			when = cfg.Schedule
-		}
+		when := cmp.Or(cfg.Schedule, tr(lang, "off"))
 		last := tr(lang, "never")
 		if t, err := time.Parse(time.RFC3339, st.LastSync); err == nil {
 			last = fmt.Sprintf(tr(lang, "lastSyncOK"), t.Local().Format("2006-01-02 15:04"))

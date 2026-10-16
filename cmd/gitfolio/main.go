@@ -541,10 +541,15 @@ func cmdExport(dir string) error {
 	if err != nil {
 		return err
 	}
+	return printJSON(out)
+}
+
+// printJSON prints v indented, keeping "<a@b.com>" readable instead of <…>.
+func printJSON(v any) error {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-	enc.SetEscapeHTML(false) // keep "<a@b.com>" readable instead of <…>
-	return enc.Encode(out)
+	enc.SetEscapeHTML(false)
+	return enc.Encode(v)
 }
 
 func cmdConfig(dir string, args []string) error {
@@ -553,10 +558,7 @@ func cmdConfig(dir string, args []string) error {
 		return err
 	}
 	if len(args) == 0 {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		enc.SetEscapeHTML(false)
-		return enc.Encode(cfg)
+		return printJSON(cfg)
 	}
 	if args[0] == "autosync" && len(args) == 2 && (args[1] == "on" || args[1] == "off") {
 		cfg.AutoSyncOff = args[1] == "off"
