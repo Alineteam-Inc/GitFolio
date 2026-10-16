@@ -156,3 +156,39 @@ func TestDevTypeArt(t *testing.T) {
 		t.Error("an unknown type was drawn")
 	}
 }
+
+// stack shows aline.team's tech stack periods in one table, asked for each time.
+func TestStack(t *testing.T) {
+	f := &fakeAline{token: testToken, techUsages: map[string]any{
+		"languages":  []map[string]any{{"name": "Go", "startDate": "2025-03-02T10:00:00", "endDate": "2026-10-05T09:00:00", "careerMonths": 20, "projectCount": 3}},
+		"frameworks": []map[string]any{{"name": "Spring Boot", "framework": "SPRING_BOOT", "startDate": "2024-01-10T10:00:00", "endDate": "2025-12-01T10:00:00", "careerMonths": 23, "projectCount": 1, "isHidden": true}},
+		"libraries":  []map[string]any{},
+	}}
+	ts := httptest.NewServer(f.handler())
+	defer ts.Close()
+	t.Setenv("GITFOLIO_API_URL", ts.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	var buf bytes.Buffer
+	defer func(o, e io.Writer) { out, errOut = o, e }(out, errOut)
+	out, errOut = &buf, &buf
+	dir := t.TempDir()
+	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmdStack(dir, nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"KIND", "language", "Go", "2025-03", "2026-10", "framework", "Spring Boot (hidden)", "2024-01"} {
+		if !strings.Contains(buf.String(), want) {
+			t.Errorf("stack shows no %q:\n%s", want, buf.String())
+		}
+	}
+	f.techUsages = map[string]any{"languages": []any{}, "frameworks": []any{}, "libraries": []any{}}
+	buf.Reset()
+	if err := cmdStack(dir, nil); err != nil || !strings.Contains(buf.String(), "no tech stack") {
+		t.Errorf("empty stack: %v\n%s", err, buf.String())
+	}
+	if cmdStack(dir, []string{"--all"}) == nil {
+		t.Error("an argument was taken")
+	}
+}

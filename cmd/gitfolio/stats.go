@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 	"time"
 )
 
@@ -59,17 +60,9 @@ func cmdStats(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
-	cfg, err := loadConfig(dir)
-	if err != nil {
+	if local, err := sendIfLocal(dir, lang, c); err != nil {
 		return err
-	}
-	if cfg.AutoSyncOff { // local mode: aline.team gets the statistics only when the type is asked for
-		if !c.ensureLogin() {
-			return failure("loginFirst")
-		}
-		if err := withLock(dir, func() error { return cmdSync(dir, nil) }); err != nil {
-			warn(lang, "failed", err) // what aline.team made before still shows
-		}
+	} else if local {
 		refresh = true
 	}
 	p := filepath.Join(dir, devTypeFile)
@@ -106,6 +99,87 @@ func cmdStats(dir string, args []string) error {
 		}
 	}
 	showDevType(lang, cache, false)
+	return nil
+}
+
+// sendIfLocal sends the statistics before aline.team is asked about them in local mode, which sends
+// nothing by itself, and reports whether it is local mode.
+func sendIfLocal(dir, lang string, c *client) (bool, error) {
+	cfg, err := loadConfig(dir)
+	if err != nil || !cfg.AutoSyncOff {
+		return false, err
+	}
+	if !c.ensureLogin() {
+		return true, failure("loginFirst")
+	}
+	if err := withLock(dir, func() error { return cmdSync(dir, nil) }); err != nil {
+		warn(lang, "failed", err) // what aline.team has from before still shows
+	}
+	return true, nil
+}
+
+// techUsage is how long the user used one language, framework or library, as aline.team works it out
+// from the repositories: from the first to the last commit of the repositories using it.
+type techUsage struct {
+	Name         string `json:"name"`
+	StartDate    string `json:"startDate"`
+	EndDate      string `json:"endDate"`
+	CareerMonths *int   `json:"careerMonths"`
+	ProjectCount *int   `json:"projectCount"`
+	Hidden       bool   `json:"isHidden"` // hidden from the profile by the user
+}
+
+// cmdStack shows the user's tech stack periods from aline.team, asked for each time.
+func cmdStack(dir string, args []string) error {
+	lang := detectLang(os.Getenv)
+	if len(args) > 0 {
+		return failure("usage", "gitfolio stack")
+	}
+	c, err := newClient(dir)
+	if err != nil {
+		return err
+	}
+	if _, err := sendIfLocal(dir, lang, c); err != nil {
+		return err
+	}
+	if !c.ensureLogin() {
+		return failure("loginFirst")
+	}
+	var u struct{ Languages, Frameworks, Libraries []techUsage }
+	if err := c.call("GET", "/cli/tech-usages", nil, &u); err != nil {
+		return err
+	}
+	if len(u.Languages)+len(u.Frameworks)+len(u.Libraries) == 0 {
+		say(lang, "stackEmpty")
+		return nil
+	}
+	month := func(s string) string { return cmp.Or(s[:min(len(s), 7)], "-") } // "2026-10-05T09:00:00" → "2026-10"
+	num := func(v *int) string {
+		if v == nil {
+			return "-"
+		}
+		return fmt.Sprint(*v)
+	}
+	var b strings.Builder
+	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "KIND\tNAME\tFROM\tTO\tMONTHS\tPROJECTS")
+	for _, g := range []struct {
+		kind  string
+		items []techUsage
+	}{{"language", u.Languages}, {"framework", u.Frameworks}, {"library", u.Libraries}} {
+		for _, t := range g.items {
+			name := t.Name
+			if t.Hidden {
+				name += " (" + tr(lang, "stackHidden") + ")"
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", g.kind, name, month(t.StartDate), month(t.EndDate), num(t.CareerMonths), num(t.ProjectCount))
+		}
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	header, rows, _ := strings.Cut(b.String(), "\n")
+	show(out, strings.TrimRight(tr(lang, "stackTitle"), "\n")+"\n"+dim(strings.TrimRight(header, " "))+"\n"+rows)
 	return nil
 }
 
