@@ -34,13 +34,15 @@ commands:
                         --rebuild: drop stored commits and collect again)
   sync [--dry-run]      collect new commits in every repository and send what aline.team
                         does not have yet (--dry-run: print it as JSON, send nothing).
-                        Pushes are sent right after git push unless autosync is off
+                        Pushes are sent right after git push unless autosync is off;
+                        in local mode (autosync off) only the statistics are sent
   list                  show registered repositories
   status [name|path]    what GitFolio collected per repository: commits, how many aline.team has,
                         file changes, lines, AI use, languages, dependencies (this computer's data only)
   stats [--refresh]     your developer type and its five scores from aline.team, saved here after the
-                        first time (--refresh: get it again; aline.team makes it if it has none yet)
-  export                print collected commits as JSON
+                        first time (--refresh: get it again; aline.team makes it if it has none yet).
+                        In local mode it sends the statistics first and gets the type each time
+  export                print collected commits, dependencies and statistics as JSON
   deps [on|off|review [path]]
                         dependency detection: show status, turn it on (you choose which
                         package manager files may be read) or off (collected dependencies
@@ -55,7 +57,8 @@ commands:
                         add or remove blocked words (customer or internal project names);
                         added words are also applied to already stored data
   config autosync on|off
-                        send to aline.team right after each git push (on by default)
+                        send to aline.team right after each git push (on by default);
+                        off is local mode: nothing is sent until stats or sync
   config git-history on|off
                         keep git's own record of the git commands gitfolio runs (on by default;
                         off deletes it)
