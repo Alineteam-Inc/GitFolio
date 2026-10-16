@@ -8,26 +8,38 @@ import (
 	"testing"
 )
 
-func TestSystemCommit(t *testing.T) {
-	for subject, want := range map[string]bool{
-		"merge: main into feature":     true,
-		"Merge branch 'main'":          true,
-		"Release: v1.2":                true,
-		"release v1.2.0":               true,
-		"Cherry-pick fix from main":    true,
-		"rebase onto main":             true,
-		"Initial commit":               true,
-		"auto":                         true,
-		"chore(release): v1.2":         false, // CHORE on the server
-		"revert: bad change":           false, // REVERT counts as a change
-		"feat!: new api":               false,
-		"fix the release script":       false,
-		"initial support for windows":  false, // longer than a short system subject
-		"Add bot detection for agents": false,
-		"":                             false,
+// TestCommitType holds examples of aline.team's commit types; the same ones are to give the same type there.
+func TestCommitType(t *testing.T) {
+	for msg, want := range map[string]string{
+		"merge: main into feature":     "SYSTEM",
+		"Merge branch 'main'":          "SYSTEM",
+		"Release: v1.2":                "SYSTEM", // no Conventional Commits type, then a first word
+		"release v1.2.0":               "SYSTEM",
+		"rebase onto main":             "SYSTEM",
+		"Initial commit":               "SYSTEM",
+		"initial support for windows":  "SYSTEM", // no keyword ranks above initial
+		"auto":                         "SYSTEM",
+		"Cherry-pick fix from main":    "FIX", // the hyphen splits the first word
+		"chore(release): v1.2":         "CHORE",
+		"revert: bad change":           "REVERT",
+		"feat!: new api":               "ADD",
+		"feat(): empty scope":          "ADD", // no prefix match; feat is still a keyword
+		"fix the release script":       "FIX",
+		"Add bot detection for agents": "ADD",
+		"Fix security issue in login":  "HOTFIX",        // the highest ranked keyword
+		"update README":                "DOCUMENTATION", // the higher of update and readme
+		"버그 수정":                        "FIX",
+		"로그인 기능 추가":                    "ADD",
+		"Title: A+B, Time: 56 ms, Memory: 31120 KB -BaekjoonHub": "ADD",
+		"tweak b": "UNCATEGORIZED",
+		"":        "UNCATEGORIZED",
+		"!!!":     "UNCATEGORIZED",
+		"docs: guide\n\nfix: body is not the subject": "DOCUMENTATION",
+		"tidy\r\n\r\nfix later":                       "CHORE",
+		"use index\nfix":                              "FIX", // a single line break keeps one subject
 	} {
-		if got := systemCommit(subject + "\n\nbody"); got != want {
-			t.Errorf("systemCommit(%q) = %v, want %v", subject, got, want)
+		if got := commitType(msg); got != want {
+			t.Errorf("commitType(%q) = %s, want %s", msg, got, want)
 		}
 	}
 }
