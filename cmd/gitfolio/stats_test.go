@@ -87,7 +87,8 @@ func TestStats(t *testing.T) {
 	}
 	// Made too slowly, nothing kept: aline.team finishes it, so try again shortly.
 	f.devTypeWait = 200 * time.Millisecond
-	defer func(d time.Duration) { apiTimeout = d }(apiTimeout)
+	timeout := apiTimeout
+	defer func() { apiTimeout = timeout }()
 	apiTimeout = 50 * time.Millisecond
 	if err := cmdStats(dir, nil); err == nil || !strings.Contains(err.Error(), "still making") {
 		t.Errorf("timeout: %v", err)
@@ -101,7 +102,7 @@ func TestStats(t *testing.T) {
 	// Local mode: the statistics go first, without commit records, and the type is asked for every time.
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
-	f.devTypeWait, f.devType = 0, map[string]any{"devTypeTitle": "BUILDER"}
+	f.devTypeWait, f.devType, apiTimeout = 0, map[string]any{"devTypeTitle": "BUILDER"}, timeout
 	repo := t.TempDir()
 	for _, args := range [][]string{{"init", "-q", "-b", "main"}, {"remote", "add", "origin", "https://github.com/me/app.git"},
 		{"-c", "user.email=dev@example.com", "-c", "user.name=x", "commit", "-q", "--allow-empty", "-m", "feat: start"},
