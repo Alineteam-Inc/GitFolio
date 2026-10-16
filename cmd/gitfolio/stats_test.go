@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -95,6 +96,30 @@ func TestStats(t *testing.T) {
 	// Not logged in, nothing kept: log in first.
 	if err := cmdStats(t.TempDir(), nil); err == nil || !strings.Contains(err.Error(), "login") {
 		t.Errorf("logged out: %v", err)
+	}
+
+	// Local mode: the statistics go first, without commit records, and the type is asked for every time.
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	f.devTypeWait, f.devType = 0, map[string]any{"devTypeTitle": "BUILDER"}
+	repo := t.TempDir()
+	for _, args := range [][]string{{"init", "-q", "-b", "main"}, {"remote", "add", "origin", "https://github.com/me/app.git"},
+		{"-c", "user.email=dev@example.com", "-c", "user.name=x", "commit", "-q", "--allow-empty", "-m", "feat: start"},
+		{"update-ref", "refs/remotes/origin/main", "HEAD"}} {
+		if b, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, b)
+		}
+	}
+	dir = t.TempDir()
+	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: srv}))
+	must(saveConfig(dir, Config{Emails: []string{"dev@example.com"}, AutoSyncOff: true}))
+	must(saveRepos(dir, []Repo{newRepo(repo)}))
+	calls := f.devTypeCalls
+	must(cmdStats(dir, nil))
+	must(cmdStats(dir, nil))
+	if _, ok := f.stats["GITHUB/me/app"]; !ok || len(f.commits) != 0 || f.devTypeCalls != calls+2 {
+		t.Errorf("local mode: snapshot sent %v, %d commits sent, %d type requests; want the snapshot only and 2 requests",
+			ok, len(f.commits), f.devTypeCalls-calls)
 	}
 }
 
