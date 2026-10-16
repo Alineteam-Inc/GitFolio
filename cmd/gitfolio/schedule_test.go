@@ -107,3 +107,18 @@ func TestSystemdNeedsConfigDir(t *testing.T) {
 		t.Error("a unit in the current folder was removed")
 	}
 }
+
+// Local mode sends nothing by itself, so it takes no daily sync (nothing is registered with the OS).
+func TestScheduleRefusedInLocalMode(t *testing.T) {
+	t.Setenv("GITFOLIO_LANG", "en")
+	dir := t.TempDir()
+	if err := saveConfig(dir, Config{AutoSyncOff: true}); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmdSchedule(dir, []string{"09:00"}); err == nil || !strings.Contains(err.Error(), "Local mode") {
+		t.Errorf("schedule in local mode: %v", err)
+	}
+	if cfg, _ := loadConfig(dir); cfg.Schedule != "" {
+		t.Errorf("schedule saved: %q", cfg.Schedule)
+	}
+}

@@ -54,6 +54,9 @@ func cmdSchedule(dir string, args []string) error {
 	if args[0] == "off" {
 		return setSchedule(dir, lang, "")
 	}
+	if cfg.AutoSyncOff { // local mode sends nothing by itself
+		return failure("scheduleLocal")
+	}
 	return setSchedule(dir, lang, args[0])
 }
 

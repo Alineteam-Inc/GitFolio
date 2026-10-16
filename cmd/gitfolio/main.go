@@ -60,7 +60,8 @@ commands:
                         added words are also applied to already stored data
   config autosync on|off
                         send to aline.team right after each git push (on by default);
-                        off is local mode: nothing is sent until stats or sync
+                        off is local mode: nothing is sent until stats, stack or sync, and
+                        the daily sync is removed
   config git-history on|off
                         keep git's own record of the git commands gitfolio runs (on by default;
                         off deletes it)
@@ -577,6 +578,9 @@ func cmdConfig(dir string, args []string) error {
 		}
 		lang := detectLang(os.Getenv)
 		say(lang, "autosync", tr(lang, args[1]))
+		if cfg.AutoSyncOff && cfg.Schedule != "" { // local mode sends nothing by itself: no daily sync either
+			return setSchedule(dir, lang, "")
+		}
 		return nil
 	}
 	if args[0] == "git-history" && len(args) == 2 && (args[1] == "on" || args[1] == "off") {
