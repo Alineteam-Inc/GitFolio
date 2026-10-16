@@ -232,10 +232,7 @@ func TestReviewManifestsTogether(t *testing.T) {
 	defer func(r *bufio.Reader) { stdin = r }(stdin)
 	stdin = bufio.NewReader(strings.NewReader("1,4\n")) // 1-3: first repository (sorted), 4: pom.xml
 
-	changed, err := reviewManifests(rs)
-	if err != nil {
-		t.Fatal(err)
-	}
+	changed := reviewManifests(rs)
 	if !slices.Equal(changed, []int{0}) {
 		t.Errorf("changed = %v; only the first repository's decisions changed", changed)
 	}

@@ -465,10 +465,6 @@ var interactive = func() bool { return terminal(os.Stdin) } // a variable so tes
 // stdinClosed turns true once input ends; some tools look like a terminal but cannot answer.
 var stdinClosed bool
 
-// questionMark starts every line that waits for the user's answer, so questions stand out from
-// notices and results; the lines of a longer question line up under its text.
-const questionMark = "? "
-
 func prompt(q string) string {
 	inParagraph = false
 	gap(out)
@@ -477,7 +473,7 @@ func prompt(q string) string {
 		if i == 0 {
 			lines[i] = margin + symQuestion + " " + styleQuestion(l, true)
 		} else {
-			lines[i] = margin + strings.Repeat(" ", len(questionMark)) + styleQuestion(l, false)
+			lines[i] = margin + "  " + styleQuestion(l, false) // under the text after "? "
 		}
 	}
 	fmt.Fprint(out, strings.Join(lines, "\n"))
@@ -525,7 +521,7 @@ func parseSelection(s string, n int) ([]int, error) {
 // reviewManifests asks once which package manager files of rs may be read: the files of all of them
 // in one list, grouped by repository and numbered across it. It updates rs in place and returns the
 // indexes of the repositories whose decisions changed; Enter keeps every decision as it is.
-func reviewManifests(rs []Repo) ([]int, error) {
+func reviewManifests(rs []Repo) []int {
 	lang := detectLang(os.Getenv)
 	files := make([][]string, len(rs))
 	var none []string
@@ -541,7 +537,7 @@ func reviewManifests(rs []Repo) ([]int, error) {
 		say(lang, "noManifests", strings.Join(none, ", "))
 	}
 	if n == 0 {
-		return nil, nil
+		return nil
 	}
 	notice(tr(lang, "manifestsTitle"))
 	k := 0
@@ -561,7 +557,7 @@ func reviewManifests(rs []Repo) ([]int, error) {
 	for {
 		answer := prompt(tr(lang, "manifestsAsk"))
 		if answer == "" {
-			return nil, nil
+			return nil
 		}
 		sel, err := parseSelection(answer, n)
 		if err != nil {
@@ -584,7 +580,7 @@ func reviewManifests(rs []Repo) ([]int, error) {
 				changed = append(changed, i)
 			}
 		}
-		return changed, nil
+		return changed
 	}
 }
 
@@ -724,11 +720,7 @@ func cmdDeps(dir string, args []string) error {
 // reviewAndRescan asks about the manifest files of rs in one list and collects again the repositories
 // whose decisions changed, so dependencies and module IDs match the new approvals.
 func reviewAndRescan(dir string, rs []Repo) error {
-	changed, err := reviewManifests(rs)
-	if err != nil {
-		return err
-	}
-	for _, i := range changed {
+	for _, i := range reviewManifests(rs) {
 		n, err := scanRepo(dir, &rs[i], true) // module IDs of the new approvals
 		if err != nil {
 			return err

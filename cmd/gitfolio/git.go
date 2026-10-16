@@ -248,7 +248,6 @@ func parseLog(out string) []Commit {
 	return commits
 }
 
-// baseName returns the file name of a numstat path.
 // newPath returns the repository-relative path of a numstat entry as git shows it, taking the new side of
 // a rename ("dir/{old => new}/f.go", "{src => }/f.go" or "old.go => new.go").
 func newPath(p string) string {

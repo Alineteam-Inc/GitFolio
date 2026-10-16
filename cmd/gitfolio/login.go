@@ -7,9 +7,7 @@ import (
 	"strings"
 )
 
-// cmdLogin signs in to aline.team with an email code; an email without an account is signed up
-// (DESIGN 6.1). Signing up counts as agreeing to the terms and the privacy policy, so a new account
-// is only made after showing both and the email it will be made for.
+// cmdLogin signs in to aline.team with an email code (DESIGN 6.1); see login.
 func cmdLogin(dir string) error {
 	lang := detectLang(os.Getenv)
 	c, err := newClient(dir)
@@ -44,7 +42,7 @@ func (c *client) login(lang string) error {
 		notice(tr(lang, "emailInvalid"))
 	}
 	confirmSignup := func() (ok, notify bool) {
-		notice("\n" + fmt.Sprintf(tr(lang, "signupNotice"), email))
+		notice(fmt.Sprintf(tr(lang, "signupNotice"), email))
 		if !askYesNo(lang, "signupAsk", true) || stdinClosed { // no input left is no account
 			return false, false
 		}

@@ -274,9 +274,9 @@ func cmdAdd(dir, path string) error {
 	return err
 }
 
-// registerRepo registers r (a git top-level), collects it and installs hooks, and returns how many
-// commits it collected; the caller reports it. With ask, it first asks
-// which package manager files may be read; init asks for all chosen repositories at once instead.
+// registerRepo registers repo (a git top-level), collects it and installs hooks, and returns how many
+// commits it collected; the caller reports it. With ask, it first asks which package manager files may
+// be read; init asks for all chosen repositories at once instead.
 // Callers hold the data lock.
 func registerRepo(dir string, repo Repo, ask bool) (int, error) {
 	top := repo.Path
@@ -303,9 +303,7 @@ func registerRepo(dir string, repo Repo, ask bool) (int, error) {
 		}
 	}
 	if ask && cfg.Deps && interactive() {
-		if _, err := reviewManifests(repos[len(repos)-1:]); err != nil {
-			return 0, err
-		}
+		reviewManifests(repos[len(repos)-1:])
 	}
 	n, err := scanRepo(dir, r, false)
 	if err != nil {
