@@ -48,15 +48,12 @@ var (
 // initial or automated ("Initial commit"). Merge commits are left out of git log already.
 // ponytail: the server's third rule weighs a whole keyword table; only its short-subject case is here.
 func systemCommit(message string) bool {
-	subject := strings.ToLower(strings.TrimSpace(strings.SplitN(strings.TrimSpace(message), "\n", 2)[0]))
+	subject, _, _ := strings.Cut(strings.ToLower(strings.TrimSpace(message)), "\n")
 	if m := conventionalType.FindStringSubmatch(subject); m != nil {
 		return m[1] == "merge"
 	}
 	words := strings.FieldsFunc(subject, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '-' })
-	if len(words) == 0 {
-		return false
-	}
-	if systemFirstWords[words[0]] {
+	if len(words) > 0 && systemFirstWords[words[0]] {
 		return true
 	}
 	if len(words) <= 2 {
