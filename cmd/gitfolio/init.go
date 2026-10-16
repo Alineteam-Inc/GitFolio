@@ -328,7 +328,7 @@ func applyDeps(dir string, deps bool) error {
 		return err
 	}
 	was := cfg.Deps
-	cfg.Deps, cfg.DepsAsked = deps, true
+	cfg.Deps = deps
 	if err := saveConfig(dir, cfg); err != nil {
 		return err
 	}

@@ -608,7 +608,7 @@ func cmdDeps(dir string, args []string) error {
 		return nil
 	case "on":
 		notice(tr(lang, "depsNotice"))
-		cfg.Deps, cfg.DepsAsked = true, true
+		cfg.Deps = true
 		if err := saveConfig(dir, cfg); err != nil {
 			return err
 		}
@@ -621,7 +621,7 @@ func cmdDeps(dir string, args []string) error {
 		}
 		return saveRepos(dir, repos)
 	case "off":
-		cfg.Deps, cfg.DepsAsked = false, true
+		cfg.Deps = false
 		if err := saveConfig(dir, cfg); err != nil {
 			return err
 		}
