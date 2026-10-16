@@ -99,15 +99,9 @@ func moduleOf(p string, modules map[string]string) string {
 	if len(modules) == 0 {
 		return ""
 	}
-	for d := path.Dir(p); ; d = path.Dir(d) {
-		if d == "." {
-			d = ""
-		}
-		if id, ok := modules[d]; ok {
+	for d := manifestDir(p); ; d = manifestDir(d) {
+		if id, ok := modules[d]; ok || d == "" {
 			return id
-		}
-		if d == "" {
-			return ""
 		}
 	}
 }
@@ -466,8 +460,7 @@ var interactive = func() bool { return terminal(os.Stdin) } // a variable so tes
 var stdinClosed bool
 
 func prompt(q string) string {
-	inParagraph = false
-	gap(out)
+	blank()
 	lines := strings.Split(strings.TrimLeft(q, " \n"), "\n")
 	for i, l := range lines {
 		if i == 0 {

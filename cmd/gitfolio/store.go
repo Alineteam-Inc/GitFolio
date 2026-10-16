@@ -161,25 +161,25 @@ func readCommits(dir string) ([]Commit, error) {
 }
 
 func appendCommits(dir string, commits []Commit) error {
-	return encodeCommits(filepath.Join(dir, "commits.jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, commits)
+	return encodeJSONL(filepath.Join(dir, "commits.jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, commits)
 }
 
 // writeCommits replaces commits.jsonl with commits.
 func writeCommits(dir string, commits []Commit) error {
 	p := filepath.Join(dir, "commits.jsonl")
-	if err := encodeCommits(p+".tmp", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, commits); err != nil {
+	if err := encodeJSONL(p+".tmp", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, commits); err != nil {
 		return err
 	}
 	return os.Rename(p+".tmp", p)
 }
 
-func encodeCommits(p string, flag int, commits []Commit) error {
+func encodeJSONL[T any](p string, flag int, items []T) error {
 	f, err := os.OpenFile(p, flag, 0o600)
 	if err != nil {
 		return err
 	}
 	enc := json.NewEncoder(f)
-	for _, c := range commits {
+	for _, c := range items {
 		if err := enc.Encode(c); err != nil {
 			f.Close()
 			return err
@@ -195,15 +195,7 @@ type agentTag struct {
 }
 
 func appendAgentTag(dir string, t agentTag) error {
-	f, err := os.OpenFile(filepath.Join(dir, "agent-tags.jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
-	if err != nil {
-		return err
-	}
-	if err := json.NewEncoder(f).Encode(t); err != nil {
-		f.Close()
-		return err
-	}
-	return f.Close()
+	return encodeJSONL(filepath.Join(dir, "agent-tags.jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, []agentTag{t})
 }
 
 // readAgentTags returns the recorded agents by commit hash.
@@ -275,16 +267,10 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 		rebuild = true
 	}
 	if rebuild {
-		kept := stored[:0]
-		for _, c := range stored {
-			if c.Repo != r.ID {
-				kept = append(kept, c)
-			}
-		}
-		if err := writeCommits(dir, kept); err != nil {
+		stored = slices.DeleteFunc(stored, func(c Commit) bool { return c.Repo == r.ID })
+		if err := writeCommits(dir, stored); err != nil {
 			return 0, err
 		}
-		stored = kept
 	}
 	tags, err := readAgentTags(dir)
 	if err != nil {

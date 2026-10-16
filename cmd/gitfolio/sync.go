@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"fmt"
 	"maps"
 	"net/url"
 	"os"
@@ -403,10 +402,7 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 		for _, b := range batches(p.Commits) {
 			out.CommitBatches = append(out.CommitBatches, request(b, author, p.takeModified(b[0].Provider+"/"+b[0].Namespace)))
 		}
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		enc.SetEscapeHTML(false)
-		return n, enc.Encode(out)
+		return n, printJSON(out)
 	}
 	save := func() error { return saveSync(dir, st) }
 
@@ -567,7 +563,7 @@ func cmdSync(dir string, args []string) error {
 	n, err := syncData(dir, *dryRun)
 	var ae *apiError
 	if err != nil && (!errors.As(err, &ae) || ae.Status >= 500 || ae.Code == codeRateLimited) {
-		return errors.New(strings.TrimSpace(fmt.Sprintf(tr(lang, "syncLater"), err))) // offline, server trouble or too many requests
+		return failure("syncLater", err) // offline, server trouble or too many requests
 	}
 	if err != nil || *dryRun {
 		return err

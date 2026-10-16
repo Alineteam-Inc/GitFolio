@@ -139,17 +139,15 @@ func cmdInit(dir string, args []string) error {
 	}
 	// The package manager files of all chosen repositories are asked about together, not one by one.
 	rs := make([]Repo, len(chosen))
+	widest := 0
 	for i, p := range chosen {
 		rs[i] = newRepo(p)
+		widest = max(widest, width(rs[i].Name))
 	}
 	if deps && interactive() {
 		reviewManifests(rs)
 	}
 	var done []string // one table of what was registered, not a line per repository
-	widest := 0
-	for _, r := range rs {
-		widest = max(widest, width(r.Name))
-	}
 	for i, r := range rs {
 		progress(lang, "progressRegister", i, len(rs))
 		var n int
@@ -293,8 +291,7 @@ func chooseRepos(lang, dir string, found, work []string) ([]string, error) {
 	wIdx := len(strconv.Itoa(len(cands)))
 	fmt.Fprintf(out, "%s  %s  %s  %s  %s\n", margin, dim(pad("#", wIdx)), dim(pad(head[0], wPath)), dim(pad(head[1], wNum)), dim(head[2]))
 	for i, c := range cands {
-		n := strconv.Itoa(c.commits)
-		fmt.Fprintf(out, "%s  %*d  %s  %s%s  %s\n", margin, wIdx, i+1, pad(tildePath(c.path), wPath), strings.Repeat(" ", wNum-len(n)), n, c.last)
+		fmt.Fprintf(out, "%s  %*d  %s  %*d  %s\n", margin, wIdx, i+1, pad(tildePath(c.path), wPath), wNum, c.commits, c.last)
 	}
 	notice(tr(lang, "companyNotice"))
 	var sel []int
