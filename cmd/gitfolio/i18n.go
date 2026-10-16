@@ -895,6 +895,16 @@ var messages = map[string]map[string]string{
 		"ko": "aline.team에 동기화했습니다: 커밋 %d개 전송, 저장소 삭제 %d건\n대시보드·프로필에는 aline.team의 다음 분석 때 반영됩니다.\n",
 		"ja": "aline.team と同期しました: コミット %d 件を送信、リポジトリ削除 %d 件\nダッシュボード・プロフィールには aline.team の次回の分析時に反映されます。\n",
 	},
+	"statsSent": {
+		"en": "Sent the statistics of %d repository(ies); aline.team works out your developer type and tech stack periods from them.\n",
+		"ko": "저장소 %d개의 통계를 보냈습니다. aline.team이 이것으로 개발자 유형과 기술 스택 기간을 냅니다.\n",
+		"ja": "リポジトリ %d 件の統計を送信しました。aline.team がこれから開発者タイプと技術スタックの期間を算出します。\n",
+	},
+	"statsRejected": {
+		"en": "aline.team did not accept the statistics of %s; they are sent again when they change: %v\n",
+		"ko": "aline.team이 %s의 통계를 받지 않았습니다. 바뀌면 다시 보냅니다: %v\n",
+		"ja": "aline.team が %s の統計を受け付けませんでした。変わったら再送します: %v\n",
+	},
 	"depsSynced": {
 		"en": "Sent the dependencies of %d repository(ies); aline.team adds the frameworks and libraries they show to your tech stack.\n",
 		"ko": "저장소 %d개의 의존성을 보냈습니다. aline.team이 그 프레임워크·라이브러리를 기술 스택에 넣습니다.\n",

@@ -26,6 +26,7 @@ type syncState struct {
 	Moves     []repoMove        `json:"moves,omitempty"`     // git service address changes not yet sent (remote set-url)
 	Changed   map[string]string `json:"changed,omitempty"`   // provider/namespace/path → modifiedAt sent (modifiedFiles)
 	Deps      map[string]string `json:"deps,omitempty"`      // provider/namespace → fingerprint of the dependencies sent
+	Stats     map[string]string `json:"stats,omitempty"`     // provider/namespace → fingerprint of the snapshot sent (statsPrint)
 	LastSync  string            `json:"lastSync,omitempty"`  // last attempt, shown by `gitfolio schedule`
 	LastError string            `json:"lastError,omitempty"` // why it failed; empty when it went through
 	// Waiting maps provider/namespace to the email aline.team wants verified before it takes that
@@ -51,6 +52,7 @@ type deletion struct {
 type syncPayload struct {
 	Deletes  []deletion
 	Commits  []Commit
+	Stats    []snapshot
 	modified map[string][]modifiedFile // provider/namespace → first changes by others not sent yet
 	deps     map[string][]depName      // provider/namespace → dependencies of the modules the user's commits touched
 	noRemote int                       // commits of repositories without a git service remote, never sent
@@ -119,6 +121,9 @@ func loadSync(dir string) (st syncState, err error) {
 	if st.Deps == nil {
 		st.Deps = map[string]string{}
 	}
+	if st.Stats == nil {
+		st.Stats = map[string]string{}
+	}
 	return st, err
 }
 
@@ -131,6 +136,13 @@ func fingerprint(v any) string {
 }
 
 func commitKey(c Commit) string { return c.Provider + "/" + c.Namespace + "/" + c.Hash }
+
+// statsPrint is the fingerprint of a snapshot without its asOf, so newer commits by others that change no
+// count do not send it again.
+func statsPrint(s snapshot) string {
+	s.AsOf = ""
+	return fingerprint(s)
+}
 
 // queueDeletion records a repository deletion for the next sync and forgets what was sent for it, so
 // the commits are sent again if the repository is added back. Callers hold the data lock.
@@ -149,6 +161,7 @@ func queueDeletion(dir string, d deletion) error {
 			}
 		}
 	}
+	delete(st.Stats, d.Provider+"/"+d.Namespace)
 	if !slices.Contains(st.Deletes, d) {
 		st.Deletes = append(st.Deletes, d)
 	}
@@ -187,6 +200,7 @@ func renameSent(st *syncState, mv repoMove, commits []Commit) {
 		}
 		delete(st.Commits, commitKey(old))
 	}
+	delete(st.Stats, mv.From.Provider+"/"+mv.From.Namespace) // the snapshot goes again under the new name
 	oldKey, newKey := mv.From.Provider+"/"+mv.From.Namespace+"/", mv.To.Provider+"/"+mv.To.Namespace+"/"
 	for k, at := range st.Changed {
 		if name, ok := strings.CutPrefix(k, oldKey); ok {
@@ -226,6 +240,11 @@ func pending(dir string, st syncState) (syncPayload, error) {
 		c = sendable(c)
 		if st.Commits[commitKey(c)] != fingerprint(c) {
 			p.Commits = append(p.Commits, c)
+		}
+	}
+	for _, s := range out.Snapshots {
+		if len(s.Days) > 0 && len(s.Namespace) <= maxNamespace && st.Stats[s.Provider+"/"+s.Namespace] != statsPrint(s) {
+			p.Stats = append(p.Stats, s)
 		}
 	}
 	for _, d := range out.Dependencies {
@@ -298,11 +317,14 @@ func depsPrint(list []depName) string {
 	return fingerprint(list)
 }
 
-// sentRepos is the repositories aline.team has commits of, as provider/namespace.
+// sentRepos is the repositories aline.team has commits or a snapshot of, as provider/namespace.
 func sentRepos(st syncState, more []Commit) map[string]bool {
 	known := map[string]bool{}
 	for key := range st.Commits {
 		known[key[:strings.LastIndex(key, "/")]] = true
+	}
+	for key := range st.Stats {
+		known[key] = true
 	}
 	for _, c := range more {
 		known[c.Provider+"/"+c.Namespace] = true
@@ -330,7 +352,7 @@ func batches(commits []Commit) [][]Commit {
 	return out
 }
 
-type syncCounts struct{ commits, deletes, moves, deps, depsCleared, noRemote int }
+type syncCounts struct{ commits, stats, deletes, moves, deps, depsCleared, noRemote int }
 
 // syncData sends what aline.team does not have yet and records when it tried and whether it worked.
 // Callers hold the data lock.
@@ -365,7 +387,7 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 	}
 	if st.Account != c.creds.Email || st.Server != c.creds.Server {
 		if st.Account != "" { // another account or server: it has none of this device's records yet
-			st = syncState{Commits: map[string]string{}, Changed: map[string]string{}, Deps: map[string]string{}}
+			st = syncState{Commits: map[string]string{}, Changed: map[string]string{}, Deps: map[string]string{}, Stats: map[string]string{}}
 		}
 		st.Account, st.Server = c.creds.Email, c.creds.Server
 	}
@@ -392,13 +414,21 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 	}
 	author := primaryEmail(cfg)
 	n.noRemote = p.noRemote
+	if cfg.AutoSyncOff { // local mode: snapshots only, no commit records
+		p.Commits = nil
+	}
 	if dryRun { // the requests exactly as they would be sent
+		known := sentRepos(st, p.Commits)
+		for _, s := range p.Stats {
+			known[s.Provider+"/"+s.Namespace] = true
+		}
 		out := struct {
 			Moves         []repoMove    `json:"moves,omitempty"`
 			Deletes       []deletion    `json:"deletes"`
 			CommitBatches []commitBatch `json:"commitBatches"`
+			Stats         []snapshot    `json:"stats"`
 			Dependencies  []depsRequest `json:"dependencies,omitempty"`
-		}{st.Moves, p.Deletes, []commitBatch{}, p.depsChanged(st, sentRepos(st, p.Commits))}
+		}{st.Moves, p.Deletes, []commitBatch{}, append([]snapshot{}, p.Stats...), p.depsChanged(st, known)}
 		for _, b := range batches(p.Commits) {
 			out.CommitBatches = append(out.CommitBatches, request(b, author, p.takeModified(b[0].Provider+"/"+b[0].Namespace)))
 		}
@@ -442,7 +472,31 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 			return n, errors.Join(err, serr)
 		}
 	}
-	// Dependencies after the commits: aline.team keeps them only for a repository it has.
+	// Snapshots after the commits; one waiting for a verified email waits like the commits.
+	for _, s := range p.Stats {
+		key := s.Provider + "/" + s.Namespace
+		if _, ok := st.Waiting[key]; ok {
+			continue
+		}
+		err := c.call("PUT", "/cli/stats", s, nil)
+		var ae *apiError
+		switch {
+		case err == nil:
+			n.stats++
+		case errors.As(err, &ae) && ae.Code == codeUnverified:
+			st.Waiting[key] = cmp.Or(strings.ToLower(ae.Email), "?")
+			continue
+		case errors.As(err, &ae) && ae.Code == codeBadInput: // not sent again on every push, until it changes
+			warn(lang, "statsRejected", s.Namespace, ae)
+		default:
+			return n, errors.Join(err, save())
+		}
+		st.Stats[key] = statsPrint(s)
+		if err := save(); err != nil {
+			return n, err
+		}
+	}
+	// Dependencies after the commits and snapshots: aline.team keeps them only for a repository it has.
 	for _, req := range p.depsChanged(st, sentRepos(st, nil)) {
 		if err := c.call("PUT", "/cli/dependencies", req, nil); err != nil {
 			return n, errors.Join(err, save())
@@ -575,8 +629,11 @@ func cmdSync(dir string, args []string) error {
 	switch {
 	case n.commits+n.deletes > 0:
 		say(lang, "synced", n.commits, n.deletes)
-	case len(st.Waiting) == 0 && n.moves == 0 && n.deps+n.depsCleared == 0:
+	case len(st.Waiting) == 0 && n.moves == 0 && n.stats+n.deps+n.depsCleared == 0:
 		say(lang, "upToDate")
+	}
+	if n.stats > 0 {
+		say(lang, "statsSent", n.stats)
 	}
 	if n.deps > 0 {
 		say(lang, "depsSynced", n.deps)
