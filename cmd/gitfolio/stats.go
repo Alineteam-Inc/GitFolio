@@ -59,6 +59,19 @@ func cmdStats(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
+	if cfg.AutoSyncOff { // local mode: aline.team gets the statistics only when the type is asked for
+		if !c.ensureLogin() {
+			return failure("loginFirst")
+		}
+		if err := withLock(dir, func() error { return cmdSync(dir, nil) }); err != nil {
+			warn(lang, "failed", err) // what aline.team made before still shows
+		}
+		refresh = true
+	}
 	p := filepath.Join(dir, devTypeFile)
 	var cache devTypeCache
 	if err := loadJSON(p, &cache); err != nil {
