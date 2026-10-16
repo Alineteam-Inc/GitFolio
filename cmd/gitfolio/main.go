@@ -111,8 +111,7 @@ func run(args []string) error {
 		if args[0] != "hook" {
 			c.ensureLogin() // not logged in: a person at the terminal goes straight into logging in
 		}
-		creds := c.creds
-		if creds.Token == "" {
+		if c.creds.Token == "" {
 			if args[0] == "hook" {
 				return nil // hooks do nothing before login
 			}
@@ -511,15 +510,14 @@ func buildExport(dir string) (exportData, error) {
 	out := exportData{make([]Commit, 0, len(commits)), make([]Dependency, 0, len(deps))}
 	touched := map[string]bool{} // repo ID + "/" + module ID
 	for _, c := range commits {
-		files := slices.Clone(c.Files)
-		for i := range files {
-			if files[i].Module != "" {
-				touched[c.Repo+"/"+files[i].Module] = true
+		for i := range c.Files { // commits is this function's own copy: module IDs are cleared in place
+			if c.Files[i].Module != "" {
+				touched[c.Repo+"/"+c.Files[i].Module] = true
 			}
-			files[i].Module = ""
+			c.Files[i].Module = ""
 		}
 		r := byID[c.Repo]
-		c.Repo, c.Provider, c.Namespace, c.Files = r.Name, r.Provider, r.Namespace, files
+		c.Repo, c.Provider, c.Namespace = r.Name, r.Provider, r.Namespace
 		out.Commits = append(out.Commits, c)
 	}
 	seen := map[string]bool{}
