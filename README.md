@@ -42,7 +42,8 @@ gitfolio init
 ```
 
 Shows the data policy, signs you up or logs you in with an email code, and lets you choose the
-repositories. After that every `git push` is sent automatically. Your profile is at
+repositories. After that every `git push` is sent automatically, unless you choose local mode: then
+nothing is sent until you run `gitfolio stats` or `gitfolio sync`. Your profile is at
 [aline.team/profile](https://aline.team/profile). When your login expires, GitFolio emails you a code
 and logs you in again on the spot.
 
@@ -56,6 +57,11 @@ and logs you in again on the spot.
   file its path in the repository, lines added/deleted and whether the commit created it. All of them
   go under one email, your primary work email (`gitfolio email`).
 - **For files you created:** when someone else first changed them (path and time only, not who or how).
+- **Daily statistics of each repository:** counts per day of your commits, changed files per language,
+  files you created and later changes to them (by anyone; other people's commits are only counted here,
+  never sent), substantive commits, files that show a tool (`Dockerfile`, `*.tf`, ...) and the languages
+  used. No hashes, messages, paths or branches. In local mode (`gitfolio config autosync off`) only these
+  are sent, and only when you run `gitfolio stats` or `gitfolio sync`.
 - **Your account and this computer:** your email and the work emails you verify; at login, the OS and
   CPU type (e.g. `macOS arm64`), screen language and time zone; with every request, the GitFolio
   version, OS and CPU type.
@@ -80,9 +86,11 @@ gitfolio login | whoami | logout # log in with an email code / show the account 
 gitfolio add | remove <path>     # register a repository / unregister (--purge: delete its data here and on aline.team, web link included)
 gitfolio list                    # registered repositories, hooks and dependency files
 gitfolio status [name]           # per repository: commits collected and sent, file changes, lines, AI use, languages, dependencies
-gitfolio stats [--refresh]       # your developer type and five scores from aline.team (saved here after the first time)
+gitfolio stats [--refresh]       # your developer type and five scores from aline.team (saved here after the first time;
+                                 # in local mode it sends the statistics first and asks again each time)
 gitfolio sync [--dry-run]        # send what aline.team does not have yet (--dry-run: just show it)
 gitfolio config mask add <word>  # hide a customer or project name in commit messages
+gitfolio config autosync off     # local mode: send nothing by itself (on: send after every push)
 gitfolio email add <email>       # another work email of yours (verify it with the emailed code to merge
                                  # repositories you also linked on aline.team)
 gitfolio schedule 09:00          # optional daily sync (off: schedule off)
@@ -147,7 +155,7 @@ gitfolio init
 ```
 
 데이터 정책을 보여 주고, 이메일 코드로 가입·로그인한 뒤, 수집할 저장소를 고릅니다. 이후 `git push`할 때마다
-자동으로 전송됩니다. 프로필은 [aline.team/profile](https://aline.team/profile)에서 봅니다.
+자동으로 전송됩니다. 로컬 모드를 고르면 `gitfolio stats`나 `gitfolio sync`를 실행할 때까지 아무것도 보내지 않습니다. 프로필은 [aline.team/profile](https://aline.team/profile)에서 봅니다.
 로그인이 만료되면 이메일로 코드를 보내 그 자리에서 다시 로그인합니다.
 
 ### 허락 없이 수집하지 않습니다
@@ -159,6 +167,10 @@ gitfolio init
   마스킹), AI 에이전트 사용 여부와 종류, 파일마다 저장소 안 경로·추가·삭제 줄 수·이 커밋에서 새로 만든 파일인지.
   모두 대표 작업 이메일(`gitfolio email`) 하나로 보냅니다.
 - **내가 만든 파일:** 다른 사람이 처음 고친 시각(경로와 시각만, 누가 무엇을 고쳤는지는 보내지 않음)
+- **저장소별 일 단위 통계:** 날짜별 내 커밋 수, 언어별 변경 파일 수, 내가 만든 파일과 그 이후 변경 수(누가 고쳤든.
+  다른 사람의 커밋은 여기서 세기만 하고 보내지 않음), 실질 커밋 수, 도구를 알 수 있는 파일(`Dockerfile`, `*.tf` 등),
+  사용한 언어. 해시·메시지·경로·브랜치는 없습니다. 로컬 모드(`gitfolio config autosync off`)에서는 이것만,
+  `gitfolio stats`나 `gitfolio sync`를 실행할 때만 보냅니다.
 - **계정과 이 컴퓨터:** 계정 이메일과 인증한 작업 이메일, 로그인할 때 OS·CPU 종류(예: `macOS arm64`)·화면 언어·시간대,
   요청마다 GitFolio 버전·OS·CPU 종류
 - **수집하지 않는 것:** 소스 코드·파일 내용, 내 컴퓨터의 저장소 위치, 원격 저장소 주소와 인증 정보,
@@ -180,9 +192,11 @@ gitfolio login | whoami | logout # 이메일 코드로 로그인 / 계정 확인
 gitfolio add | remove <경로>     # 저장소 등록 / 해제 (--purge: 이 컴퓨터와 aline.team의 데이터·웹 연동 삭제)
 gitfolio list                    # 등록 저장소, 훅, 의존성 파일
 gitfolio status [이름]           # 저장소별 모은 커밋·보낸 수, 파일 변경, 줄 수, AI 사용, 언어, 의존성
-gitfolio stats [--refresh]       # aline.team의 개발자 유형과 능력치 다섯 가지 (처음 받은 뒤 이 컴퓨터에 저장)
+gitfolio stats [--refresh]       # aline.team의 개발자 유형과 능력치 다섯 가지 (처음 받은 뒤 이 컴퓨터에 저장.
+                                 # 로컬 모드에서는 통계를 먼저 보내고 매번 새로 받음)
 gitfolio sync [--dry-run]        # aline.team에 없는 것만 전송 (--dry-run: 보여 주기만)
 gitfolio config mask add <단어>  # 커밋 메시지 속 고객사·프로젝트명 가리기
+gitfolio config autosync off     # 로컬 모드: 스스로는 보내지 않음 (on: push할 때마다 전송)
 gitfolio email add <이메일>      # 다른 작업 이메일 추가 (메일로 온 코드로 인증하면 aline.team 웹에서도
                                  # 연동한 저장소와 하나로 합쳐짐)
 gitfolio schedule 09:00          # 예약 동기화 (선택, 해제: schedule off)

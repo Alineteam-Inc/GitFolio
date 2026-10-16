@@ -170,6 +170,11 @@ var messages = map[string]map[string]string{
  - Files are read only with your approval, and only package
    manager files, only to detect dependencies. The names of
    the dependencies found (no versions or contents) are sent.
+ - Daily statistics of each repository (counts of commits,
+   changed files per language, and later changes to files you
+   created) are made on this computer and sent as well. In
+   local mode only these are sent, when you run gitfolio stats
+   or sync.
  - Sensitive parts of commit messages (tokens, URLs, emails,
    ticket numbers, blocked words) are masked on this computer.
    Data is sent to aline.team (Alineteam Inc., United States)
@@ -185,6 +190,9 @@ var messages = map[string]map[string]string{
    저장소 namespace(소유자/저장소)
  - 파일 읽기는 사용자가 승인한 패키지 매니저 파일에 한하며,
    의존성 파악에만 사용합니다. 찾은 의존성의 이름만(버전·내용 제외) 보냅니다.
+ - 저장소별 일 단위 통계(커밋 수, 언어별 변경 파일 수, 내가 만든
+   파일의 이후 변경 수)를 이 컴퓨터에서 만들어 함께 보냅니다.
+   로컬 모드에서는 gitfolio stats나 sync를 실행할 때 이 통계만 보냅니다.
  - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
    이 컴퓨터에서 가립니다. 데이터는 git push 직후와 동기화할 때
    aline.team(Alineteam Inc., 미국)으로 전송되며
@@ -200,6 +208,10 @@ var messages = map[string]map[string]string{
  - ファイルの読み取りは、承認されたパッケージマネージャーの
    ファイルに限り、依存関係の把握にのみ使用します。見つかった
    依存関係の名前のみ(バージョン・内容を除く)を送信します。
+ - リポジトリごとの日単位の統計(コミット数、言語別の変更ファイル数、
+   自分が作成したファイルのその後の変更数)をこのコンピューターで作成し、
+   あわせて送信します。ローカルモードでは gitfolio stats または sync の
+   実行時にこの統計のみを送信します。
  - コミットメッセージの機密部分(トークン・URL・メールアドレス・
    チケット番号・ブロックワード)はこのコンピューターでマスキングします。
    データは git push の直後と同期時に aline.team(Alineteam Inc.、米国)へ
