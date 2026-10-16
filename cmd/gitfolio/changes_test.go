@@ -87,6 +87,9 @@ func TestFirstChanges(t *testing.T) {
 	commit(other, "2026-09-05T10:00:00+09:00", "tweak b", map[string]string{"src/b.go": "b3\n"})
 	commit(other, "2026-09-06T10:00:00+09:00", "fix: a again", map[string]string{"src/a.go": "a3\n"}) // not the first change
 
+	if out, err := exec.Command("git", "-C", repo, "update-ref", "refs/remotes/origin/main", "HEAD").CombinedOutput(); err != nil {
+		t.Fatalf("%v\n%s", err, out) // pushed
+	}
 	r := newRepo(repo)
 	if _, err := scanRepo(data, &r, false); err != nil {
 		t.Fatal(err)

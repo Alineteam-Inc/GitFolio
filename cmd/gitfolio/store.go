@@ -290,7 +290,10 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 		}
 	}
 	r.Changed = firstChanges(all, mine)
-	r.Churn, r.AsOf = churnOf(all, mine)
+	r.Churn, r.AsOf = nil, ""
+	if rng[0] == "--remotes" { // the snapshot is of pushed history only
+		r.Churn, r.AsOf = churnOf(all, mine)
+	}
 	for _, c := range all {
 		if known[c.Hash] {
 			continue
