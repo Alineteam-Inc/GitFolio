@@ -46,8 +46,8 @@ type statDay struct {
 	Commits    pair            `json:"commits,omitzero"`    // the user's commits, one per author time
 	Dup        pair            `json:"dup,omitzero"`        // of those, also in a repository sent before this one
 	Langs      map[string]pair `json:"langs,omitempty"`     // code file changes per language
-	Created    pair            `json:"created,omitzero"`    // code files the user created
-	EarlyChurn pair            `json:"earlyChurn,omitzero"` // files the user created, changed again 1-14 days later for the first time
+	Created    pair            `json:"created,omitzero"`    // code files the user created, each on the first day it was (first)
+	EarlyChurn pair            `json:"earlyChurn,omitzero"` // files the user created that were changed again 1-14 days later, each on the first such day
 	Touches    pair            `json:"touches,omitzero"`    // changes to code files the user created, a day or more later, by anyone
 	Corrective pair            `json:"corrective,omitzero"` // of those, fixes and reverts
 	Mine       pair            `json:"mine,omitzero"`       // substantive commits that changed code
@@ -62,16 +62,29 @@ type churn struct {
 	Early      pair `json:"e,omitzero"`
 }
 
+// origin is when a file the user created was made, and whether that commit had an AI signal.
+type origin struct {
+	at time.Time
+	ai int
+}
+
+// first keeps the day a file counts on when it happens to the file again: the first time, but one
+// without an AI signal wins, since aline.team counts a file without AI when any of its rows had none.
+// aline.team's period ends before this week and starts months ago, so the first time is rarely outside
+// it while another is inside.
+func first(was, now origin) origin {
+	if was.at.IsZero() || now.ai < was.ai || (now.ai == was.ai && now.at.Before(was.at)) {
+		return now
+	}
+	return was
+}
+
 // churnOf counts, per UTC day, the changes by anyone but bots to code files the user created, made a day
 // or more after the file was created, and returns the newest commit time read. System commits do not
 // count. Files are followed by path, as in firstChanges. commits is in git log order, newest first.
+// A file changed again within 14 days counts once, on the first such day (first).
 func churnOf(commits []Commit, mine map[string]bool) (map[string]churn, string) {
-	type origin struct {
-		at    time.Time
-		ai    int
-		early bool // already counted as changed again within 14 days
-	}
-	created, days := map[string]*origin{}, map[string]churn{}
+	created, early, days := map[string]*origin{}, map[string]origin{}, map[string]churn{}
 	var newest time.Time
 	for _, c := range slices.Backward(commits) {
 		at, err := time.Parse(time.RFC3339, c.Date)
@@ -90,7 +103,8 @@ func churnOf(commits []Commit, mine map[string]bool) (map[string]churn, string) 
 			if f.Created {
 				delete(created, f.Name) // someone else's file from now on, unless it is the user's
 				if ct != "" {
-					created[f.Name] = &origin{at: at, ai: aiIndex(ct)}
+					o := origin{at, aiIndex(ct)}
+					created[f.Name] = &o
 				}
 				continue
 			}
@@ -108,12 +122,17 @@ func churnOf(commits []Commit, mine map[string]bool) (map[string]churn, string) 
 			if typ == "FIX" || typ == "HOTFIX" || typ == "REVERT" {
 				d.Corrective[o.ai]++
 			}
-			if age <= 14 && !o.early {
-				o.early = true
-				d.Early[o.ai]++
+			if age <= 14 {
+				early[f.Name] = first(early[f.Name], origin{at, o.ai})
 			}
 			days[k] = d
 		}
+	}
+	for _, e := range early {
+		k := e.at.UTC().Format(time.DateOnly)
+		d := days[k]
+		d.Early[e.ai]++
+		days[k] = d
 	}
 	if newest.IsZero() {
 		return days, ""
@@ -150,7 +169,7 @@ func snapshots(repos []Repo, commits []Commit, author string) []snapshot {
 			d := day(k)
 			d.Touches, d.Corrective, d.EarlyChurn = ch.Touches, ch.Corrective, ch.Early
 		}
-		times, created := map[int64]bool{}, map[string]bool{}
+		times, created := map[int64]bool{}, map[string]origin{} // created: each path's last creation
 		marks, langs := map[string]bool{}, map[string]bool{}
 		for _, c := range byRepo[r.ID] {
 			at, err := time.Parse(time.RFC3339, c.Date)
@@ -193,9 +212,8 @@ func snapshots(repos []Repo, commits []Commit, author string) []snapshot {
 				}
 				if !f.Created {
 					existing = true
-				} else if !created[k+"/"+f.Name] {
-					created[k+"/"+f.Name] = true
-					d.Created[ai]++
+				} else {
+					created[f.Name] = first(created[f.Name], origin{at, ai})
 				}
 			}
 			if code && substantive[typ] {
@@ -205,6 +223,9 @@ func snapshots(repos []Repo, commits []Commit, author string) []snapshot {
 				}
 			}
 			s.AsOf = max(s.AsOf, at.UTC().Format(time.RFC3339)) // when no scan set it yet
+		}
+		for _, o := range created { // once per path, as aline.team counts the files created in a period
+			day(o.at.UTC().Format(time.DateOnly)).Created[o.ai]++
 		}
 		maps.Copy(owner, times)
 		s.Markers, s.StackLangs = slices.Sorted(maps.Keys(marks)), slices.Sorted(maps.Keys(langs))

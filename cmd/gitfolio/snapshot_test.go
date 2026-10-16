@@ -5,6 +5,7 @@ import (
 	"maps"
 	"slices"
 	"testing"
+	"time"
 )
 
 func TestSourceFileAndMarkers(t *testing.T) {
@@ -47,6 +48,8 @@ func TestSnapshots(t *testing.T) {
 			Files: []FileStat{{Name: "README.md"}}},
 		{Repo: "b", Hash: "1", Date: "2026-09-02T01:30:00Z", Branch: "main", Message: "feat: login", CreationType: creationHuman,
 			Files: []FileStat{{Name: "src/login.go", Created: true}}},
+		{Repo: "a", Hash: "7", Date: "2026-09-03T10:00:00Z", Branch: "main", Message: "feat: login again", CreationType: creationHuman, // made again: counts once
+			Files: []FileStat{{Name: "src/login.go", Created: true}}},
 		{Repo: "a", Hash: "6", Date: "2026-09-04T10:00:00Z", Message: "feat: not pushed yet", CreationType: creationHuman,
 			Files: []FileStat{{Name: "src/next.go", Created: true}}},
 		{Repo: "c", Hash: "9", Date: "2026-09-02T01:30:00Z", Message: "feat: x", CreationType: creationHuman},
@@ -54,12 +57,30 @@ func TestSnapshots(t *testing.T) {
 	got := snapshots(repos, commits, "me@example.com")
 	b, _ := json.Marshal(got)
 	want := `[` +
-		`{"format":1,"provider":"GITHUB","namespace":"me/app","authorEmail":"me@example.com","asOf":"2026-09-03T00:00:00Z","days":{` +
-		`"2026-09-02":{"commits":[2,1],"langs":{"Go":[2,0]},"created":[1,1],"touches":[2,1],"corrective":[1,0],"mine":[1,2],"others":[1,0]}},` +
+		`{"format":1,"provider":"GITHUB","namespace":"me/app","authorEmail":"me@example.com","asOf":"2026-09-03T10:00:00Z","days":{` +
+		`"2026-09-02":{"commits":[2,1],"langs":{"Go":[2,0]},"created":[1,1],"touches":[2,1],"corrective":[1,0],"mine":[1,2],"others":[1,0]},` +
+		`"2026-09-03":{"commits":[1,0],"langs":{"Go":[1,0]},"mine":[1,0]}},` +
 		`"markers":["*.tf","*.vue","dockerfile"],"stackLangs":["Go","SQL"]},` +
 		`{"format":1,"provider":"GITHUB","namespace":"me/mirror","authorEmail":"me@example.com","asOf":"2026-09-02T01:30:00Z","days":{` +
 		`"2026-09-02":{"commits":[1,0],"dup":[1,0],"langs":{"Go":[1,0]},"created":[1,0],"mine":[1,0]}},"stackLangs":["Go"]}]`
 	if string(b) != want {
 		t.Errorf("snapshots =\n%s\nwant\n%s", b, want)
+	}
+}
+
+// A file that happens again counts once: on its first day, but on the first day without an AI signal if it had one.
+func TestFirst(t *testing.T) {
+	day := func(d int) time.Time { return time.Date(2026, 9, d, 0, 0, 0, 0, time.UTC) }
+	for _, c := range []struct{ was, now, want origin }{
+		{origin{}, origin{day(1), 1}, origin{day(1), 1}},
+		{origin{day(1), 1}, origin{day(2), 1}, origin{day(1), 1}},
+		{origin{day(2), 1}, origin{day(1), 1}, origin{day(1), 1}}, // read out of order
+		{origin{day(1), 1}, origin{day(2), 0}, origin{day(2), 0}}, // without AI wins
+		{origin{day(1), 0}, origin{day(2), 1}, origin{day(1), 0}},
+		{origin{day(3), 0}, origin{day(1), 0}, origin{day(1), 0}},
+	} {
+		if got := first(c.was, c.now); got != c.want {
+			t.Errorf("first(%v, %v) = %v, want %v", c.was, c.now, got, c.want)
+		}
 	}
 }
