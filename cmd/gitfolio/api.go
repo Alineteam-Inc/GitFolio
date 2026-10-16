@@ -86,7 +86,7 @@ type client struct {
 	http    *http.Client
 	dir     string
 	creds   Credentials
-	relogin bool // logged in again once in this run (see call)
+	relogin bool // ensureLogin already asked once in this run
 }
 
 // apiTimeout is how long one request to aline.team may take.
@@ -360,9 +360,7 @@ func lowered(emails []string) []string {
 var errSkipped = errors.New("skipped")
 
 // verifyEmail proves with a one-time code that the user owns a work email (POST /cli/emails, then
-// /cli/emails/verify). From 0.2.0 aline.team takes commits only under verified emails, and it merges the
-// repositories the user linked on the web under one with what GitFolio sends (DESIGN 6.1.2). askCode
-// works as in signIn; an empty code skips the email (errSkipped).
+// /cli/emails/verify; DESIGN 6.1.2). askCode works as in signIn; an empty code skips the email (errSkipped).
 func (c *client) verifyEmail(email string, askCode func(retry bool, length int) string) error {
 	device := map[string]string{"name": deviceName()}
 	if tz := localTimezone(); tz != "" {

@@ -32,9 +32,6 @@ func firstChanges(commits []Commit, mine map[string]bool) map[string]string {
 			}
 		}
 	}
-	if len(first) == 0 {
-		return nil
-	}
 	return first
 }
 

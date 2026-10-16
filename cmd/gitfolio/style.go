@@ -24,13 +24,11 @@ var newlines = 2
 
 func (s screen) Write(p []byte) (int, error) {
 	progressDone()
-	if len(p) > 0 {
-		k := len(p) - len(strings.TrimRight(string(p), "\n"))
-		if k == len(p) {
-			newlines += k
-		} else {
-			newlines = k
-		}
+	k := len(p) - len(strings.TrimRight(string(p), "\n"))
+	if k == len(p) {
+		newlines += k
+	} else {
+		newlines = k
 	}
 	return s.w.Write(p)
 }

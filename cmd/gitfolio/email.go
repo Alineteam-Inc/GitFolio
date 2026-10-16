@@ -210,7 +210,7 @@ func checkEmails(dir, lang string) {
 	if len(unverified) == 0 {
 		return
 	}
-	notice("\n" + fmt.Sprintf(tr(lang, "emailCheckOnce"), strings.Join(unverified, ", ")))
+	notice(fmt.Sprintf(tr(lang, "emailCheckOnce"), strings.Join(unverified, ", ")))
 	if askYesNo(lang, "emailVerifyNow", true) && !stdinClosed {
 		verifyEmails(lang, c, unverified)
 	}

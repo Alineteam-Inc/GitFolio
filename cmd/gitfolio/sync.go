@@ -48,11 +48,10 @@ type deletion struct {
 	Namespace string `json:"namespace"`
 }
 
-// syncPayload is what the next sync sends, in order. Dependencies are not sent yet: aline.team designs
-// that API in its second phase.
+// syncPayload is what the next sync sends, in order.
 type syncPayload struct {
-	Deletes  []deletion                `json:"deletes"`
-	Commits  []Commit                  `json:"commits"`
+	Deletes  []deletion
+	Commits  []Commit
 	modified map[string][]modifiedFile // provider/namespace → first changes by others not sent yet
 	deps     map[string][]depName      // provider/namespace → dependencies of the modules the user's commits touched
 	noRemote int                       // commits of repositories without a git service remote, never sent
@@ -212,7 +211,7 @@ func sendable(c Commit) Commit {
 // pending works out what aline.team does not have yet. Records are the ones `gitfolio export` shows,
 // cut to the server's limits.
 func pending(dir string, st syncState) (syncPayload, error) {
-	p := syncPayload{Deletes: append([]deletion{}, st.Deletes...), Commits: []Commit{}, modified: map[string][]modifiedFile{}, deps: map[string][]depName{}}
+	p := syncPayload{Deletes: append([]deletion{}, st.Deletes...), modified: map[string][]modifiedFile{}, deps: map[string][]depName{}}
 	out, err := buildExport(dir)
 	if err != nil {
 		return p, err

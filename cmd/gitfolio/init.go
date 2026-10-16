@@ -76,7 +76,6 @@ func cmdInit(dir string, args []string) error {
 	// Repositories: where they are, whose commits count, which ones to collect.
 	section(lang, "reposTitle")
 	roots := askRoots(lang, cfg.Roots, args)
-	blank()
 	msg := tr(lang, "searching")
 	if runtime.GOOS == "darwin" {
 		msg += tr(lang, "searchingMac")
@@ -112,7 +111,7 @@ func cmdInit(dir string, args []string) error {
 	// aline.team takes commits only under verified emails and merges the repositories linked on the web
 	// under them (DESIGN 6.1.2): each picked email is verified now, one after the other.
 	if interactive() && slices.ContainsFunc(cfg.Emails, func(e string) bool { return !verified(c.creds, e) && !noreply(e) }) {
-		notice("\n" + tr(lang, "emailVerifyNotice"))
+		notice(tr(lang, "emailVerifyNotice"))
 		verifyEmails(lang, c, cfg.Emails)
 	}
 	chosen, err := chooseRepos(lang, dir, found, cfg.Emails)
@@ -125,7 +124,6 @@ func cmdInit(dir string, args []string) error {
 	section(lang, "settingsTitle")
 	notice(tr(lang, "depsNotice"))
 	deps := askYesNo(lang, "depsAsk", cfg.Deps)
-	blank()
 	when := askSchedule(lang, cfg.Schedule)
 	blank()
 	if err := withLock(dir, func() error { return applyDeps(dir, deps) }); err != nil {
@@ -145,9 +143,7 @@ func cmdInit(dir string, args []string) error {
 		rs[i] = newRepo(p)
 	}
 	if deps && interactive() {
-		if _, err := reviewManifests(rs); err != nil {
-			return err
-		}
+		reviewManifests(rs)
 	}
 	var done []string // one table of what was registered, not a line per repository
 	widest := 0
@@ -231,7 +227,7 @@ func chooseEmails(lang string, creds Credentials, have, repos []string) []string
 	if !interactive() {
 		return list[:max(len(have), 1)]
 	}
-	notice("\n" + tr(lang, "emailCandidates"))
+	notice(tr(lang, "emailCandidates"))
 	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	for i, e := range list {
 		state := ""
@@ -300,7 +296,7 @@ func chooseRepos(lang, dir string, found, work []string) ([]string, error) {
 		n := strconv.Itoa(c.commits)
 		fmt.Fprintf(out, "%s  %*d  %s  %s%s  %s\n", margin, wIdx, i+1, pad(tildePath(c.path), wPath), strings.Repeat(" ", wNum-len(n)), n, c.last)
 	}
-	notice("\n" + tr(lang, "companyNotice"))
+	notice(tr(lang, "companyNotice"))
 	var sel []int
 	for interactive() && !stdinClosed {
 		answer := prompt(tr(lang, "selectRepos"))
@@ -446,7 +442,6 @@ func askRoots(lang string, saved, args []string) []string {
 	}
 	q += tr(lang, "rootsPrompt")
 	for {
-		blank()
 		answer := prompt(q)
 		if answer == "" {
 			return fallback
