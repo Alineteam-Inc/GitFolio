@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io"
+	"os"
 	"slices"
 	"testing"
 )
@@ -28,5 +30,21 @@ func TestSimilarCommands(t *testing.T) {
 	}
 	if err := run([]string{"stauts"}); err == nil {
 		t.Error("a mistyped command ran")
+	}
+}
+
+// export, config and sync --dry-run print JSON two-space indented, with "<a@b.com>" kept readable.
+func TestPrintJSON(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func(o *os.File) { os.Stdout = o }(os.Stdout)
+	os.Stdout = w
+	err = printJSON(map[string]any{"author": "Dev <dev@example.com>"})
+	w.Close()
+	got, _ := io.ReadAll(r)
+	if err != nil || string(got) != "{\n  \"author\": \"Dev <dev@example.com>\"\n}\n" {
+		t.Errorf("printJSON wrote %q (%v)", got, err)
 	}
 }
