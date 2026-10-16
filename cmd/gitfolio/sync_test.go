@@ -506,3 +506,59 @@ func TestSyncDependencies(t *testing.T) {
 		t.Error("the empty list was sent again")
 	}
 }
+
+// Snapshots go with the commits, once per change of their counts; local mode sends them without commits,
+// and a repository waiting for a verified email waits for its snapshot too.
+func TestSyncSnapshots(t *testing.T) {
+	f := &fakeAline{token: testToken, waitFor: map[string]string{"me/wait": "work@example.com"}}
+	srv := httptest.NewServer(f.handler())
+	defer srv.Close()
+	t.Setenv("GITFOLIO_API_URL", srv.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	dir := t.TempDir()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com"}))
+	must(saveConfig(dir, Config{Emails: []string{"dev@example.com"}, AutoSyncOff: true}))
+	must(saveRepos(dir, []Repo{
+		{ID: "r1", Name: "app", Provider: "GITHUB", Namespace: "me/app", AsOf: "2026-10-07T01:00:00Z"},
+		{ID: "r2", Name: "wait", Provider: "GITHUB", Namespace: "me/wait"},
+	}))
+	commit := func(repo, hash, date string) Commit {
+		return Commit{Repo: repo, Hash: hash, Branch: "main", AuthorEmail: "dev@example.com", Date: date,
+			Message: "feat: x", Files: []FileStat{{Name: "main.go", Add: 1}}, CreationType: "HUMAN"}
+	}
+	must(writeCommits(dir, []Commit{commit("r1", "a1", "2026-10-07T10:00:00+09:00"), commit("r2", "b1", "2026-10-07T11:00:00+09:00")}))
+
+	n, err := syncData(dir, false)
+	if err != nil || n.commits != 0 || n.stats != 1 || len(f.commits) != 0 {
+		t.Fatalf("local mode sync = %+v, %v, aline.team has %d commits; want only one snapshot", n, err, len(f.commits))
+	}
+	if s := f.stats["GITHUB/me/app"]; s.AuthorEmail != "dev@example.com" || s.Days["2026-10-07"] == nil || s.Days["2026-10-07"].Mine != (pair{1, 0}) {
+		t.Fatalf("aline.team has snapshot %+v", s)
+	}
+	if n, err := syncData(dir, false); err != nil || n.stats != 0 {
+		t.Errorf("unchanged snapshot sent again: %+v, %v", n, err)
+	}
+	repos, _ := loadRepos(dir) // a newer commit by someone else: counts unchanged, not sent again
+	repos[0].AsOf = "2026-10-08T01:00:00Z"
+	must(saveRepos(dir, repos))
+	if n, err := syncData(dir, false); err != nil || n.stats != 0 {
+		t.Errorf("snapshot sent again for a newer asOf alone: %+v, %v", n, err)
+	}
+
+	cfg, _ := loadConfig(dir) // automatic: the commits go too
+	cfg.AutoSyncOff = false
+	must(saveConfig(dir, cfg))
+	must(appendCommits(dir, []Commit{commit("r1", "a2", "2026-10-08T10:00:00+09:00")}))
+	if n, err := syncData(dir, false); err != nil || n.commits != 2 || n.stats != 1 {
+		t.Errorf("automatic sync = %+v, %v; want r1's 2 commits and its changed snapshot", n, err)
+	}
+	if _, ok := f.stats["GITHUB/me/wait"]; ok {
+		t.Error("a repository waiting for a verified email had its snapshot taken")
+	}
+}
