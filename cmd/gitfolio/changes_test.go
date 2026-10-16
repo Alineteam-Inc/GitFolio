@@ -95,4 +95,14 @@ func TestFirstChanges(t *testing.T) {
 	if !maps.Equal(r.Changed, want) {
 		t.Errorf("first changes = %v, want %v", r.Changed, want)
 	}
+	// The same history as later changes to the user's files: the release does not count, the rename is
+	// not followed, and only a's first change is within 14 days of being made.
+	wantChurn := map[string]churn{
+		"2026-09-02": {Touches: pair{1}, Corrective: pair{1}, Early: pair{1}},
+		"2026-09-05": {Touches: pair{1}, Early: pair{1}},
+		"2026-09-06": {Touches: pair{1}, Corrective: pair{1}},
+	}
+	if !maps.Equal(r.Churn, wantChurn) || r.AsOf != "2026-09-06T01:00:00Z" {
+		t.Errorf("churn = %v as of %s, want %v as of 2026-09-06T01:00:00Z", r.Churn, r.AsOf, wantChurn)
+	}
 }

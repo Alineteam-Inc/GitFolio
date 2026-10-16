@@ -24,6 +24,9 @@ type Repo struct {
 	Format int `json:"format,omitempty"`
 	// Changed maps each file the user created to when someone else first changed it (modifiedFiles).
 	Changed map[string]string `json:"changed,omitempty"`
+	// Churn and AsOf are what the last scan counted of everyone's history for the snapshot (churnOf).
+	Churn map[string]churn `json:"churn,omitempty"`
+	AsOf  string           `json:"asOf,omitempty"`
 	// Manifests records the user's decision per package manager file path: true = may be read.
 	// Local only, never exported or sent. Files missing here wait for approval.
 	Manifests map[string]bool `json:"manifests,omitempty"`
@@ -281,13 +284,16 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	}
 	var fresh []Commit
 	all := parseLog(out)
+	for i, c := range all {
+		if extra := tags[c.Hash]; len(extra) > 0 {
+			all[i].AIAgents = slices.Compact(slices.Sorted(slices.Values(append(c.AIAgents, extra...))))
+		}
+	}
 	r.Changed = firstChanges(all, mine)
+	r.Churn, r.AsOf = churnOf(all, mine)
 	for _, c := range all {
 		if known[c.Hash] {
 			continue
-		}
-		if extra := tags[c.Hash]; len(extra) > 0 {
-			c.AIAgents = slices.Compact(slices.Sorted(slices.Values(append(c.AIAgents, extra...))))
 		}
 		if c.CreationType = creationType(c, mine); c.CreationType != "" {
 			c.Repo = r.ID

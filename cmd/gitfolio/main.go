@@ -486,11 +486,16 @@ func cmdList(dir string) error {
 type exportData struct {
 	Commits      []Commit     `json:"commits"`
 	Dependencies []Dependency `json:"dependencies"`
+	Snapshots    []snapshot   `json:"snapshots"` // what aline.team gets of each repository (snapshot.go)
 }
 
 // buildExport assembles what leaves the computer: repository names and namespaces instead of local IDs,
-// and only the dependencies of modules the user's own commits touched. Module IDs stay local.
+// only the dependencies of modules the user's own commits touched, and the snapshots. Module IDs stay local.
 func buildExport(dir string) (exportData, error) {
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return exportData{}, err
+	}
 	repos, err := loadRepos(dir)
 	if err != nil {
 		return exportData{}, err
@@ -507,7 +512,7 @@ func buildExport(dir string) (exportData, error) {
 	for _, r := range repos {
 		byID[r.ID] = r
 	}
-	out := exportData{make([]Commit, 0, len(commits)), make([]Dependency, 0, len(deps))}
+	out := exportData{make([]Commit, 0, len(commits)), make([]Dependency, 0, len(deps)), snapshots(repos, commits, primaryEmail(cfg))}
 	touched := map[string]bool{} // repo ID + "/" + module ID
 	for _, c := range commits {
 		for i := range c.Files { // commits is this function's own copy: module IDs are cleared in place
