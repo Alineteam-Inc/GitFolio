@@ -61,7 +61,8 @@ and logs you in again on the spot.
   files you created and later changes to them (by anyone; other people's commits are only counted here,
   never sent), substantive commits, files that show a tool (`Dockerfile`, `*.tf`, ...) and the languages
   used. No hashes, messages, paths or branches. In local mode (`gitfolio config autosync off`) only these
-  are sent, and only when you run `gitfolio stats` or `gitfolio sync`.
+  are sent, and only when you run `gitfolio stats` or `gitfolio sync`; while aline.team does not take
+  them yet, the commit records go instead, as before local mode (`--dry-run` may still show the statistics).
 - **Your account and this computer:** your email and the work emails you verify; at login, the OS and
   CPU type (e.g. `macOS arm64`), screen language and time zone; with every request, the GitFolio
   version, OS and CPU type.
@@ -171,7 +172,8 @@ gitfolio init
 - **저장소별 일 단위 통계:** 날짜별 내 커밋 수, 언어별 변경 파일 수, 내가 만든 파일과 그 이후 변경 수(누가 고쳤든.
   다른 사람의 커밋은 여기서 세기만 하고 보내지 않음), 실질 커밋 수, 도구를 알 수 있는 파일(`Dockerfile`, `*.tf` 등),
   사용한 언어. 해시·메시지·경로·브랜치는 없습니다. 로컬 모드(`gitfolio config autosync off`)에서는 이것만,
-  `gitfolio stats`나 `gitfolio sync`를 실행할 때만 보냅니다.
+  `gitfolio stats`나 `gitfolio sync`를 실행할 때만 보냅니다. aline.team이 아직 이 통계를 받지 않으면 로컬 모드
+  이전처럼 커밋 기록을 대신 보냅니다(`--dry-run`에는 통계로 보일 수 있음).
 - **계정과 이 컴퓨터:** 계정 이메일과 인증한 작업 이메일, 로그인할 때 OS·CPU 종류(예: `macOS arm64`)·화면 언어·시간대,
   요청마다 GitFolio 버전·OS·CPU 종류
 - **수집하지 않는 것:** 소스 코드·파일 내용, 내 컴퓨터의 저장소 위치, 원격 저장소 주소와 인증 정보,

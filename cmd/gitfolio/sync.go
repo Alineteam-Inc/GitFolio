@@ -27,6 +27,7 @@ type syncState struct {
 	Changed   map[string]string `json:"changed,omitempty"`   // provider/namespace/path → modifiedAt sent (modifiedFiles)
 	Deps      map[string]string `json:"deps,omitempty"`      // provider/namespace → fingerprint of the dependencies sent
 	Stats     map[string]string `json:"stats,omitempty"`     // provider/namespace → fingerprint of the snapshot sent (statsPrint)
+	NoStats   time.Time         `json:"noStats,omitzero"`    // when aline.team last said it takes no snapshots yet
 	LastSync  string            `json:"lastSync,omitempty"`  // last attempt, shown by `gitfolio schedule`
 	LastError string            `json:"lastError,omitempty"` // why it failed; empty when it went through
 	// Waiting maps provider/namespace to the email aline.team wants verified before it takes that
@@ -372,8 +373,9 @@ func syncData(dir string, dryRun bool) (syncCounts, error) {
 	return n, errors.Join(err, saveSync(dir, st))
 }
 
-// sendPending sends queued deletions, then new or changed commits. Progress is saved as it goes, so
-// after a failure only what was not accepted is sent again.
+// sendPending sends queued deletions, then new or changed commits and snapshots (local mode: the
+// snapshots first, the commits only if aline.team takes no snapshots yet). Progress is saved as it
+// goes, so after a failure only what was not accepted is sent again.
 // ponytail: the lock stays held while sending; other commands wait up to 30s. Send outside the lock
 // if large first syncs make that a problem.
 func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
@@ -414,7 +416,14 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 	}
 	author := primaryEmail(cfg)
 	n.noRemote = p.noRemote
-	if cfg.AutoSyncOff { // local mode: snapshots only, no commit records
+	takes := time.Since(st.NoStats) >= 24*time.Hour // asked again a day after it said it takes none
+	if !takes {
+		p.Stats = nil
+	}
+	// Local mode sends the snapshots instead of commit records, but a server that takes no snapshots
+	// yet still gets the commit records, as before local mode.
+	local, held := cfg.AutoSyncOff && takes, p.Commits
+	if local {
 		p.Commits = nil
 	}
 	if dryRun { // the requests exactly as they would be sent
@@ -446,6 +455,47 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 	}
 	st.Waiting = map[string]string{}
 	lang, done := detectLang(os.Getenv), 0
+	// sendStats sends the snapshots; one waiting for a verified email waits like the commits.
+	sendStats := func() error {
+		for _, s := range p.Stats {
+			key := s.Provider + "/" + s.Namespace
+			if _, ok := st.Waiting[key]; ok {
+				continue
+			}
+			err := c.call("PUT", "/cli/stats", s, nil)
+			var ae *apiError
+			switch {
+			case err == nil:
+				n.stats++
+			case errors.As(err, &ae) && ae.Code == codeUnverified:
+				st.Waiting[key] = cmp.Or(strings.ToLower(ae.Email), "?")
+				continue
+			case errors.As(err, &ae) && ae.Code == codeBadInput: // not sent again on every push, until it changes
+				warn(lang, "statsRejected", s.Namespace, ae)
+			case errors.As(err, &ae) && ae.Code == codeNewerFormat: // all snapshots wait for the update
+				warn(lang, "statsUpdate")
+				return nil
+			case unsupported(err): // all snapshots wait for a server that takes them
+				st.NoStats, takes = time.Now(), false
+				return save()
+			default:
+				return errors.Join(err, save())
+			}
+			st.Stats[key] = statsPrint(s)
+			if err := save(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if local {
+		if err := sendStats(); err != nil {
+			return n, err
+		}
+		if !takes {
+			p.Commits = held
+		}
+	}
 	defer progressDone()
 	for _, batch := range batches(p.Commits) {
 		progress(lang, "progressSend", done, len(p.Commits))
@@ -472,33 +522,8 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 			return n, errors.Join(err, serr)
 		}
 	}
-	// Snapshots after the commits; one waiting for a verified email waits like the commits.
-snapshots:
-	for _, s := range p.Stats {
-		key := s.Provider + "/" + s.Namespace
-		if _, ok := st.Waiting[key]; ok {
-			continue
-		}
-		err := c.call("PUT", "/cli/stats", s, nil)
-		var ae *apiError
-		switch {
-		case err == nil:
-			n.stats++
-		case errors.As(err, &ae) && ae.Code == codeUnverified:
-			st.Waiting[key] = cmp.Or(strings.ToLower(ae.Email), "?")
-			continue
-		case errors.As(err, &ae) && ae.Code == codeBadInput: // not sent again on every push, until it changes
-			warn(lang, "statsRejected", s.Namespace, ae)
-		case errors.As(err, &ae) && ae.Code == codeNewerFormat: // all snapshots wait for the update
-			warn(lang, "statsUpdate")
-			break snapshots
-		case errors.As(err, &ae) && ae.Status == 404: // a server that takes no snapshots yet: they wait for it
-			break snapshots
-		default:
-			return n, errors.Join(err, save())
-		}
-		st.Stats[key] = statsPrint(s)
-		if err := save(); err != nil {
+	if !local { // after the commits, when there are some
+		if err := sendStats(); err != nil {
 			return n, err
 		}
 	}

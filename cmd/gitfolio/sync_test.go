@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestSync walks the data API contract against the fake server: only new or changed
@@ -562,16 +563,46 @@ func TestSyncSnapshots(t *testing.T) {
 		t.Error("a repository waiting for a verified email had its snapshot taken")
 	}
 
-	// A server without snapshots yet: the sync goes through, and they go once it has them.
+	// A server without snapshots yet: the sync goes through, and they go once it has them, asked again a day later.
 	f.noStats = true
 	must(appendCommits(dir, []Commit{commit("r1", "a4", "2026-10-10T10:00:00+09:00")}))
 	if n, err := syncData(dir, false); err != nil || n.commits != 1 || n.stats != 0 {
 		t.Errorf("server without snapshots: %+v, %v; want the commit and no error", n, err)
 	}
 	f.noStats = false
+	if n, err := syncData(dir, false); err != nil || n.stats != 0 {
+		t.Errorf("asked again within the day: %+v, %v", n, err)
+	}
+	dayLater := func() {
+		st, _ := loadSync(dir)
+		st.NoStats = st.NoStats.Add(-25 * time.Hour)
+		must(saveSync(dir, st))
+	}
+	dayLater()
 	if n, err := syncData(dir, false); err != nil || n.stats != 1 {
 		t.Errorf("once the server has snapshots: %+v, %v", n, err)
 	}
+
+	// Local mode on a server without snapshots yet sends the commit records, as before local mode.
+	cfg.AutoSyncOff = true
+	must(saveConfig(dir, cfg))
+	f.noStats = true
+	must(appendCommits(dir, []Commit{commit("r1", "a5", "2026-10-11T10:00:00+09:00")}))
+	if n, err := syncData(dir, false); err != nil || n.commits != 1 || n.stats != 0 {
+		t.Errorf("local mode, server without snapshots: %+v, %v; want the commit", n, err)
+	}
+	must(appendCommits(dir, []Commit{commit("r1", "a6", "2026-10-12T10:00:00+09:00")}))
+	if n, err := syncData(dir, false); err != nil || n.commits != 1 {
+		t.Errorf("local mode within the day: %+v, %v; want the commit", n, err)
+	}
+	f.noStats = false
+	dayLater()
+	must(appendCommits(dir, []Commit{commit("r1", "a7", "2026-10-13T10:00:00+09:00")}))
+	if n, err := syncData(dir, false); err != nil || n.commits != 0 || n.stats != 1 {
+		t.Errorf("local mode once the server has snapshots: %+v, %v; want the snapshot only", n, err)
+	}
+	cfg.AutoSyncOff = false
+	must(saveConfig(dir, cfg))
 
 	// aline.team takes a newer format: nothing is marked sent until GitFolio is updated.
 	f.newerFormat = true
