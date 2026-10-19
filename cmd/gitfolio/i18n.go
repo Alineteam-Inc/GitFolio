@@ -978,9 +978,14 @@ var messages = map[string]map[string]string{
 		"ja": "aline.team が %[1]s のコミット %[2]s を受け付けなかったため、スキップします。内容が変われば再送します: %[3]v\n",
 	},
 	"autosync": {
-		"en": "Send right after git push: %s\n",
-		"ko": "git push 직후 자동 전송: %s\n",
-		"ja": "git push 直後の自動送信: %s\n",
+		"en": "Sync: %s\n",
+		"ko": "동기화: %s\n",
+		"ja": "同期: %s\n",
+	},
+	"localModeOnce": {
+		"en": "Since GitFolio 0.6.0, autosync off is local mode: `gitfolio stats`, `stack` and `sync` send daily\nstatistics instead of commit records (commit records as before while aline.team does not take them yet).\nTo keep sending commit records: gitfolio config autosync on\n",
+		"ko": "GitFolio 0.6.0부터 autosync off는 로컬 모드입니다. `gitfolio stats`·`stack`·`sync`가 커밋 기록 대신\n일 단위 통계를 보냅니다(aline.team이 아직 통계를 받지 않으면 이전처럼 커밋 기록).\n커밋 기록을 계속 보내려면: gitfolio config autosync on\n",
+		"ja": "GitFolio 0.6.0 から autosync off はローカルモードです。`gitfolio stats`・`stack`・`sync` がコミット記録の代わりに\n日単位の統計を送ります(aline.team がまだ統計を受け付けない間は、これまでどおりコミット記録)。\nコミット記録を送り続けるには: gitfolio config autosync on\n",
 	},
 	"historyOff": {
 		"en": "The git command history is off. Turn it on: gitfolio config git-history on\n",

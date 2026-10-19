@@ -118,6 +118,19 @@ func sendIfLocal(dir, lang string, c *client) (bool, error) {
 	return true, nil
 }
 
+// checkLocalMode tells a user who turned autosync off before 0.6.0, once, that it is now local mode.
+// Hooks and pipes are not told.
+func checkLocalMode(dir, lang string) {
+	cfg, err := loadConfig(dir)
+	if err != nil || !cfg.AutoSyncOff || cfg.LocalModeKnown || !interactive() || !terminal(os.Stdout) {
+		return
+	}
+	cfg.LocalModeKnown = true
+	if saveConfig(dir, cfg) == nil {
+		notice(tr(lang, "localModeOnce"))
+	}
+}
+
 // techUsage is how long the user used one language, framework or library, as aline.team works it out
 // from the repositories: from the first to the last commit of the repositories using it.
 type techUsage struct {

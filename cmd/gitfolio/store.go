@@ -98,6 +98,9 @@ type Config struct {
 	// EmailsChecked is set once the user was asked to verify the work emails (init, or the one-time
 	// question after updating to 0.2.0, when aline.team started to take commits only under verified emails).
 	EmailsChecked bool `json:"emailsChecked,omitempty"`
+	// LocalModeKnown is set once the user chose the sync mode (init, config autosync) or, with autosync
+	// off from before 0.6.0, was told once that it is now local mode.
+	LocalModeKnown bool `json:"localModeKnown,omitempty"`
 }
 
 func loadRepos(dir string) (repos []Repo, err error) {

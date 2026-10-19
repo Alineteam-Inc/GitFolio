@@ -108,6 +108,7 @@ func run(args []string) error {
 	}
 	if !slices.Contains([]string{"hook", "init", "login", "logout", "email"}, args[0]) {
 		checkEmails(dir, detectLang(os.Getenv))
+		checkLocalMode(dir, detectLang(os.Getenv))
 	}
 	if collects(args) {
 		c, err := newClient(dir) // only a login to the server this build talks to counts
@@ -572,12 +573,12 @@ func cmdConfig(dir string, args []string) error {
 		return printJSON(cfg)
 	}
 	if args[0] == "autosync" && len(args) == 2 && (args[1] == "on" || args[1] == "off") {
-		cfg.AutoSyncOff = args[1] == "off"
+		cfg.AutoSyncOff, cfg.LocalModeKnown = args[1] == "off", true
 		if err := saveConfig(dir, cfg); err != nil {
 			return err
 		}
 		lang := detectLang(os.Getenv)
-		say(lang, "autosync", tr(lang, args[1]))
+		say(lang, "autosync", tr(lang, map[bool]string{true: "syncAuto", false: "syncLocal"}[!cfg.AutoSyncOff]))
 		if cfg.AutoSyncOff && cfg.Schedule != "" { // local mode sends nothing by itself: no daily sync either
 			return setSchedule(dir, lang, "")
 		}

@@ -136,7 +136,7 @@ func cmdInit(dir string, args []string) error {
 		if err != nil {
 			return err
 		}
-		c.AutoSyncOff = !auto
+		c.AutoSyncOff, c.LocalModeKnown = !auto, true
 		return saveConfig(dir, c)
 	}); err != nil {
 		return err
