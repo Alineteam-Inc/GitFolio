@@ -562,6 +562,17 @@ func TestSyncSnapshots(t *testing.T) {
 		t.Error("a repository waiting for a verified email had its snapshot taken")
 	}
 
+	// A server without snapshots yet: the sync goes through, and they go once it has them.
+	f.noStats = true
+	must(appendCommits(dir, []Commit{commit("r1", "a4", "2026-10-10T10:00:00+09:00")}))
+	if n, err := syncData(dir, false); err != nil || n.commits != 1 || n.stats != 0 {
+		t.Errorf("server without snapshots: %+v, %v; want the commit and no error", n, err)
+	}
+	f.noStats = false
+	if n, err := syncData(dir, false); err != nil || n.stats != 1 {
+		t.Errorf("once the server has snapshots: %+v, %v", n, err)
+	}
+
 	// aline.team takes a newer format: nothing is marked sent until GitFolio is updated.
 	f.newerFormat = true
 	must(appendCommits(dir, []Commit{commit("r1", "a3", "2026-10-09T10:00:00+09:00")}))

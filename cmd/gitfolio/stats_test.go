@@ -192,4 +192,9 @@ func TestStack(t *testing.T) {
 	if cmdStack(dir, []string{"--all"}) == nil {
 		t.Error("an argument was taken")
 	}
+	f.noStats = true // a server without it yet
+	buf.Reset()
+	if err := cmdStack(dir, nil); err != nil || !strings.Contains(buf.String(), "does not give the CLI") {
+		t.Errorf("server without tech stack periods: %v\n%s", err, buf.String())
+	}
 }

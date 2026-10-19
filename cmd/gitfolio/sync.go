@@ -473,6 +473,7 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 		}
 	}
 	// Snapshots after the commits; one waiting for a verified email waits like the commits.
+snapshots:
 	for _, s := range p.Stats {
 		key := s.Provider + "/" + s.Namespace
 		if _, ok := st.Waiting[key]; ok {
@@ -490,7 +491,9 @@ func sendPending(dir string, dryRun bool) (n syncCounts, err error) {
 			warn(lang, "statsRejected", s.Namespace, ae)
 		case errors.As(err, &ae) && ae.Code == codeNewerFormat: // all snapshots wait for the update
 			warn(lang, "statsUpdate")
-			return n, save()
+			break snapshots
+		case errors.As(err, &ae) && ae.Status == 404: // a server that takes no snapshots yet: they wait for it
+			break snapshots
 		default:
 			return n, errors.Join(err, save())
 		}

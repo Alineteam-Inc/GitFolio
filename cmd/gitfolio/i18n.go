@@ -932,6 +932,11 @@ var messages = map[string]map[string]string{
 		"ko": "aline.team에 아직 기술 스택이 없습니다. 보낸 저장소에서 만들어집니다(`gitfolio sync`).\n",
 		"ja": "aline.team にはまだ技術スタックがありません。送信したリポジトリから作られます(`gitfolio sync`)。\n",
 	},
+	"stackUnavailable": {
+		"en": "aline.team does not give the CLI tech stack periods yet. They are on your aline.team profile.\n",
+		"ko": "aline.team이 아직 CLI에 기술 스택 기간을 주지 않습니다. aline.team 프로필에서 볼 수 있습니다.\n",
+		"ja": "aline.team はまだ CLI に技術スタックの期間を提供していません。aline.team のプロフィールで確認できます。\n",
+	},
 	"stackHidden": {
 		"en": "* hidden on your aline.team profile\n",
 		"ko": "* aline.team 프로필에서 숨긴 기술\n",
