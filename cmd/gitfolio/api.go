@@ -80,7 +80,15 @@ const (
 	codeNewerFormat   = "A014" // aline.team takes a newer snapshot format: GitFolio needs an update
 	codeRateLimited   = "R001"
 	codeBadInput      = "C001" // malformed request
+	codeNoPath        = "C004" // no such path: a server without that feature yet
 )
+
+// unsupported reports whether aline.team answered that it has no such path, as a server without that
+// feature yet does. A 404 alone is not enough: an unknown user is one too.
+func unsupported(err error) bool {
+	var ae *apiError
+	return errors.As(err, &ae) && ae.Status == 404 && ae.Code == codeNoPath
+}
 
 type client struct {
 	base    string

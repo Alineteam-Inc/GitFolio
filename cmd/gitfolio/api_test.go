@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -547,5 +549,25 @@ func TestLoginAgain(t *testing.T) {
 	}
 	if creds, _ := loadCredentials(dir); creds.Token != testToken || creds.Email != "dev@example.com" {
 		t.Errorf("after logging in: %+v", creds)
+	}
+}
+
+// Only a path aline.team does not have means a server without that feature yet, not any 404.
+func TestUnsupported(t *testing.T) {
+	for _, c := range []struct {
+		err  error
+		want bool
+	}{
+		{&apiError{Status: 404, Code: "C004"}, true},
+		{fmt.Errorf("put: %w", &apiError{Status: 404, Code: "C004"}), true},
+		{&apiError{Status: 404, Code: "U002"}, false}, // an unknown user
+		{&apiError{Status: 404}, false},               // a proxy page
+		{&apiError{Status: 400, Code: "C004"}, false},
+		{errors.New("offline"), false},
+		{nil, false},
+	} {
+		if got := unsupported(c.err); got != c.want {
+			t.Errorf("unsupported(%v) = %v, want %v", c.err, got, c.want)
+		}
 	}
 }

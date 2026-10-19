@@ -146,8 +146,7 @@ func cmdStack(dir string, args []string) error {
 		return failure("loginFirst")
 	}
 	var u struct{ Languages, Frameworks, Libraries []techUsage }
-	var ae *apiError
-	if err := c.call("GET", "/cli/tech-usages", nil, &u); errors.As(err, &ae) && ae.Status == 404 {
+	if err := c.call("GET", "/cli/tech-usages", nil, &u); unsupported(err) {
 		say(lang, "stackUnavailable") // a server without it yet
 		return nil
 	} else if err != nil {
