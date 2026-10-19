@@ -82,7 +82,8 @@ type Config struct {
 	Deps   bool     `json:"deps"`             // user allowed dependency detection (DESIGN 3.5)
 	Roots  []string `json:"roots,omitempty"`  // folders where the user keeps repositories (init)
 	APIURL string   `json:"apiUrl,omitempty"` // aline.team API root; empty = production (config api-url)
-	// AutoSyncOff stops sending right after git push; sync still sends (config autosync).
+	// AutoSyncOff is local mode: nothing is sent after git push or daily, and a sync sends the
+	// statistics only, no commit records (config autosync).
 	AutoSyncOff bool `json:"autoSyncOff,omitempty"`
 	// Emails are the user's work emails (gitfolio email); the first is the primary one, the author
 	// email aline.team gets for all of the user's commits.
