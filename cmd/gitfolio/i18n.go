@@ -396,9 +396,9 @@ var messages = map[string]map[string]string{
 		"ja": "依存関係の分析では、リポジトリごとにあなたが選んだパッケージマネージャーのファイル\n(package.json、go.mod、pom.xml、build.gradle など)のみを、依存関係の把握のためだけに読み取ります。\n依存関係の名前とバージョンのみを保持し、そのうち自分のコミットが変更したモジュールの依存関係の名前だけを\naline.team に送信して技術スタックに加えます。ファイルの内容とパスは保存も送信もしません。\n読むのは求められたときだけです: 承認した直後、`gitfolio deps scan` の実行時、オンにした場合は scan・sync・予約同期のとき\n(`gitfolio deps auto on`)。push のときは読みません。\n",
 	},
 	"syncModeNotice": {
-		"en": "Choose how GitFolio syncs with aline.team.\nAutomatic: sends right after each git push, and every day if you schedule it, so your profile stays current.\nLocal mode: sends nothing by itself; `gitfolio stats` sends your statistics when you run it and shows your developer type.\n",
-		"ko": "aline.team과 동기화하는 방식을 고릅니다.\n자동 동기화: git push 직후에, 예약했다면 매일도 보내 프로필을 최신으로 유지합니다.\n로컬 모드: 스스로는 보내지 않습니다. `gitfolio stats`를 실행할 때만 통계를 보내 개발자 유형을 보여 줍니다.\n",
-		"ja": "aline.team との同期方法を選びます。\n自動同期: git push の直後と、予約すれば毎日送信し、プロフィールを最新に保ちます。\nローカルモード: 自分からは送信しません。`gitfolio stats` を実行したときだけ統計を送り、開発者タイプを表示します。\n",
+		"en": "Choose how GitFolio syncs with aline.team.\nAutomatic: sends right after each git push, and every day if you schedule it, so your profile stays current.\nLocal mode: sends nothing by itself; `gitfolio stats` and `gitfolio stack` send your statistics when you run them and show your developer type and tech stack periods.\n",
+		"ko": "aline.team과 동기화하는 방식을 고릅니다.\n자동 동기화: git push 직후에, 예약했다면 매일도 보내 프로필을 최신으로 유지합니다.\n로컬 모드: 스스로는 보내지 않습니다. `gitfolio stats`·`gitfolio stack`을 실행할 때만 통계를 보내 개발자 유형과 기술 스택 기간을 보여 줍니다.\n",
+		"ja": "aline.team との同期方法を選びます。\n自動同期: git push の直後と、予約すれば毎日送信し、プロフィールを最新に保ちます。\nローカルモード: 自分からは送信しません。`gitfolio stats`・`gitfolio stack` を実行したときだけ統計を送り、開発者タイプと技術スタックの期間を表示します。\n",
 	},
 	"syncModeAsk": {
 		"en": "Sync automatically? (No = local mode)",
@@ -918,9 +918,9 @@ var messages = map[string]map[string]string{
 		"ja": "ローカルモードは自分から送信しないため、予約同期はありません。先に自動同期をオンにしてください: gitfolio config autosync on\n",
 	},
 	"statsUpdate": {
-		"en": "aline.team takes the statistics in a newer form; run `gitfolio update`, then they are sent.\n",
-		"ko": "aline.team이 새 형식의 통계를 받습니다. `gitfolio update`로 업데이트하면 보냅니다.\n",
-		"ja": "aline.team は新しい形式の統計を受け付けます。`gitfolio update` で更新すると送信します。\n",
+		"en": "aline.team now takes the statistics only in a newer form; run `gitfolio update`, then they are sent.\n",
+		"ko": "aline.team이 이제 새 형식의 통계만 받습니다. `gitfolio update`로 업데이트하면 보냅니다.\n",
+		"ja": "aline.team は新しい形式の統計のみを受け付けるようになりました。`gitfolio update` で更新すると送信します。\n",
 	},
 	"stackTitle": {
 		"en": "Your tech stack on aline.team, from the first to the last commit of the repositories using each:\n",
