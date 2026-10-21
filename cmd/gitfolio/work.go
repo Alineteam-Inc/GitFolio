@@ -15,7 +15,9 @@ import (
 )
 
 // The kinds of work a changed file is. Judged on this computer from its path; only the kind ever
-// leaves it, never the path.
+// leaves it, never the path. Kept apart from packageFiles (snapshot.go) on purpose: that list is
+// aline.team's rule for code files and follows the server, while these sort the user's work for AI
+// tools, where a file a language reads stays source (setup.py, Package.swift, mix.exs).
 var (
 	lockFiles = set("package-lock.json yarn.lock pnpm-lock.yaml bun.lockb go.sum cargo.lock gemfile.lock composer.lock " +
 		"poetry.lock pipfile.lock gradle.lockfile packages.lock.json")

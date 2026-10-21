@@ -19,6 +19,9 @@ func TestWorkKind(t *testing.T) {
 		"db/schema.sql": "database", "src/main/resources/db/migration/V1__init.yml": "database",
 		"config/app.yml": "config", "src/main/resources/application.properties": "config",
 		"go.sum": "", "web/package-lock.json": "", "assets/logo.png": "other",
+		// where these kinds differ from aline.team's package files (packageFiles), on purpose
+		"setup.py": "source", "Package.swift": "source", "mix.exs": "source", "build.gradle.kts": "build",
+		"gradle.properties": "config", "AndroidManifest.xml": "config",
 	} {
 		if got := workKind(p); got != want {
 			t.Errorf("workKind(%q) = %q, want %q", p, got, want)
