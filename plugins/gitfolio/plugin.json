@@ -1,0 +1,41 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "gitfolio",
+  "version": "0.7.0",
+  "description": "Your developer type, tech stack periods and a portfolio from your own git history, through the GitFolio CLI.",
+  "author": {
+    "name": "Alineteam Inc.",
+    "url": "https://aline.team"
+  },
+  "homepage": "https://github.com/Alineteam-Inc/GitFolio",
+  "repository": "https://github.com/Alineteam-Inc/GitFolio",
+  "license": "Apache-2.0",
+  "keywords": [
+    "git",
+    "portfolio",
+    "resume",
+    "developer-profile",
+    "aline"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "GitFolio",
+        "shortDescription": "Developer type, tech stack and portfolio from your git history",
+        "longDescription": "Reads what the GitFolio CLI collects on this computer and what aline.team works out from it: your developer type and five scores, how long you used each technology, and a Markdown portfolio to edit. Needs the GitFolio CLI installed and logged in.",
+        "developerName": "Alineteam Inc.",
+        "category": "Productivity",
+        "capabilities": [
+          "Read"
+        ],
+        "websiteURL": "https://github.com/Alineteam-Inc/GitFolio",
+        "privacyPolicyURL": "https://aline.team/privacy",
+        "termsOfServiceURL": "https://aline.team/terms",
+        "defaultPrompt": [
+          "Use GitFolio to explain my developer type and scores.",
+          "Use GitFolio to turn my git history into a portfolio for this job posting."
+        ]
+      }
+    }
+  }
+}

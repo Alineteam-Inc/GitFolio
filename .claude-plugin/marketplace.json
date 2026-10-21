@@ -1,0 +1,14 @@
+{
+  "name": "alineteam",
+  "owner": { "name": "Alineteam Inc.", "url": "https://aline.team" },
+  "description": "Plugins for GitFolio, the developer profile from your own git history.",
+  "plugins": [
+    {
+      "name": "gitfolio",
+      "source": "./plugins/gitfolio",
+      "description": "Your developer type, tech stack periods and a portfolio from your own git history, through the GitFolio CLI.",
+      "category": "productivity",
+      "tags": ["git", "portfolio", "resume"]
+    }
+  ]
+}

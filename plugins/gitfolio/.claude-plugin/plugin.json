@@ -1,0 +1,21 @@
+{
+  "name": "gitfolio",
+  "displayName": "GitFolio",
+  "version": "0.7.0",
+  "description": "Your developer type, tech stack periods and a portfolio from your own git history, through the GitFolio CLI.",
+  "author": {
+    "name": "Alineteam Inc.",
+    "url": "https://aline.team"
+  },
+  "homepage": "https://github.com/Alineteam-Inc/GitFolio",
+  "repository": "https://github.com/Alineteam-Inc/GitFolio",
+  "license": "Apache-2.0",
+  "keywords": [
+    "git",
+    "portfolio",
+    "resume",
+    "developer-profile",
+    "aline"
+  ],
+  "mcpServers": "./mcp.json"
+}

@@ -90,6 +90,7 @@ gitfolio status [name]           # per repository: commits collected and sent, f
 gitfolio stats [--refresh]       # your developer type and five scores from aline.team (saved here after the first time;
                                  # in local mode it sends the statistics first and asks again each time)
 gitfolio stack                   # how long you used each language, framework and library, from aline.team
+gitfolio mcp                     # serve GitFolio to AI coding tools (Claude Code, Codex) over stdio
 gitfolio portfolio [file.md|file.pdf]
                                  # your portfolio from your git history: developer type, tech stack, repositories
                                  # (Markdown to edit or a PDF printed with Chrome, Edge or Chromium;
@@ -105,6 +106,21 @@ gitfolio history                 # git commands GitFolio ran
 gitfolio update                  # install the newest release now
 gitfolio help                    # everything else
 ```
+
+## Claude Code and Codex
+
+Ask your AI coding tool about your developer type, tech stack or a portfolio from your git history. The
+[GitFolio plugin](plugins/gitfolio) adds an MCP server (`gitfolio mcp`, tools that only read) and skills
+for a portfolio, your scores and a missing sync. It uses the CLI installed above.
+
+```sh
+/plugin marketplace add Alineteam-Inc/GitFolio      # Claude Code
+/plugin install gitfolio@alineteam
+codex plugin marketplace add Alineteam-Inc/GitFolio # Codex
+codex plugin add gitfolio@alineteam
+```
+
+What the tools return becomes part of the conversation, so your AI tool's provider receives it.
 
 ## License and name
 
@@ -202,6 +218,7 @@ gitfolio status [이름]           # 저장소별 모은 커밋·보낸 수, 파
 gitfolio stats [--refresh]       # aline.team의 개발자 유형과 능력치 다섯 가지 (처음 받은 뒤 이 컴퓨터에 저장.
                                  # 로컬 모드에서는 통계를 먼저 보내고 매번 새로 받음)
 gitfolio stack                   # aline.team의 언어·프레임워크·라이브러리별 사용 기간
+gitfolio mcp                     # AI 코딩 도구(Claude Code, Codex)에 GitFolio를 MCP 서버로 제공
 gitfolio portfolio [파일.md|파일.pdf]
                                  # git 이력으로 만든 포트폴리오: 개발자 유형, 기술 스택, 저장소
                                  # (고쳐 쓸 Markdown 또는 Chrome·Edge·Chromium으로 인쇄한 PDF.
@@ -217,6 +234,21 @@ gitfolio history                 # GitFolio가 실행한 git 명령
 gitfolio update                  # 최신 버전을 바로 설치
 gitfolio help                    # 그 밖의 명령
 ```
+
+### Claude Code와 Codex
+
+AI 코딩 도구에게 내 개발자 유형, 기술 스택, git 이력으로 만든 포트폴리오를 물어볼 수 있습니다.
+[GitFolio 플러그인](plugins/gitfolio)이 MCP 서버(`gitfolio mcp`, 읽기만 하는 도구)와 포트폴리오·능력치·동기화
+점검 스킬을 더합니다. 위에서 설치한 CLI를 씁니다.
+
+```sh
+/plugin marketplace add Alineteam-Inc/GitFolio      # Claude Code
+/plugin install gitfolio@alineteam
+codex plugin marketplace add Alineteam-Inc/GitFolio # Codex
+codex plugin add gitfolio@alineteam
+```
+
+도구가 돌려준 내용은 대화의 일부가 되어 AI 도구 제공사에 전달됩니다.
 
 ### 라이선스와 이름
 

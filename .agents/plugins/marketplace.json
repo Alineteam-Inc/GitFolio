@@ -1,0 +1,12 @@
+{
+  "name": "alineteam",
+  "interface": { "displayName": "Alineteam" },
+  "plugins": [
+    {
+      "name": "gitfolio",
+      "source": { "source": "local", "path": "./plugins/gitfolio" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}
