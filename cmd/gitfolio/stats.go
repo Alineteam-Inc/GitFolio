@@ -151,7 +151,11 @@ type techUsage struct {
 	Hidden       bool   `json:"isHidden"` // hidden from the profile by the user
 }
 
-type techUsages struct{ Languages, Frameworks, Libraries []techUsage }
+type techUsages struct {
+	Languages  []techUsage `json:"languages"`
+	Frameworks []techUsage `json:"frameworks"`
+	Libraries  []techUsage `json:"libraries"`
+}
 
 // techUsagesNow asks aline.team for the tech stack periods.
 func techUsagesNow(c *client) (u techUsages, err error) {

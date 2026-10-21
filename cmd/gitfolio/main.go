@@ -49,6 +49,8 @@ commands:
                         write your portfolio from your git history: developer type, tech stack and
                         repositories, as Markdown to edit or a PDF printed with Chrome, Edge or
                         Chromium (no file named: it asks which); --from prints your edited Markdown
+  mcp                   serve GitFolio to AI coding tools (Claude Code, Codex, ...) as an MCP server
+                        on stdin and stdout; its tools only read (status, devtype, stack, portfolio)
   export                print collected commits, dependencies and statistics as JSON
   deps [on|off|review [path]]
                         dependency detection: show status, turn it on (you choose which
@@ -108,6 +110,9 @@ func run(args []string) error {
 		return err
 	}
 	startHistory(dir, args)
+	if args[0] == "mcp" { // stdout is the protocol: no update question or notices before it
+		return cmdMCP(dir, args[1:])
+	}
 	if args[0] != "hook" && args[0] != "update" && checkUpdate(dir) {
 		return nil // updated: the user runs the command again with the new binary
 	}
@@ -183,7 +188,7 @@ func run(args []string) error {
 
 // commands are the commands people type; "hook" is run by git hooks only and never suggested.
 var commands = []string{"init", "login", "logout", "whoami", "add", "remove", "scan", "sync", "list", "status",
-	"stats", "stack", "portfolio", "export", "config", "deps", "schedule", "email", "history", "update", "version", "help"}
+	"stats", "stack", "portfolio", "mcp", "export", "config", "deps", "schedule", "email", "history", "update", "version", "help"}
 
 // unknownCommand names the commands the user may have meant (similarCommands), or points to help.
 func unknownCommand(s string) error {
