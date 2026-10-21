@@ -253,7 +253,7 @@ func TestMCPSetup(t *testing.T) {
 	out = io.Discard
 	dir, repo := t.TempDir(), t.TempDir()
 	for _, args := range [][]string{{"init", "-q", "-b", "main"}, {"config", "user.email", "dev@example.com"},
-		{"commit", "-q", "--allow-empty", "-m", "first"}} {
+		{"config", "user.name", "dev"}, {"commit", "-q", "--allow-empty", "-m", "first"}} {
 		if b, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %v %s", args, err, b)
 		}
