@@ -71,8 +71,16 @@ func TestStats(t *testing.T) {
 	// Another account on this computer: its own type is fetched.
 	must(saveCredentials(dir, Credentials{Token: testToken, Email: "other@example.com", Server: srv}))
 	must(cmdStats(dir, nil))
-	if f.devTypeCalls != 3 { // the refused refresh never reached it
-		t.Errorf("another account made %d calls in all, want 3", f.devTypeCalls)
+	if f.devTypeCalls != 3 || f.devTypeLang != "en" { // the refused refresh never reached it
+		t.Errorf("another account made %d calls in all, want 3, asked in %q", f.devTypeCalls, f.devTypeLang)
+	}
+
+	// Another screen language: aline.team's texts are fetched again, in it.
+	t.Setenv("GITFOLIO_LANG", "ja")
+	must(cmdStats(dir, nil))
+	t.Setenv("GITFOLIO_LANG", "en")
+	if f.devTypeCalls != 4 || f.devTypeLang != "ja" {
+		t.Errorf("another language made %d calls in all, want 4, asked in %q", f.devTypeCalls, f.devTypeLang)
 	}
 
 	// Nothing to analyse yet: said so, and nothing is kept, so the next run asks again.
@@ -82,7 +90,7 @@ func TestStats(t *testing.T) {
 	buf.Reset()
 	must(cmdStats(dir, nil))
 	must(cmdStats(dir, nil))
-	if f.devTypeCalls != 5 || !strings.Contains(buf.String(), "nothing to make a developer type from") {
+	if f.devTypeCalls != 6 || !strings.Contains(buf.String(), "nothing to make a developer type from") {
 		t.Errorf("no data: %d calls in all, shown:\n%s", f.devTypeCalls, buf.String())
 	}
 	// Made too slowly, nothing kept: aline.team finishes it, so try again shortly.

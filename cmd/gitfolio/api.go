@@ -200,6 +200,7 @@ func (c *client) send(method, path string, in, out any, auth bool) error {
 		req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	}
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", detectLang(os.Getenv)) // texts aline.team writes, in the screen's language
 	req.Header.Set("User-Agent", fmt.Sprintf("gitfolio/%s (%s; %s)", version, runtime.GOOS, runtime.GOARCH))
 	if auth {
 		req.Header.Set("Authorization", "Bearer "+c.creds.Token)
