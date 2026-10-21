@@ -198,7 +198,7 @@ func portfolioMarkdown(lang string, now time.Time, d devTypeCache, u techUsages,
 			if t.Hidden {
 				continue
 			}
-			fmt.Fprintf(&rows, "| %s | %s | %s ~ %s | %s | %s |\n", tr(lang, g.kind), mdCell(t.Name),
+			fmt.Fprintf(&rows, "| %s | %s | %s ~ %s | %s | %s |\n", tr(lang, g.kind), strings.ReplaceAll(t.Name, "|", `\|`),
 				yearMonth(t.StartDate), yearMonth(t.EndDate), number(t.CareerMonths), number(t.ProjectCount))
 		}
 	}
@@ -243,9 +243,6 @@ func thousands(n int) string {
 	}
 	return s
 }
-
-// mdCell keeps a name from ending its table cell.
-func mdCell(s string) string { return strings.ReplaceAll(s, "|", `\|`) }
 
 // portfolioPage is the Markdown as a page to print: GitFolio's own simple reading of it (headings,
 // paragraphs, lists, tables, quotes, code, links and pictures), enough for what it writes and for the

@@ -77,7 +77,7 @@ var mcpTools = []mcpTool{
 			"(source, test, docs, build, ci_deploy, database, config) as percentages, languages, lines, files created, " +
 			"the share made with AI, and branch names where the user lets them show. No paths, file or folder names. " +
 			"Use it as the facts of a portfolio; ask the user what the work was about.",
-		InputSchema: periodSchema(true),
+		InputSchema: periodSchema(),
 		run:         mcpWork,
 	},
 	{
@@ -85,7 +85,7 @@ var mcpTools = []mcpTool{
 		Title: "Career timeline",
 		Description: "Month by month, for a period if given: the user's commits, the repositories worked in, languages by " +
 			"changed lines and commit types. Counted on this computer, for a tech stack career or a timeline of their work.",
-		InputSchema: periodSchema(true),
+		InputSchema: periodSchema(),
 		run:         mcpTimeline,
 	},
 	{
@@ -97,7 +97,7 @@ var mcpTools = []mcpTool{
 			"hashes, paths or file names, and branch names only where shown. Messages are already masked by the user's " +
 			"blocked words. Use it to name what the user achieved; take 100 at a time.",
 		InputSchema: func() map[string]any {
-			s := periodSchema(true)
+			s := periodSchema()
 			props := s["properties"].(map[string]any)
 			props["repository"] = map[string]any{"type": "string", "description": "The repository, as status names it."}
 			props["type"] = map[string]any{"type": "string", "description": "Only this commit type: feature, fix, refactor, performance, test, docs, chore, ci, hotfix, revert."}
@@ -142,16 +142,13 @@ var mcpTools = []mcpTool{
 	},
 }
 
-// periodSchema is the input of a tool over a period of the history, of one repository if it takes one.
-func periodSchema(repository bool) map[string]any {
-	props := map[string]any{
-		"from": map[string]any{"type": "string", "description": "First year, month or day: 2025, 2025-06 or 2025-06-15. Empty: from the start."},
-		"to":   map[string]any{"type": "string", "description": "Last year, month or day, included. Empty: until now."},
-	}
-	if repository {
-		props["repository"] = map[string]any{"type": "string", "description": "One repository, as status names it. Empty: all."}
-	}
-	return map[string]any{"type": "object", "properties": props}
+// periodSchema is the input of a tool over a period of the history, of one repository or all.
+func periodSchema() map[string]any {
+	return map[string]any{"type": "object", "properties": map[string]any{
+		"from":       map[string]any{"type": "string", "description": "First year, month or day: 2025, 2025-06 or 2025-06-15. Empty: from the start."},
+		"to":         map[string]any{"type": "string", "description": "Last year, month or day, included. Empty: until now."},
+		"repository": map[string]any{"type": "string", "description": "One repository, as status names it. Empty: all."},
+	}}
 }
 
 var mcpSetupTools = []mcpTool{

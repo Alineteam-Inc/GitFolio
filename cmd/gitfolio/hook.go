@@ -107,14 +107,6 @@ func huskyHooks(dir string, install bool) error {
 	return nil
 }
 
-// installHooksUnless installs the hooks unless the user chose none for this repository.
-func installHooksUnless(none bool, repo string) error {
-	if none {
-		return nil
-	}
-	return installHooks(repo)
-}
-
 func installHooks(repo string) error {
 	dir, husky, err := hooksDir(repo)
 	if err != nil {

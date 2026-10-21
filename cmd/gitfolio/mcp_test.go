@@ -80,6 +80,20 @@ func TestMCP(t *testing.T) {
 		}
 		return ""
 	}
+	schema := func(name string) map[string]any {
+		for _, tl := range got["2"].Result.Tools {
+			if tl.Name == name {
+				return tl.InputSchema
+			}
+		}
+		return nil
+	}
+	if s := schema("commits"); fmt.Sprint(s["required"]) != "[repository]" || len(s["properties"].(map[string]any)) != 6 {
+		t.Errorf("commits schema = %v", s)
+	}
+	if s := schema("work"); s["required"] != nil || len(s["properties"].(map[string]any)) != 3 {
+		t.Errorf("work schema = %v", s)
+	}
 	if v := got["1"].Result.ProtocolVersion; v != "2025-06-18" {
 		t.Errorf("protocol version %q, want the client's", v)
 	}
@@ -322,6 +336,9 @@ func TestMCPSetup(t *testing.T) {
 	}
 	if s, err := call("email_start", map[string]any{"email": "work@example.com"}); err != nil || s["codeSentTo"] != "work@example.com" {
 		t.Fatalf("email_start = %v, %v", s, err)
+	}
+	if _, err := call("email_verify", map[string]any{"code": "000000"}); err == nil || !strings.Contains(err.Error(), "tries left") {
+		t.Errorf("wrong work email code: %v", err)
 	}
 	if v, err := call("email_verify", map[string]any{"code": "123456"}); err != nil || v["verified"] != true {
 		t.Errorf("email_verify = %v, %v", v, err)
