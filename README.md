@@ -98,6 +98,7 @@ gitfolio portfolio [file.md|file.pdf]
 gitfolio sync [--dry-run]        # send what aline.team does not have yet (--dry-run: just show it)
 gitfolio config mask add <word>  # hide a customer or project name in commit messages
 gitfolio config autosync off     # local mode: send nothing by itself (on: send after every push)
+gitfolio config ai               # what AI coding tools see of each repository (name, messages, branches)
 gitfolio email add <email>       # another work email of yours (verify it with the emailed code to merge
                                  # repositories you also linked on aline.team)
 gitfolio schedule 09:00          # optional daily sync (off: schedule off)
@@ -109,9 +110,10 @@ gitfolio help                    # everything else
 
 ## Claude Code and Codex
 
-Ask your AI coding tool about your developer type, tech stack or a portfolio from your git history. The
-[GitFolio plugin](plugins/gitfolio) adds an MCP server (`gitfolio mcp`, tools that only read) and skills
-for a portfolio, your scores and a missing sync. It uses the CLI installed above.
+Let your AI coding tool write your portfolio, resume or tech stack career from your git history. The
+[GitFolio plugin](plugins/gitfolio) adds an MCP server (`gitfolio mcp`) and skills: it sets GitFolio up
+with your email, asks you a few questions about each project, and writes from GitFolio's numbers and
+your answers only. It uses the CLI installed above.
 
 ```sh
 /plugin marketplace add Alineteam-Inc/GitFolio      # Claude Code
@@ -120,6 +122,9 @@ codex plugin marketplace add Alineteam-Inc/GitFolio # Codex
 codex plugin add gitfolio@alineteam
 ```
 
+What AI tools see of each repository is yours to set, by hand or through your AI tool following your
+codebase's rules: `gitfolio config ai` — the real name (default), anonymous or another name; commit
+messages and branch names (off by default); or nothing. File paths and folder names are never shown.
 What the tools return becomes part of the conversation, so your AI tool's provider receives it.
 
 ## License and name
@@ -226,6 +231,7 @@ gitfolio portfolio [파일.md|파일.pdf]
 gitfolio sync [--dry-run]        # aline.team에 없는 것만 전송 (--dry-run: 보여 주기만)
 gitfolio config mask add <단어>  # 커밋 메시지 속 고객사·프로젝트명 가리기
 gitfolio config autosync off     # 로컬 모드: 스스로는 보내지 않음 (on: push할 때마다 전송)
+gitfolio config ai               # AI 코딩 도구가 저장소별로 볼 수 있는 범위 (이름, 메시지, 브랜치)
 gitfolio email add <이메일>      # 다른 작업 이메일 추가 (메일로 온 코드로 인증하면 aline.team 웹에서도
                                  # 연동한 저장소와 하나로 합쳐짐)
 gitfolio schedule 09:00          # 예약 동기화 (선택, 해제: schedule off)
@@ -237,9 +243,9 @@ gitfolio help                    # 그 밖의 명령
 
 ### Claude Code와 Codex
 
-AI 코딩 도구에게 내 개발자 유형, 기술 스택, git 이력으로 만든 포트폴리오를 물어볼 수 있습니다.
-[GitFolio 플러그인](plugins/gitfolio)이 MCP 서버(`gitfolio mcp`, 읽기만 하는 도구)와 포트폴리오·능력치·동기화
-점검 스킬을 더합니다. 위에서 설치한 CLI를 씁니다.
+AI 코딩 도구가 git 이력으로 포트폴리오·이력서·기술 스택 커리어를 쓰게 할 수 있습니다.
+[GitFolio 플러그인](plugins/gitfolio)이 MCP 서버(`gitfolio mcp`)와 스킬을 더합니다. 이메일로 GitFolio를 시작해 주고,
+프로젝트마다 몇 가지를 물은 뒤 GitFolio의 숫자와 내 답만으로 씁니다. 위에서 설치한 CLI를 씁니다.
 
 ```sh
 /plugin marketplace add Alineteam-Inc/GitFolio      # Claude Code
@@ -248,7 +254,9 @@ codex plugin marketplace add Alineteam-Inc/GitFolio # Codex
 codex plugin add gitfolio@alineteam
 ```
 
-도구가 돌려준 내용은 대화의 일부가 되어 AI 도구 제공사에 전달됩니다.
+AI 도구에 저장소를 어디까지 보일지는 직접, 또는 AI 도구가 코드베이스의 규칙에 따라 정합니다. `gitfolio config ai`로
+저장소 실제 이름(기본)·익명·별칭, 커밋 메시지와 브랜치 이름(기본 꺼짐), 또는 숨기기를 정하며 파일 경로·폴더 이름은
+나가지 않습니다. 도구가 돌려준 내용은 대화의 일부가 되어 AI 도구 제공사에 전달됩니다.
 
 ### 라이선스와 이름
 

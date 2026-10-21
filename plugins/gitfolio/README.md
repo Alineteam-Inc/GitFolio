@@ -1,23 +1,30 @@
 # GitFolio plugin for Claude Code and Codex
 
-Ask your AI coding tool about your own development history: your developer type and scores, how long you
-used each technology, and a portfolio written from your pushed commits — through the
-[GitFolio CLI](https://github.com/Alineteam-Inc/GitFolio) you already use.
+Let your AI coding tool write your portfolio, resume or tech stack career from your own git history:
+GitFolio gives it the facts of your work, you give it what the work was about, and it writes only from
+those two. Through the [GitFolio CLI](https://github.com/Alineteam-Inc/GitFolio).
 
 ## What it adds
 
-- **MCP server `gitfolio`** (`gitfolio mcp`), with tools that only read:
-  - `status` — the repositories GitFolio collects on this computer and what it holds for each
-  - `devtype` — your developer type and five scores, without and with AI, from aline.team
-  - `stack` — how long you used each language, framework and library, from aline.team
-  - `portfolio` — your portfolio in Markdown, as `gitfolio portfolio` writes it
-- **Skills**: `portfolio` (a portfolio or resume section, fitted to a job posting if you give one),
-  `devtype` (your type and scores explained), `sync-doctor` (why something is missing on aline.team).
+**MCP server `gitfolio`** (`gitfolio mcp`):
+
+- To read, as you allow (below): `status` (repositories here, login, sync), `work` (per repository and
+  period: commit types, kinds of work, languages, lines, share made with AI), `timeline` (month by month),
+  `commits` (only where you show messages), `stack` (tech stack periods), `devtype` (your type, scores
+  and aline.team's reasoning), `portfolio` (a Markdown draft), `ai_settings`.
+- To set GitFolio up for you: `policy`, `login_start` and `login_verify` (your email and its code),
+  `email_start` and `email_verify` (a work email), `add_repository`, `set_sync_mode`, `set_ai_exposure`.
+  Your AI tool asks before each. Nothing can be removed or deleted through it.
+
+**Skills:** `setup` (start GitFolio and decide what to share), `portfolio` (a short interview, then your
+portfolio, resume or career description, fitted to a job posting if you give one), `tech-career`,
+`devtype` (your scores explained), `sync-doctor` (why something is missing on aline.team).
 
 ## Needs
 
-The GitFolio CLI 0.7.0 or later on your `PATH`, set up and logged in (`gitfolio init`). The plugin does
-not install it: see [Install](https://github.com/Alineteam-Inc/GitFolio#install).
+The GitFolio CLI 0.7.0 or later on your `PATH`. The plugin does not install it: see
+[Install](https://github.com/Alineteam-Inc/GitFolio#install). The `setup` skill logs you in with your
+email if you are not yet.
 
 ## Install
 
@@ -39,12 +46,16 @@ Any other tool that runs MCP servers: add the command `gitfolio mcp`.
 
 ## What goes where
 
-- The tools read this computer's GitFolio data and ask aline.team for your developer type and tech stack,
-  as `gitfolio stats` and `gitfolio stack` do; in local mode they first run the sync those commands run.
-  They never change settings or delete anything.
-- What a tool returns — repository names, commit and line counts, languages, your developer type — becomes
-  part of the conversation, so your AI tool's provider receives it like anything else you type.
-- The plugin itself sends nothing anywhere. What the GitFolio CLI sends to aline.team is listed in its
+- **What AI tools see** is set per repository (`gitfolio config ai`, or `set_ai_exposure` when you or your
+  codebase's rules say so): the repository's real name (default), anonymous ("Repository 1") or another
+  name — then its address is left out too; commit messages off (default), subjects or full; branch names
+  off (default) or on; or hidden. File paths, folder and file names, commit hashes and emails are never
+  shown: kinds of work are worked out on your computer and only their shares leave it.
+- What a tool returns becomes part of the conversation, so your AI tool's provider receives it like
+  anything else you type.
+- `devtype`, `stack` and `portfolio` ask aline.team, as `gitfolio stats` and `gitfolio stack` do; in local
+  mode they first run the sync those commands run. Logging in and adding a repository work as
+  `gitfolio login` and `gitfolio add` do. What the CLI sends to aline.team is listed in its
   [README](https://github.com/Alineteam-Inc/GitFolio#nothing-is-collected-without-your-permission).
 
 Apache-2.0, like GitFolio. GitFolio and aline.team are Alineteam Inc.'s names.

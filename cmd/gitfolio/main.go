@@ -50,7 +50,8 @@ commands:
                         repositories, as Markdown to edit or a PDF printed with Chrome, Edge or
                         Chromium (no file named: it asks which); --from prints your edited Markdown
   mcp                   serve GitFolio to AI coding tools (Claude Code, Codex, ...) as an MCP server
-                        on stdin and stdout; its tools only read (status, devtype, stack, portfolio)
+                        on stdin and stdout: your work, type, stack and portfolio as config ai allows,
+                        and setting GitFolio up with your email (nothing is removed through it)
   export                print collected commits, dependencies and statistics as JSON
   deps [on|off|review [path]]
                         dependency detection: show status, turn it on (you choose which

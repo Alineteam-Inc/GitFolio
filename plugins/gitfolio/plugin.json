@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "gitfolio",
   "version": "0.7.0",
-  "description": "Your developer type, tech stack periods and a portfolio from your own git history, through the GitFolio CLI.",
+  "description": "Your portfolio, resume and tech stack career from your own git history, written by your AI tool from GitFolio's facts and your answers.",
   "author": {
     "name": "Alineteam Inc.",
     "url": "https://aline.team"
@@ -21,19 +21,21 @@
     "com.openai": {
       "interface": {
         "displayName": "GitFolio",
-        "shortDescription": "Developer type, tech stack and portfolio from your git history",
-        "longDescription": "Reads what the GitFolio CLI collects on this computer and what aline.team works out from it: your developer type and five scores, how long you used each technology, and a Markdown portfolio to edit. Needs the GitFolio CLI installed and logged in.",
+        "shortDescription": "Portfolio, resume and tech career from your git history",
+        "longDescription": "Gives your AI tool the facts of your development work as GitFolio collects them on this computer - periods, commit types, kinds of work, languages, tech stack periods, developer type - so it can interview you briefly and write your portfolio, resume or tech stack career. Sets GitFolio up with your email; you decide what each repository shows. Needs the GitFolio CLI.",
         "developerName": "Alineteam Inc.",
         "category": "Productivity",
         "capabilities": [
-          "Read"
+          "Read",
+          "Write"
         ],
         "websiteURL": "https://github.com/Alineteam-Inc/GitFolio",
         "privacyPolicyURL": "https://aline.team/privacy",
         "termsOfServiceURL": "https://aline.team/terms",
         "defaultPrompt": [
-          "Use GitFolio to explain my developer type and scores.",
-          "Use GitFolio to turn my git history into a portfolio for this job posting."
+          "Use GitFolio to write my portfolio for this job posting.",
+          "Use GitFolio to set up GitFolio for this repository.",
+          "Use GitFolio to explain my developer type and scores."
         ]
       }
     }
