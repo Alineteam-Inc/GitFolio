@@ -1,7 +1,7 @@
 ---
 name: devtype
-description: Explain the user's GitFolio developer type and its five scores, with and without AI, and what in their git history the scores reflect. Use when the user asks about their developer type, their scores or how to read them.
-allowed-tools: Bash(gitfolio stats *), Bash(gitfolio status *), Bash(gitfolio stack)
+description: Explain the user's GitFolio developer type and its five scores, with and without AI, using aline.team's own reasoning for each score. Use when the user asks about their developer type, their scores or how to read or improve them.
+allowed-tools: mcp__plugin_gitfolio_gitfolio__status, mcp__plugin_gitfolio_gitfolio__devtype, mcp__plugin_gitfolio_gitfolio__work, mcp__plugin_gitfolio_gitfolio__timeline
 ---
 
 # Developer type
@@ -12,13 +12,13 @@ adaptability and consistency — once for the work made without AI and once with
 
 ## Steps
 
-1. Get the type with the GitFolio `devtype` tool (`refresh: true` only if the user asks for a fresh
-   one). Without the tool, run `gitfolio stats` (or `gitfolio stats --refresh`).
-2. If GitFolio has no type yet, say that aline.team needs commits first (`gitfolio sync`), and stop.
-3. Explain in the user's language:
-   - The type and its description as aline.team gives them.
-   - Each score in one line, the strongest and weakest first. Compare the scores without AI and with
-     it, and say plainly where AI-assisted work changes the picture.
-4. If the user asks how to change a score, point to what their history shows (for example from the
-   `status` tool: commits spread over few days, one language, one repository) and keep it to habits
-   in their own work. Do not invent how aline.team computes the scores; say so when you do not know.
+1. Call `devtype` (`refresh: true` only if the user asks for a fresh one). Not logged in: use the `setup`
+   skill. No type yet: aline.team needs commits first (`gitfolio sync`); say so and stop.
+2. Explain in the user's language:
+   - the type and its description, and the type with AI;
+   - each score in a line, strongest and weakest first, with aline.team's reasoning for it (`reasoning`)
+     in your own words;
+   - where the scores without AI and with it differ, and what that says.
+3. If the user asks how to change a score, start from aline.team's reasoning and their own history
+   (`work`, `timeline`: commits spread over few days, one language, few tests). Keep it to habits in their
+   own work. Do not invent how the scores are computed; say so when you do not know.
