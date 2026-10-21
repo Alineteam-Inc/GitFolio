@@ -75,6 +75,7 @@ type fakeAline struct {
 	// devType is what GET /cli/devtype answers (nil: the empty shell, nothing to analyse yet).
 	devType      map[string]any
 	devTypeCalls int
+	devTypeLang  string              // the Accept-Language it was last asked in
 	devTypeWait  time.Duration       // how long it takes to make (longer than the client waits: a timeout)
 	deps         map[string][]string // PUT /cli/dependencies: provider/namespace → "ecosystem:name"
 	depsCalls    int
@@ -231,6 +232,7 @@ func (f *fakeAline) handler() http.Handler {
 	}
 	mux.HandleFunc("GET /cli/devtype", data(func(w http.ResponseWriter, r *http.Request) {
 		f.devTypeCalls++
+		f.devTypeLang = r.Header.Get("Accept-Language")
 		time.Sleep(f.devTypeWait)
 		if r.URL.Query().Get("yearPeriod") == "" {
 			fail(w, 400, "C001")

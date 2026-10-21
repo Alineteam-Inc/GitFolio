@@ -19,7 +19,8 @@ const devTypeFile = "devtype.json"
 type devTypeCache struct {
 	FetchedAt time.Time `json:"fetchedAt"`
 	Year      int       `json:"year"`
-	Account   string    `json:"account"` // the account it belongs to: another login fetches again
+	Account   string    `json:"account"`        // the account it belongs to: another login fetches again
+	Lang      string    `json:"lang,omitempty"` // the language its texts are in: another one fetches again
 	Detail    devType   `json:"detail"`
 }
 
@@ -94,7 +95,7 @@ func devTypeNow(dir, lang string, c *client, refresh bool) (cache devTypeCache, 
 		return cache, false, err
 	}
 	year := time.Now().Year()
-	saved = cache.Detail.Title != "" && cache.Year == year && cache.Account == c.creds.Email
+	saved = cache.Detail.Title != "" && cache.Year == year && cache.Account == c.creds.Email && cache.Lang == lang
 	if saved && !refresh {
 		return cache, true, nil
 	}
@@ -113,7 +114,7 @@ func devTypeNow(dir, lang string, c *client, refresh bool) (cache devTypeCache, 
 		}
 		return cache, false, err
 	}
-	cache = devTypeCache{FetchedAt: time.Now(), Year: year, Account: c.creds.Email, Detail: d}
+	cache = devTypeCache{FetchedAt: time.Now(), Year: year, Account: c.creds.Email, Lang: lang, Detail: d}
 	if d.Title != "" { // nothing to analyse yet is not kept
 		if err := saveJSON(p, cache); err != nil {
 			return cache, false, err
