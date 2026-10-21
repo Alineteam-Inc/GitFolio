@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 	"net/http/httptest"
@@ -175,5 +176,13 @@ func TestPortfolio(t *testing.T) {
 	}
 	if left, _ := filepath.Glob(filepath.Join(work, "gitfolio-portfolio-*")); len(left) > 0 {
 		t.Errorf("left behind: %v", left)
+	}
+
+	// At a terminal with no file named, the format is asked: a wrong answer is asked again.
+	defer func(r *bufio.Reader) { stdin = r }(stdin)
+	interactive, stdin = func() bool { return true }, bufio.NewReader(strings.NewReader("docx\npdf\n"))
+	must(cmdPortfolio(dir, nil))
+	if _, err := os.Stat(filepath.Join(work, "portfolio.pdf")); err != nil || !strings.Contains(buf.String(), "Answer md or pdf") {
+		t.Errorf("asked for pdf: %v\n%s", err, buf.String())
 	}
 }

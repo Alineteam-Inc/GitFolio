@@ -46,8 +46,8 @@ commands:
                         (local mode: sends the statistics first)
   portfolio [file.md|file.pdf] [--from file.md]
                         write your portfolio from your git history: developer type, tech stack and
-                        repositories (Markdown to edit, portfolio.md by default; a .pdf name prints
-                        it with Chrome, Edge or Chromium; --from prints your edited Markdown)
+                        repositories, as Markdown to edit or a PDF printed with Chrome, Edge or
+                        Chromium (no file named: it asks which); --from prints your edited Markdown
   export               print collected commits, dependencies and statistics as JSON
   deps [on|off|review [path]]
                         dependency detection: show status, turn it on (you choose which

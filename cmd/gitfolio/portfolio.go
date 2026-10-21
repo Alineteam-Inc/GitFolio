@@ -19,9 +19,9 @@ import (
 const portfolioUsage = "gitfolio portfolio [file.md|file.pdf] [--from file.md]"
 
 // cmdPortfolio writes the user's portfolio from their git history: the developer type and tech stack
-// periods aline.team works out, and the repositories as collected on this computer. Markdown by
-// default, to edit into a real portfolio; a .pdf name prints it with a Chrome-family browser, and
-// --from prints a Markdown file instead (one written here and edited, say).
+// periods aline.team works out, and the repositories as collected on this computer. Markdown, to edit
+// into a real portfolio, or a PDF printed with a Chrome-family browser: by the file's name, else asked
+// at a terminal (Markdown elsewhere). --from prints a Markdown file instead (one written here and edited, say).
 func cmdPortfolio(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
 	var out, from string
@@ -36,11 +36,14 @@ func cmdPortfolio(dir string, args []string) error {
 			return failure("usage", portfolioUsage)
 		}
 	}
-	if out == "" {
+	switch {
+	case out != "":
+	case from != "":
+		out = strings.TrimSuffix(from, filepath.Ext(from)) + ".pdf"
+	case interactive() && askPDF(lang):
+		out = "portfolio.pdf"
+	default:
 		out = "portfolio.md"
-		if from != "" {
-			out = strings.TrimSuffix(from, filepath.Ext(from)) + ".pdf"
-		}
 	}
 	pdf := strings.EqualFold(filepath.Ext(out), ".pdf")
 	if from != "" && !pdf {
@@ -83,6 +86,22 @@ func cmdPortfolio(dir string, args []string) error {
 	}
 	say(lang, "portfolioSavedPDF", tildePath(out))
 	return nil
+}
+
+// askPDF asks which format to write when no file is named: Markdown (the default) or PDF.
+func askPDF(lang string) bool {
+	for {
+		switch strings.ToLower(prompt(tr(lang, "portfolioAsk"))) {
+		case "", "md", "m", "markdown", "1":
+			return false
+		case "pdf", "p", "2":
+			return !stdinClosed
+		}
+		if stdinClosed {
+			return false
+		}
+		notice(tr(lang, "portfolioFormat"))
+	}
 }
 
 // portfolioOf is the portfolio in Markdown. In local mode the statistics go first, as for gitfolio

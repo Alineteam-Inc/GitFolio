@@ -972,6 +972,16 @@ var messages = map[string]map[string]string{
 		"ko": "### %s\n\n%s\n\n- 커밋 %s개, 그중 AI와 함께 %s\n- 바꾼 줄 +%s / -%s, 새로 만든 파일 %s개\n- 언어(바꾼 줄 기준): %s\n",
 		"ja": "### %s\n\n%s\n\n- コミット %s 件、うち AI と一緒に %s\n- 変更行 +%s / -%s、新規ファイル %s 件\n- 言語(変更行の割合): %s\n",
 	},
+	"portfolioAsk": {
+		"en": "Which format?\n1) md: Markdown to edit into your own portfolio\n2) pdf: ready to send [md] > ",
+		"ko": "어떤 형식으로 만들까요?\n1) md: 고쳐서 내 포트폴리오로 쓸 Markdown\n2) pdf: 바로 보낼 수 있는 PDF [md] > ",
+		"ja": "どの形式で作成しますか?\n1) md: 編集して自分のポートフォリオにする Markdown\n2) pdf: そのまま送れる PDF [md] > ",
+	},
+	"portfolioFormat": {
+		"en": "Answer md or pdf (1 or 2).\n",
+		"ko": "md 또는 pdf(1 또는 2)로 답하세요.\n",
+		"ja": "md か pdf(1 か 2)で答えてください。\n",
+	},
 	"portfolioSaved": {
 		"en": "Portfolio saved: %s\nEdit it into your own; `gitfolio portfolio --from <file.md>` prints it as a PDF.\n",
 		"ko": "포트폴리오를 저장했습니다: %s\n고쳐서 내 포트폴리오로 쓰고, `gitfolio portfolio --from <파일.md>`로 PDF를 만들 수 있습니다.\n",
