@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -56,10 +57,8 @@ var mcpTools = []mcpTool{
 			"without AI and with it, the type with AI, and aline.team's reasoning for each score in the screen's language. " +
 			"The saved type unless refresh is true. In local mode the " +
 			"statistics are sent to aline.team first, as gitfolio stats does.",
-		InputSchema: map[string]any{"type": "object", "properties": map[string]any{
-			"refresh": map[string]any{"type": "boolean", "description": "Ask aline.team again instead of using the saved one."},
-		}},
-		run: mcpDevType,
+		InputSchema: object(map[string]any{"refresh": prop("boolean", "Ask aline.team again instead of using the saved one.")}),
+		run:         mcpDevType,
 	},
 	{
 		Name:  "stack",
@@ -77,7 +76,7 @@ var mcpTools = []mcpTool{
 			"(source, test, docs, build, ci_deploy, database, config) as percentages, languages, lines, files created, " +
 			"the share made with AI, and branch names where the user lets them show. No paths, file or folder names. " +
 			"Use it as the facts of a portfolio; ask the user what the work was about.",
-		InputSchema: periodSchema(),
+		InputSchema: object(periodProps(nil)),
 		run:         mcpWork,
 	},
 	{
@@ -85,7 +84,7 @@ var mcpTools = []mcpTool{
 		Title: "Career timeline",
 		Description: "Month by month, for a period if given: the user's commits, the repositories worked in, languages by " +
 			"changed lines and commit types. Counted on this computer, for a tech stack career or a timeline of their work.",
-		InputSchema: periodSchema(),
+		InputSchema: object(periodProps(nil)),
 		run:         mcpTimeline,
 	},
 	{
@@ -96,16 +95,12 @@ var mcpTools = []mcpTool{
 			"the full messages). Only for repositories whose messages the user lets AI tools see (ai_settings); never " +
 			"hashes, paths or file names, and branch names only where shown. Messages are already masked by the user's " +
 			"blocked words. Use it to name what the user achieved; take 100 at a time.",
-		InputSchema: func() map[string]any {
-			s := periodSchema()
-			props := s["properties"].(map[string]any)
-			props["repository"] = map[string]any{"type": "string", "description": "The repository, as status names it."}
-			props["type"] = map[string]any{"type": "string", "description": "Only this commit type: feature, fix, refactor, performance, test, docs, chore, ci, hotfix, revert."}
-			props["limit"] = map[string]any{"type": "integer", "description": "How many, 1 to 500. Default 100."}
-			props["offset"] = map[string]any{"type": "integer", "description": "How many to skip: nextOffset of the last answer."}
-			s["required"] = []string{"repository"}
-			return s
-		}(),
+		InputSchema: object(periodProps(map[string]any{
+			"repository": prop("string", "The repository, as status names it."),
+			"type":       prop("string", "Only this commit type: feature, fix, refactor, performance, test, docs, chore, ci, hotfix, revert."),
+			"limit":      prop("integer", "How many, 1 to 500. Default 100."),
+			"offset":     prop("integer", "How many to skip: nextOffset of the last answer."),
+		}), "repository"),
 		run: mcpCommits,
 	},
 	{
@@ -123,13 +118,13 @@ var mcpTools = []mcpTool{
 			"rules of their codebase say (for example a CLAUDE.md or AGENTS.md that keeps company names or commit messages " +
 			"private). The repository is named as ai_settings shows it, or by a path in it. Paths, folders and file names " +
 			"are never shown, whatever is set.",
-		InputSchema: map[string]any{"type": "object", "required": []string{"repository"}, "properties": map[string]any{
-			"repository": map[string]any{"type": "string", "description": "The repository as ai_settings names it, or a path in it."},
-			"name":       map[string]any{"type": "string", "description": "real, anonymous, or another name to show instead."},
+		InputSchema: object(map[string]any{
+			"repository": prop("string", "The repository as ai_settings names it, or a path in it."),
+			"name":       prop("string", "real, anonymous, or another name to show instead."),
 			"messages":   map[string]any{"type": "string", "enum": []string{"off", "subjects", "full"}, "description": "What of the commit messages to show."},
-			"branches":   map[string]any{"type": "boolean", "description": "Show branch names."},
-			"hidden":     map[string]any{"type": "boolean", "description": "Hide the repository from AI tools altogether."},
-		}},
+			"branches":   prop("boolean", "Show branch names."),
+			"hidden":     prop("boolean", "Hide the repository from AI tools altogether."),
+		}, "repository"),
 		Annotations: map[string]any{"readOnlyHint": false, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false},
 		run:         mcpSetExposure,
 	},
@@ -142,13 +137,30 @@ var mcpTools = []mcpTool{
 	},
 }
 
-// periodSchema is the input of a tool over a period of the history, of one repository or all.
-func periodSchema() map[string]any {
-	return map[string]any{"type": "object", "properties": map[string]any{
-		"from":       map[string]any{"type": "string", "description": "First year, month or day: 2025, 2025-06 or 2025-06-15. Empty: from the start."},
-		"to":         map[string]any{"type": "string", "description": "Last year, month or day, included. Empty: until now."},
-		"repository": map[string]any{"type": "string", "description": "One repository, as status names it. Empty: all."},
-	}}
+// object is a tool's input: these properties, the named ones required.
+func object(props map[string]any, required ...string) map[string]any {
+	s := map[string]any{"type": "object", "properties": props}
+	if len(required) > 0 {
+		s["required"] = required
+	}
+	return s
+}
+
+// prop is one input of a tool: its JSON type and what it means.
+func prop(typ, description string) map[string]any {
+	return map[string]any{"type": typ, "description": description}
+}
+
+// periodProps are the inputs of a tool over a period of the history, of one repository or all, with
+// more of its own (or other words for these).
+func periodProps(more map[string]any) map[string]any {
+	p := map[string]any{
+		"from":       prop("string", "First year, month or day: 2025, 2025-06 or 2025-06-15. Empty: from the start."),
+		"to":         prop("string", "Last year, month or day, included. Empty: until now."),
+		"repository": prop("string", "One repository, as status names it. Empty: all."),
+	}
+	maps.Copy(p, more)
+	return p
 }
 
 var mcpSetupTools = []mcpTool{
@@ -167,11 +179,11 @@ var mcpSetupTools = []mcpTool{
 			"account is signed up. The email is the user's own and required: ask them for it, never guess it. Call only " +
 			"after showing the policy and getting the user's agreement (agreed: true). Then ask the user for the code and " +
 			"call login_verify.",
-		InputSchema: map[string]any{"type": "object", "required": []string{"email", "agreed"}, "properties": map[string]any{
-			"email":         map[string]any{"type": "string", "description": "The user's email, as they gave it."},
-			"agreed":        map[string]any{"type": "boolean", "description": "The user agreed to the data policy, terms and privacy policy."},
-			"notifications": map[string]any{"type": "boolean", "description": "A new account: the user wants aline.team service emails. Only if they said yes."},
-		}},
+		InputSchema: object(map[string]any{
+			"email":         prop("string", "The user's email, as they gave it."),
+			"agreed":        prop("boolean", "The user agreed to the data policy, terms and privacy policy."),
+			"notifications": prop("boolean", "A new account: the user wants aline.team service emails. Only if they said yes."),
+		}, "email", "agreed"),
 		Annotations: mcpWrites,
 		run:         mcpLoginStart,
 	},
@@ -179,9 +191,7 @@ var mcpSetupTools = []mcpTool{
 		Name:        "login_verify",
 		Title:       "Log in: check the code",
 		Description: "Finish logging in with the code the user got by email (login_start). A wrong code can be tried again a few times.",
-		InputSchema: map[string]any{"type": "object", "required": []string{"code"}, "properties": map[string]any{
-			"code": map[string]any{"type": "string", "description": "The digits from the email, as the user typed them."},
-		}},
+		InputSchema: object(map[string]any{"code": prop("string", "The digits from the email, as the user typed them.")}, "code"),
 		Annotations: mcpWrites,
 		run:         mcpLoginVerify,
 	},
@@ -191,9 +201,7 @@ var mcpSetupTools = []mcpTool{
 		Description: "Add another email the user commits with (a repository's git user.email that is not their account email) " +
 			"and send it a code; aline.team takes a repository's commits only under verified emails. Then ask the user " +
 			"for the code and call email_verify.",
-		InputSchema: map[string]any{"type": "object", "required": []string{"email"}, "properties": map[string]any{
-			"email": map[string]any{"type": "string", "description": "The work email, as the user gave it."},
-		}},
+		InputSchema: object(map[string]any{"email": prop("string", "The work email, as the user gave it.")}, "email"),
 		Annotations: mcpWrites,
 		run:         mcpEmailStart,
 	},
@@ -201,9 +209,7 @@ var mcpSetupTools = []mcpTool{
 		Name:        "email_verify",
 		Title:       "Verify a work email",
 		Description: "Verify the work email of email_start with the code the user got.",
-		InputSchema: map[string]any{"type": "object", "required": []string{"code"}, "properties": map[string]any{
-			"code": map[string]any{"type": "string", "description": "The digits from the email, as the user typed them."},
-		}},
+		InputSchema: object(map[string]any{"code": prop("string", "The digits from the email, as the user typed them.")}, "code"),
 		Annotations: mcpWrites,
 		run:         mcpEmailVerify,
 	},
@@ -214,10 +220,10 @@ var mcpSetupTools = []mcpTool{
 			"if the user agrees, installs git hooks (post-commit, pre-push) so later pushes are sent right away. Only " +
 			"repositories the user chose; ask about the hooks first. Afterwards agree with them how it appears to AI tools " +
 			"(set_ai_exposure).",
-		InputSchema: map[string]any{"type": "object", "required": []string{"hooks"}, "properties": map[string]any{
-			"path":  map[string]any{"type": "string", "description": "A path in the repository. Empty: the current folder."},
-			"hooks": map[string]any{"type": "boolean", "description": "The user agreed to git hooks in this repository."},
-		}},
+		InputSchema: object(map[string]any{
+			"path":  prop("string", "A path in the repository. Empty: the current folder."),
+			"hooks": prop("boolean", "The user agreed to git hooks in this repository."),
+		}, "hooks"),
 		Annotations: mcpWrites,
 		run:         mcpAddRepository,
 	},
@@ -227,9 +233,7 @@ var mcpSetupTools = []mcpTool{
 		Description: "local (the default): nothing goes out on its own; GitFolio calls the aline.team API, with daily totals, " +
 			"only when its devtype, stack or portfolio is asked for. automatic: the user's commits go to aline.team right after each git push, the past ones " +
 			"right away. Ask the user; leave it local unless they choose automatic.",
-		InputSchema: map[string]any{"type": "object", "required": []string{"mode"}, "properties": map[string]any{
-			"mode": map[string]any{"type": "string", "enum": []string{"automatic", "local"}},
-		}},
+		InputSchema: object(map[string]any{"mode": map[string]any{"type": "string", "enum": []string{"automatic", "local"}}}, "mode"),
 		Annotations: mcpWrites,
 		run:         mcpSetSyncMode,
 	},
@@ -246,7 +250,7 @@ func init() {
 			mcpTools[i].Annotations = map[string]any{"readOnlyHint": true, "openWorldHint": !local}
 		}
 		if mcpTools[i].InputSchema == nil {
-			mcpTools[i].InputSchema = map[string]any{"type": "object", "properties": map[string]any{}}
+			mcpTools[i].InputSchema = object(map[string]any{})
 		}
 	}
 }
