@@ -15,7 +15,8 @@ import (
 
 // TestMCP talks to the MCP server as an AI coding tool does: one JSON-RPC message per line.
 func TestMCP(t *testing.T) {
-	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "KEEPER", "agilityStat": 50}, noStats: true}
+	f := &fakeAline{token: testToken, noStats: true, devType: map[string]any{"devTypeTitle": "KEEPER", "agilityStat": 50,
+		"agilityReasoning": "You commit on few days.", "consistencyReasoningAi": "", "devTypeDescriptionAi": "Steady with AI.", "shareCode": "x"}}
 	ts := httptest.NewServer(f.handler())
 	defer ts.Close()
 	t.Setenv("GITFOLIO_API_URL", ts.URL)
@@ -91,7 +92,9 @@ func TestMCP(t *testing.T) {
 		!strings.Contains(s, `"commits":1`) || strings.Contains(s, "/home/me") || got["3"].Result.IsError {
 		t.Errorf("status = %s", s)
 	}
-	if s := text("4"); !strings.Contains(s, `"devTypeTitle":"KEEPER"`) || !strings.Contains(s, `"agilityStat":50`) {
+	if s := text("4"); !strings.Contains(s, `"devTypeTitle":"KEEPER"`) || !strings.Contains(s, `"agilityStat":50`) ||
+		!strings.Contains(s, `"reasoning":{"agilityReasoning":"You commit on few days.","devTypeDescriptionAi":"Steady with AI."}`) ||
+		strings.Contains(s, "shareCode") {
 		t.Errorf("devtype = %s", s)
 	}
 	if s := text("5"); !got["5"].Result.IsError || !strings.Contains(s, "does not give the CLI tech stack periods") {

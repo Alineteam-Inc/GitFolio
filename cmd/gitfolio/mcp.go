@@ -51,7 +51,8 @@ var mcpTools = []mcpTool{
 		Title: "Developer type",
 		Description: "The user's developer type from aline.team: the type, its description and hashtags, the main position, " +
 			"five scores from 0 to 100 (agility, stability, contribution, adaptability, consistency) for the work made " +
-			"without AI and with it, and the type with AI. The saved one unless refresh is true. In local mode the " +
+			"without AI and with it, the type with AI, and aline.team's reasoning for each score in the screen's language. " +
+			"The saved type unless refresh is true. In local mode the " +
 			"statistics are sent to aline.team first, as gitfolio stats does.",
 		InputSchema: map[string]any{"type": "object", "properties": map[string]any{
 			"refresh": map[string]any{"type": "boolean", "description": "Ask aline.team again instead of using the saved one."},
@@ -333,7 +334,23 @@ func mcpDevType(dir string, args map[string]any) (any, error) {
 	if d.Detail.Title == "" {
 		return nil, errors.New(strings.TrimSpace(tr(lang, "statsEmpty")))
 	}
-	return map[string]any{"year": d.Year, "saved": saved, "fetchedAt": d.FetchedAt, "type": d.Detail}, nil
+	res := map[string]any{"year": d.Year, "saved": saved, "fetchedAt": d.FetchedAt, "type": d.Detail}
+	// Why each score is what it is, and the type with AI described, asked for this answer only:
+	// devtype.json keeps just what gitfolio stats shows.
+	var raw map[string]any
+	if c.call("GET", fmt.Sprintf("/cli/devtype?yearPeriod=%d", d.Year), nil, &raw) == nil {
+		why := map[string]string{}
+		for k, v := range raw {
+			s, _ := v.(string)
+			if s != "" && (strings.Contains(k, "Reasoning") || k == "devTypeDescriptionAi" || k == "devTypeHashTagsAi") {
+				why[k] = s
+			}
+		}
+		if len(why) > 0 {
+			res["reasoning"] = why
+		}
+	}
+	return res, nil
 }
 
 func mcpStack(dir string, _ map[string]any) (any, error) {
