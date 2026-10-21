@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -43,7 +44,8 @@ var mcpTools = []mcpTool{
 		Title: "Collected repositories",
 		Description: "The repositories GitFolio collects on this computer and what it holds for each: the user's commits, " +
 			"how many of them aline.team has, lines changed, files created, the share made with AI, languages by changed " +
-			"lines, first and last commit. Also the sync mode and the last sync. Reads this computer only.",
+			"lines, first and last commit. Also whether GitFolio is logged in (if not, start it with policy and login_start), " +
+			"the sync mode and the last sync. Reads this computer only.",
 		run: mcpStatus,
 	},
 	{
@@ -152,10 +154,94 @@ func periodSchema(repository bool) map[string]any {
 	return map[string]any{"type": "object", "properties": props}
 }
 
+var mcpSetupTools = []mcpTool{
+	{
+		Name:  "policy",
+		Title: "Data policy",
+		Description: "GitFolio's data policy and aline.team's terms of service and privacy policy. Before logging the user in, " +
+			"show them these and get their agreement: an email without an account is signed up, which means agreeing to them.",
+		run: mcpPolicy,
+	},
+	{
+		Name:  "login_start",
+		Title: "Log in: send a code",
+		Description: "Start GitFolio for the user: sends a one-time code to their email; an email without an aline.team " +
+			"account is signed up. The email is the user's own and required: ask them for it, never guess it. Call only " +
+			"after showing the policy and getting the user's agreement (agreed: true). Then ask the user for the code and " +
+			"call login_verify.",
+		InputSchema: map[string]any{"type": "object", "required": []string{"email", "agreed"}, "properties": map[string]any{
+			"email":         map[string]any{"type": "string", "description": "The user's email, as they gave it."},
+			"agreed":        map[string]any{"type": "boolean", "description": "The user agreed to the data policy, terms and privacy policy."},
+			"notifications": map[string]any{"type": "boolean", "description": "A new account: the user wants aline.team service emails. Only if they said yes."},
+		}},
+		Annotations: mcpWrites,
+		run:         mcpLoginStart,
+	},
+	{
+		Name:        "login_verify",
+		Title:       "Log in: check the code",
+		Description: "Finish logging in with the code the user got by email (login_start). A wrong code can be tried again a few times.",
+		InputSchema: map[string]any{"type": "object", "required": []string{"code"}, "properties": map[string]any{
+			"code": map[string]any{"type": "string", "description": "The digits from the email, as the user typed them."},
+		}},
+		Annotations: mcpWrites,
+		run:         mcpLoginVerify,
+	},
+	{
+		Name:  "email_start",
+		Title: "Add a work email",
+		Description: "Add another email the user commits with (a repository's git user.email that is not their account email) " +
+			"and send it a code; aline.team takes a repository's commits only under verified emails. Then ask the user " +
+			"for the code and call email_verify.",
+		InputSchema: map[string]any{"type": "object", "required": []string{"email"}, "properties": map[string]any{
+			"email": map[string]any{"type": "string", "description": "The work email, as the user gave it."},
+		}},
+		Annotations: mcpWrites,
+		run:         mcpEmailStart,
+	},
+	{
+		Name:        "email_verify",
+		Title:       "Verify a work email",
+		Description: "Verify the work email of email_start with the code the user got.",
+		InputSchema: map[string]any{"type": "object", "required": []string{"code"}, "properties": map[string]any{
+			"code": map[string]any{"type": "string", "description": "The digits from the email, as the user typed them."},
+		}},
+		Annotations: mcpWrites,
+		run:         mcpEmailVerify,
+	},
+	{
+		Name:  "add_repository",
+		Title: "Register a repository",
+		Description: "Register a git repository on this computer with GitFolio: collects the user's own pushed commits and " +
+			"installs git hooks so later pushes are collected. Only repositories the user chose. Afterwards agree with " +
+			"them how it appears to AI tools (set_ai_exposure).",
+		InputSchema: map[string]any{"type": "object", "properties": map[string]any{
+			"path": map[string]any{"type": "string", "description": "A path in the repository. Empty: the current folder."},
+		}},
+		Annotations: mcpWrites,
+		run:         mcpAddRepository,
+	},
+	{
+		Name:  "set_sync_mode",
+		Title: "Choose the sync mode",
+		Description: "automatic: the user's commits go to aline.team right after each git push. local: nothing is sent by " +
+			"itself; daily statistics go only when GitFolio's devtype, stack or portfolio is asked for. Ask the user.",
+		InputSchema: map[string]any{"type": "object", "required": []string{"mode"}, "properties": map[string]any{
+			"mode": map[string]any{"type": "string", "enum": []string{"automatic", "local"}},
+		}},
+		Annotations: mcpWrites,
+		run:         mcpSetSyncMode,
+	},
+}
+
+// mcpWrites marks a tool that changes something here or on aline.team, nothing it cannot undo.
+var mcpWrites = map[string]any{"readOnlyHint": false, "destructiveHint": false, "idempotentHint": false, "openWorldHint": true}
+
 func init() {
+	mcpTools = append(mcpSetupTools, mcpTools...)
 	for i := range mcpTools {
 		if mcpTools[i].Annotations == nil {
-			local := slices.Contains([]string{"status", "work", "timeline", "commits", "ai_settings"}, mcpTools[i].Name) // this computer only
+			local := slices.Contains([]string{"status", "work", "timeline", "commits", "ai_settings", "policy"}, mcpTools[i].Name) // this computer only
 			mcpTools[i].Annotations = map[string]any{"readOnlyHint": true, "openWorldHint": !local}
 		}
 		if mcpTools[i].InputSchema == nil {
@@ -313,7 +399,12 @@ func mcpStatus(dir string, _ map[string]any) (any, error) {
 	if cfg.AutoSyncOff {
 		mode = "local"
 	}
-	return map[string]any{"repositories": list, "syncMode": mode, "lastSync": st.LastSync, "lastSyncError": st.LastError}, nil
+	c, err := newClient(dir)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"loggedIn": c.loggedIn(), "repositories": list, "syncMode": mode, "lastSync": st.LastSync,
+		"lastSyncError": st.LastError}, nil
 }
 
 func mcpDevType(dir string, args map[string]any) (any, error) {
@@ -555,4 +646,194 @@ func mcpSetExposure(dir string, args map[string]any) (any, error) {
 		return "Hidden from AI tools.", nil
 	}
 	return mcpAISettings(dir, nil)
+}
+
+// mcpPending is a code sent by email that a later tool call answers: a sign-in or a work email check.
+var mcpPending struct {
+	login, email *codeStart
+	address      string
+	tries        int
+}
+
+func mcpPolicy(_ string, _ map[string]any) (any, error) {
+	return map[string]any{
+		"dataPolicy":     strings.TrimSpace(tr(detectLang(os.Getenv), "policy")),
+		"termsOfService": "https://aline.team/terms",
+		"privacyPolicy":  "https://aline.team/privacy",
+		"signingUp":      "An email without an aline.team account is signed up, which means agreeing to the terms of service and the privacy policy.",
+		"aiTools":        "What GitFolio's tools return becomes part of this conversation; gitfolio config ai (set_ai_exposure) sets what they show.",
+	}, nil
+}
+
+func mcpLoginStart(dir string, args map[string]any) (any, error) {
+	email, _ := args["email"].(string)
+	email = strings.ToLower(strings.TrimSpace(email))
+	if agreed, _ := args["agreed"].(bool); !agreed {
+		return nil, errors.New("show the user GitFolio's data policy and aline.team's terms (the policy tool), and call again with agreed: true once they agree")
+	}
+	if !validEmail(email) {
+		return nil, errors.New("not an email address: " + email)
+	}
+	c, err := newClient(dir)
+	if err != nil {
+		return nil, err
+	}
+	if c.loggedIn() {
+		if strings.EqualFold(c.creds.Email, email) {
+			return map[string]any{"loggedIn": true, "next": "Already logged in with this email."}, nil
+		}
+		return nil, errors.New("this computer is logged in with another email; the user can run gitfolio logout in a terminal first")
+	}
+	s, err := c.startSignIn(email)
+	if err != nil {
+		return nil, err
+	}
+	if !s.exists {
+		notify, _ := args["notifications"].(bool)
+		s.req["isNotified"] = notify // service emails: only when the user said yes
+	}
+	mcpPending.login, mcpPending.tries = &s, 0
+	return map[string]any{"codeSentTo": email, "newAccount": !s.exists, "codeDigits": s.length,
+		"next": "Ask the user for the code in that email, then call login_verify with it."}, nil
+}
+
+func mcpLoginVerify(dir string, args map[string]any) (any, error) {
+	s := mcpPending.login
+	if s == nil {
+		return nil, errors.New("no code is waiting: call login_start first")
+	}
+	code, _ := args["code"].(string)
+	if code = strings.TrimSpace(code); !validCode(code, s.length) {
+		return nil, fmt.Errorf("the code is %d digits", s.length)
+	}
+	c, err := newClient(dir)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.finishSignIn(*s, code)
+	if err != nil {
+		return nil, mcpCodeError(err, func() { mcpPending.login = nil })
+	}
+	mcpPending.login = nil
+	r := map[string]any{"loggedIn": true, "newAccount": res.Account.Created,
+		"next": "Register the user's repositories with add_repository, choose the sync mode with set_sync_mode, and agree with " +
+			"the user what AI tools may see of each repository (set_ai_exposure)."}
+	if res.Account.Created {
+		r["webLogin"] = strings.TrimSpace(tr(detectLang(os.Getenv), "passwordMail"))
+	}
+	return r, nil
+}
+
+// mcpCodeError is a wrong code's answer while tries are left; otherwise the code waiting is dropped.
+func mcpCodeError(err error, drop func()) error {
+	if wrongCode(err) {
+		if mcpPending.tries++; mcpPending.tries < maxCodeTries {
+			return fmt.Errorf("wrong code: ask the user again (%d tries left)", maxCodeTries-mcpPending.tries)
+		}
+		err = errors.New("too many wrong codes: start again")
+	}
+	drop()
+	return err
+}
+
+func mcpEmailStart(dir string, args map[string]any) (any, error) {
+	email, _ := args["email"].(string)
+	email = strings.ToLower(strings.TrimSpace(email))
+	c, err := newClient(dir)
+	if err != nil {
+		return nil, err
+	}
+	if !c.loggedIn() {
+		return nil, errors.New("not logged in: call login_start first")
+	}
+	if err := withLock(dir, func() error {
+		cfg, err := loadConfig(dir)
+		if err != nil {
+			return err
+		}
+		if bad := addEmails(&cfg, []string{email}); len(bad) > 0 {
+			return errors.New("not an email address: " + email)
+		}
+		return saveConfig(dir, cfg)
+	}); err != nil {
+		return nil, err
+	}
+	s, done, err := c.startEmailCheck(email)
+	if err != nil {
+		return nil, err
+	}
+	if done {
+		return map[string]any{"verified": true}, nil
+	}
+	mcpPending.email, mcpPending.address, mcpPending.tries = &s, email, 0
+	return map[string]any{"codeSentTo": email, "codeDigits": s.length,
+		"next": "Ask the user for the code in that email, then call email_verify with it."}, nil
+}
+
+func mcpEmailVerify(dir string, args map[string]any) (any, error) {
+	s := mcpPending.email
+	if s == nil {
+		return nil, errors.New("no code is waiting: call email_start first")
+	}
+	code, _ := args["code"].(string)
+	if code = strings.TrimSpace(code); !validCode(code, s.length) {
+		return nil, fmt.Errorf("the code is %d digits", s.length)
+	}
+	c, err := newClient(dir)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.finishEmailCheck(*s, code); err != nil {
+		return nil, mcpCodeError(err, func() { mcpPending.email = nil })
+	}
+	mcpPending.email = nil
+	return map[string]any{"verified": true, "email": mcpPending.address}, nil
+}
+
+func mcpAddRepository(dir string, args map[string]any) (any, error) {
+	p, _ := args["path"].(string)
+	c, err := newClient(dir)
+	if err != nil {
+		return nil, err
+	}
+	if !c.loggedIn() {
+		return nil, errors.New("not logged in: call login_start first")
+	}
+	top, err := topLevel(cmp.Or(p, "."))
+	if err != nil {
+		return nil, err
+	}
+	var n int
+	if err := withLock(dir, func() error { n, err = registerRepo(dir, newRepo(top), true); return err }); err != nil {
+		return nil, err
+	}
+	return map[string]any{"repository": filepath.Base(top), "commitsCollected": n,
+		"next": "Agree with the user how this repository appears to AI tools (set_ai_exposure): by its real name (default), " +
+			"anonymous or another name; its commit messages and branch names stay hidden unless they allow them. " +
+			"Follow the rules of the codebase if it has any about company names or commit messages."}, nil
+}
+
+func mcpSetSyncMode(dir string, args map[string]any) (any, error) {
+	mode, _ := args["mode"].(string)
+	if mode != "automatic" && mode != "local" {
+		return nil, errors.New("mode is automatic or local")
+	}
+	lang := detectLang(os.Getenv)
+	if err := withLock(dir, func() error {
+		cfg, err := loadConfig(dir)
+		if err != nil {
+			return err
+		}
+		cfg.AutoSyncOff, cfg.LocalModeKnown = mode == "local", true
+		if err := saveConfig(dir, cfg); err != nil {
+			return err
+		}
+		if cfg.AutoSyncOff && cfg.Schedule != "" { // local mode sends nothing by itself: no daily sync either
+			return setSchedule(dir, lang, "")
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return map[string]any{"syncMode": mode}, nil
 }

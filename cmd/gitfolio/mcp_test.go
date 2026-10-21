@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -235,5 +236,89 @@ func TestAIExposure(t *testing.T) {
 				t.Errorf("tool %d shows %q:\n%s", id, leak, text[id])
 			}
 		}
+	}
+}
+
+// An AI tool starts GitFolio for the user: policy agreed first, the user's own email and code, a
+// repository, the sync mode, and a work email.
+func TestMCPSetup(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	f := &fakeAline{}
+	ts := httptest.NewServer(f.handler())
+	defer ts.Close()
+	t.Setenv("GITFOLIO_API_URL", ts.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	defer func(o io.Writer) { out = o }(out)
+	out = io.Discard
+	dir, repo := t.TempDir(), t.TempDir()
+	for _, args := range [][]string{{"init", "-q", "-b", "main"}, {"config", "user.email", "dev@example.com"},
+		{"commit", "-q", "--allow-empty", "-m", "first"}} {
+		if b, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v %s", args, err, b)
+		}
+	}
+	call := func(name string, args map[string]any) (map[string]any, error) {
+		t.Helper()
+		i := slices.IndexFunc(mcpTools, func(x mcpTool) bool { return x.Name == name })
+		v, err := mcpTools[i].run(dir, args)
+		if err != nil {
+			return nil, err
+		}
+		b, _ := json.Marshal(v)
+		var m map[string]any
+		_ = json.Unmarshal(b, &m)
+		return m, nil
+	}
+	if _, err := call("add_repository", map[string]any{"path": repo}); err == nil || !strings.Contains(err.Error(), "login_start") {
+		t.Errorf("a repository was added before logging in: %v", err)
+	}
+	if _, err := call("login_start", map[string]any{"email": "dev@example.com"}); err == nil || !strings.Contains(err.Error(), "policy") {
+		t.Errorf("login without agreeing: %v", err)
+	}
+	if p, _ := call("policy", nil); !strings.Contains(fmt.Sprint(p["dataPolicy"]), "Source code is never collected") {
+		t.Errorf("policy = %v", p)
+	}
+	if _, err := call("login_verify", map[string]any{"code": "123456"}); err == nil {
+		t.Error("verified with no code sent")
+	}
+	s, err := call("login_start", map[string]any{"email": "Dev@Example.com", "agreed": true, "notifications": true})
+	if err != nil || s["newAccount"] != true || s["codeDigits"] != float64(6) {
+		t.Fatalf("login_start = %v, %v", s, err)
+	}
+	if _, err := call("login_verify", map[string]any{"code": "12345"}); err == nil || !strings.Contains(err.Error(), "6 digits") {
+		t.Errorf("short code: %v", err)
+	}
+	if _, err := call("login_verify", map[string]any{"code": "000000"}); err == nil || !strings.Contains(err.Error(), "tries left") {
+		t.Errorf("wrong code: %v", err)
+	}
+	v, err := call("login_verify", map[string]any{"code": "123456"})
+	if err != nil || v["loggedIn"] != true || v["newAccount"] != true || v["webLogin"] == nil || f.notified == nil || !*f.notified {
+		t.Fatalf("login_verify = %v, %v (notifications %v)", v, err, f.notified)
+	}
+	if again, _ := call("login_start", map[string]any{"email": "dev@example.com", "agreed": true}); again["loggedIn"] != true {
+		t.Errorf("logging in again = %v", again)
+	}
+	a, err := call("add_repository", map[string]any{"path": repo})
+	if err != nil || a["repository"] != filepath.Base(repo) || !strings.Contains(fmt.Sprint(a["next"]), "set_ai_exposure") {
+		t.Errorf("add_repository = %v, %v", a, err)
+	}
+	if _, err := call("set_sync_mode", map[string]any{"mode": "off"}); err == nil {
+		t.Error("an unknown sync mode was taken")
+	}
+	if _, err := call("set_sync_mode", map[string]any{"mode": "local"}); err != nil {
+		t.Fatal(err)
+	}
+	if cfg, _ := loadConfig(dir); !cfg.AutoSyncOff || !cfg.LocalModeKnown {
+		t.Errorf("local mode not saved: %+v", cfg)
+	}
+	if s, err := call("email_start", map[string]any{"email": "work@example.com"}); err != nil || s["codeSentTo"] != "work@example.com" {
+		t.Fatalf("email_start = %v, %v", s, err)
+	}
+	if v, err := call("email_verify", map[string]any{"code": "123456"}); err != nil || v["verified"] != true {
+		t.Errorf("email_verify = %v, %v", v, err)
+	}
+	if cfg, _ := loadConfig(dir); !slices.Contains(cfg.Emails, "work@example.com") {
+		t.Errorf("work email not kept: %v", cfg.Emails)
 	}
 }
