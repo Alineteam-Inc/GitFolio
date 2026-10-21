@@ -72,6 +72,11 @@ commands:
   config git-history on|off
                         keep git's own record of the git commands gitfolio runs (on by default;
                         off deletes it)
+  config ai [name <repo> real|anonymous|<name> | messages <repo> off|subjects|full |
+            branches <repo> on|off | hide|show <repo>]
+                        what AI coding tools see of each repository through gitfolio mcp: its real
+                        name (default), anonymous or another name; commit messages and branch names
+                        (off by default); or nothing. Paths and file names are never shown
   history [--all]       the git commands gitfolio ran, newest last (--all: every run kept)
   email [add <email>... | verify <email> | rm <email> | primary <email>]
                         your work emails: commits by any of them count as yours, and aline.team
@@ -672,11 +677,14 @@ func cmdConfig(dir string, args []string) error {
 		say(detectLang(os.Getenv), "apiURL", base)
 		return nil
 	}
+	if args[0] == "ai" {
+		return cmdConfigAI(dir, args[1:])
+	}
 	if len(args) < 3 || args[0] != "mask" || (args[1] != "add" && args[1] != "rm") {
-		const usage = "gitfolio config mask add|rm <word>... | config autosync on|off | config git-history on|off"
+		const usage = "gitfolio config mask add|rm <word>... | config autosync on|off | config git-history on|off | config ai ..."
 		switch {
-		case !slices.Contains([]string{"mask", "autosync", "git-history"}, args[0]):
-			return wrongWord("config", args[0], []string{"mask", "autosync", "git-history"}, usage)
+		case !slices.Contains([]string{"mask", "autosync", "git-history", "ai"}, args[0]):
+			return wrongWord("config", args[0], []string{"mask", "autosync", "git-history", "ai"}, usage)
 		case len(args) > 1 && args[0] == "mask":
 			return wrongWord("config mask", args[1], []string{"add", "rm"}, usage)
 		case len(args) > 1:

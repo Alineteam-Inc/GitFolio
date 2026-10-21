@@ -1,8 +1,10 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"slices"
@@ -65,6 +67,31 @@ var mcpTools = []mcpTool{
 		run: mcpStack,
 	},
 	{
+		Name:  "ai_settings",
+		Title: "What AI tools see",
+		Description: "How each repository appears to AI tools, as the user set it: by its real name, anonymous or another " +
+			"name, and whether its commit messages (off, subjects, full) and branch names are shown. Hidden repositories " +
+			"are only counted. Set these with set_ai_exposure when the user or their codebase's rules say so.",
+		run: mcpAISettings,
+	},
+	{
+		Name:  "set_ai_exposure",
+		Title: "Set what AI tools see",
+		Description: "Change what AI tools may see of one repository through GitFolio. Do it only as the user asks or as the " +
+			"rules of their codebase say (for example a CLAUDE.md or AGENTS.md that keeps company names or commit messages " +
+			"private). The repository is named as ai_settings shows it, or by a path in it. Paths, folders and file names " +
+			"are never shown, whatever is set.",
+		InputSchema: map[string]any{"type": "object", "required": []string{"repository"}, "properties": map[string]any{
+			"repository": map[string]any{"type": "string", "description": "The repository as ai_settings names it, or a path in it."},
+			"name":       map[string]any{"type": "string", "description": "real, anonymous, or another name to show instead."},
+			"messages":   map[string]any{"type": "string", "enum": []string{"off", "subjects", "full"}, "description": "What of the commit messages to show."},
+			"branches":   map[string]any{"type": "boolean", "description": "Show branch names."},
+			"hidden":     map[string]any{"type": "boolean", "description": "Hide the repository from AI tools altogether."},
+		}},
+		Annotations: map[string]any{"readOnlyHint": false, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false},
+		run:         mcpSetExposure,
+	},
+	{
 		Name:  "portfolio",
 		Title: "Portfolio",
 		Description: "The user's portfolio from their git history in Markdown, as gitfolio portfolio writes it: developer " +
@@ -75,7 +102,10 @@ var mcpTools = []mcpTool{
 
 func init() {
 	for i := range mcpTools {
-		mcpTools[i].Annotations = map[string]any{"readOnlyHint": true, "openWorldHint": mcpTools[i].Name != "status"}
+		if mcpTools[i].Annotations == nil {
+			local := mcpTools[i].Name == "status" || mcpTools[i].Name == "ai_settings" // this computer only
+			mcpTools[i].Annotations = map[string]any{"readOnlyHint": true, "openWorldHint": !local}
+		}
 		if mcpTools[i].InputSchema == nil {
 			mcpTools[i].InputSchema = map[string]any{"type": "object", "properties": map[string]any{}}
 		}
@@ -205,7 +235,7 @@ func mcpStatus(dir string, _ map[string]any) (any, error) {
 		Languages    map[string]int `json:"changedLinesByLanguage"`
 		FirstCommit  string         `json:"firstCommit,omitempty"`
 		LastCommit   string         `json:"lastCommit,omitempty"`
-		WaitingFor   string         `json:"waitingForVerifiedEmail,omitempty"`
+		Waiting      bool           `json:"waitingForVerifiedEmail,omitempty"` // which email: gitfolio email
 	}
 	day := func(t time.Time) string {
 		if t.IsZero() {
@@ -213,11 +243,19 @@ func mcpStatus(dir string, _ map[string]any) (any, error) {
 		}
 		return t.Local().Format(time.DateOnly)
 	}
+	seen := map[string]Repo{}
+	for _, v := range aiView(detectLang(os.Getenv), repos) {
+		seen[v.ID] = v
+	}
 	var list []repo
 	for _, r := range repos {
+		v, ok := seen[r.ID]
+		if !ok {
+			continue
+		}
 		s := statusOf(r, commits, nil, st)
-		list = append(list, repo{r.Name, providerNames[r.Provider], r.Namespace, s.commits, s.sentCount(r, st), s.changes,
-			s.add, s.del, s.created, s.aiShare(), s.lines, day(s.first), day(s.last), st.Waiting[r.Provider+"/"+r.Namespace]})
+		list = append(list, repo{v.Name, providerNames[r.Provider], v.Namespace, s.commits, s.sentCount(r, st), s.changes,
+			s.add, s.del, s.created, s.aiShare(), s.lines, day(s.first), day(s.last), st.Waiting[r.Provider+"/"+r.Namespace] != ""})
 	}
 	mode := "automatic"
 	if cfg.AutoSyncOff {
@@ -264,5 +302,189 @@ func mcpStack(dir string, _ map[string]any) (any, error) {
 }
 
 func mcpPortfolio(dir string, _ map[string]any) (any, error) {
-	return portfolioOf(dir, detectLang(os.Getenv))
+	return portfolioOf(dir, detectLang(os.Getenv), true)
+}
+
+// aiView is the registered repositories as AI tools see them (config ai): hidden ones left out, the
+// others under the name the user chose, without their path here, and without their address on the
+// git service unless they go by their own name.
+func aiView(lang string, repos []Repo) []Repo {
+	var view []Repo
+	n := 0
+	for _, r := range repos {
+		if r.AI.Hidden {
+			continue
+		}
+		switch r.AI.Name {
+		case "":
+		case anonymousName:
+			n++
+			r.Name, r.Namespace = fmt.Sprintf(tr(lang, "aiAnonymous"), n), ""
+		default:
+			r.Name, r.Namespace = r.AI.Name, ""
+		}
+		r.Path = ""
+		view = append(view, r)
+	}
+	return view
+}
+
+// aiRepo finds the repository an AI tool means: by the name it sees, its own name or a path in it.
+func aiRepo(lang string, repos []Repo, arg string) (int, bool) {
+	for _, v := range aiView(lang, repos) {
+		if v.Name == arg {
+			return slices.IndexFunc(repos, func(r Repo) bool { return r.ID == v.ID }), true
+		}
+	}
+	r, ok := findRepo(repos, arg)
+	return slices.IndexFunc(repos, func(x Repo) bool { return x.ID == r.ID }), ok
+}
+
+// setExposure changes one setting of what AI tools see of a repository: name (real, anonymous or
+// another name), messages (off, subjects, full), branches (on, off), or hidden (true, false).
+func setExposure(e *aiExposure, key, value string) bool {
+	switch key {
+	case "name":
+		switch value = strings.TrimSpace(value); value {
+		case "", anonymousName:
+			return false
+		case "real":
+			e.Name = ""
+		case "anonymous":
+			e.Name = anonymousName
+		default:
+			e.Name = value
+		}
+	case "messages":
+		if !slices.Contains([]string{"off", "subjects", "full"}, value) {
+			return false
+		}
+		e.Messages = strings.TrimPrefix(value, "off")
+	case "branches", "hidden":
+		on := value == "on" || value == "true"
+		if !on && value != "off" && value != "false" {
+			return false
+		}
+		if key == "branches" {
+			e.Branches = on
+		} else {
+			e.Hidden = on
+		}
+	default:
+		return false
+	}
+	return true
+}
+
+// exposureText is how a repository's settings read: "as itself, messages off, branches off".
+func exposureText(lang string, r Repo, seenAs string) string {
+	if r.AI.Hidden {
+		return tr(lang, "aiHiddenWord")
+	}
+	return fmt.Sprintf(tr(lang, "aiExposure"), seenAs, cmp.Or(r.AI.Messages, "off"), map[bool]string{true: "on", false: "off"}[r.AI.Branches])
+}
+
+const configAIUsage = "gitfolio config ai [name <repo> real|anonymous|<name> | messages <repo> off|subjects|full | branches <repo> on|off | hide <repo> | show <repo>]"
+
+// cmdConfigAI shows or changes what AI coding tools see of each repository through gitfolio mcp.
+// The repository is named as gitfolio status names it, or by a path in it.
+func cmdConfigAI(dir string, args []string) error {
+	lang := detectLang(os.Getenv)
+	repos, err := loadRepos(dir)
+	if err != nil {
+		return err
+	}
+	seen := map[string]string{}
+	for _, v := range aiView(lang, repos) {
+		seen[v.ID] = v.Name
+	}
+	if len(args) == 0 {
+		var b strings.Builder
+		for _, r := range repos {
+			fmt.Fprintf(&b, "%s: %s\n", r.Name, exposureText(lang, r, seen[r.ID]))
+		}
+		sayKV(lang, "aiTitle", b.String())
+		return nil
+	}
+	words := []string{"name", "messages", "branches", "hide", "show"}
+	if !slices.Contains(words, args[0]) || len(args) < 2 {
+		return wrongWord("config ai", args[0], words, configAIUsage)
+	}
+	r, ok := findRepo(repos, args[1])
+	if !ok {
+		return failure("notRegistered", args[1])
+	}
+	i := slices.IndexFunc(repos, func(x Repo) bool { return x.ID == r.ID })
+	key, value := args[0], strings.Join(args[2:], " ")
+	switch key {
+	case "hide", "show":
+		key, value = "hidden", map[bool]string{true: "true", false: "false"}[key == "hide"]
+	}
+	if (key != "hidden" && len(args) < 3) || !setExposure(&repos[i].AI, key, value) {
+		return failure("usage", configAIUsage)
+	}
+	if err := saveRepos(dir, repos); err != nil {
+		return err
+	}
+	for _, v := range aiView(lang, repos) {
+		seen[v.ID] = v.Name
+	}
+	say(lang, "aiSet", repos[i].Name, exposureText(lang, repos[i], seen[repos[i].ID]))
+	return nil
+}
+
+func mcpAISettings(dir string, _ map[string]any) (any, error) {
+	lang := detectLang(os.Getenv)
+	repos, err := loadRepos(dir)
+	if err != nil {
+		return nil, err
+	}
+	type setting struct {
+		Repository string `json:"repository"`
+		Name       string `json:"name"` // real, anonymous or alias
+		Messages   string `json:"messages"`
+		Branches   string `json:"branches"`
+	}
+	view, list := aiView(lang, repos), []setting{}
+	for _, v := range view {
+		r := repos[slices.IndexFunc(repos, func(x Repo) bool { return x.ID == v.ID })]
+		name := map[string]string{"": "real", anonymousName: "anonymous"}[r.AI.Name]
+		list = append(list, setting{v.Name, cmp.Or(name, "alias"), cmp.Or(r.AI.Messages, "off"),
+			map[bool]string{true: "on", false: "off"}[r.AI.Branches]})
+	}
+	return map[string]any{"repositories": list, "hidden": len(repos) - len(view)}, nil
+}
+
+func mcpSetExposure(dir string, args map[string]any) (any, error) {
+	lang := detectLang(os.Getenv)
+	arg, _ := args["repository"].(string)
+	var changed Repo
+	err := withLock(dir, func() error {
+		repos, err := loadRepos(dir)
+		if err != nil {
+			return err
+		}
+		i, ok := aiRepo(lang, repos, arg)
+		if !ok || i < 0 {
+			return failure("notRegistered", arg)
+		}
+		for _, key := range []string{"name", "messages", "branches", "hidden"} {
+			v, ok := args[key]
+			if !ok {
+				continue
+			}
+			if !setExposure(&repos[i].AI, key, fmt.Sprint(v)) {
+				return errors.New("invalid " + key + ": " + fmt.Sprint(v))
+			}
+		}
+		changed = repos[i]
+		return saveRepos(dir, repos)
+	})
+	if err != nil {
+		return nil, err
+	}
+	if changed.AI.Hidden {
+		return "Hidden from AI tools.", nil
+	}
+	return mcpAISettings(dir, nil)
 }

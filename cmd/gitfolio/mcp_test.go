@@ -84,7 +84,7 @@ func TestMCP(t *testing.T) {
 	if v := got["9"].Result.ProtocolVersion; v != mcpVersions[0] {
 		t.Errorf("unknown protocol version answered with %q, want the newest", v)
 	}
-	if tools := got["2"].Result.Tools; len(tools) != 4 || tools[0].Annotations["readOnlyHint"] != true || tools[1].InputSchema["type"] != "object" {
+	if tools := got["2"].Result.Tools; len(tools) != len(mcpTools) || len(tools) < 6 || tools[0].Annotations["readOnlyHint"] != true || tools[1].InputSchema["type"] != "object" {
 		t.Errorf("tools/list = %+v", tools)
 	}
 	if s := text("3"); !strings.Contains(s, `"name":"app"`) || !strings.Contains(s, `"repository":"me/app"`) ||
@@ -138,5 +138,99 @@ func TestPluginManifests(t *testing.T) {
 	if cm["name"] != "gitfolio" || cm["source"] != "./plugins/gitfolio" || xm["name"] != "gitfolio" ||
 		xm["source"].(map[string]any)["path"] != "./plugins/gitfolio" {
 		t.Errorf("marketplaces: %v / %v", cm, xm)
+	}
+}
+
+// What AI tools see follows config ai, set by a person (CLI) or by the AI tool for them (set_ai_exposure),
+// and no tool shows a hidden repository, a name replaced by another, a path, a branch, a hash or an email.
+func TestAIExposure(t *testing.T) {
+	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "KEEPER"}, noStats: true}
+	ts := httptest.NewServer(f.handler())
+	defer ts.Close()
+	t.Setenv("GITFOLIO_API_URL", ts.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	var buf bytes.Buffer
+	defer func(o, e io.Writer) { out, errOut = o, e }(out, errOut)
+	out, errOut = &buf, &buf
+	dir := t.TempDir()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}))
+	must(saveRepos(dir, []Repo{
+		{ID: "a", Name: "acme-payments", Path: "/work/acme-payments", Provider: "GITHUB", Namespace: "acme/acme-payments"},
+		{ID: "b", Name: "secret-proj", Path: "/work/secret-proj", Provider: "GITLAB", Namespace: "corp/secret-proj"},
+		{ID: "c", Name: "side", Path: "/home/me/side", Provider: "GITHUB", Namespace: "me/side"},
+		{ID: "d", Name: "internal-tool", Path: "/work/internal-tool", Provider: "OTHER", Namespace: "team/internal-tool"},
+	}))
+	commit := func(repo, hash string) Commit {
+		return Commit{Repo: repo, Hash: hash, Branch: "feature/acme-billing", AuthorEmail: "dev@example.com", Date: "2026-09-01T12:00:00Z",
+			Message: "feat: acme billing", CreationType: creationHuman, Files: []FileStat{{Name: "billing/acme/invoice.go", Add: 3}}}
+	}
+	must(writeCommits(dir, []Commit{commit("a", "a1b2c3d4"), commit("b", "b1b2c3d4"), commit("c", "c1b2c3d4"), commit("d", "d1b2c3d4")}))
+
+	must(cmdConfigAI(dir, []string{"name", "acme-payments", "Payments", "backend"}))
+	must(cmdConfigAI(dir, []string{"hide", "secret-proj"}))
+	must(cmdConfigAI(dir, []string{"messages", "side", "subjects"}))
+	if err := cmdConfigAI(dir, []string{"messages", "side", "all"}); err == nil {
+		t.Error("an unknown messages setting was taken")
+	}
+	if err := cmdConfigAI(dir, []string{"nme", "side", "x"}); err == nil || !strings.Contains(err.Error(), "`gitfolio config ai name`") {
+		t.Errorf("mistyped config ai word: %v", err)
+	}
+	buf.Reset()
+	must(cmdConfigAI(dir, nil))
+	for _, want := range []string{"acme-payments", "as Payments backend, commit messages off", "secret-proj", "hidden from AI tools", "as side, commit messages subjects"} {
+		if !strings.Contains(buf.String(), want) {
+			t.Errorf("config ai shows no %q:\n%s", want, buf.String())
+		}
+	}
+
+	in := strings.Join([]string{
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"set_ai_exposure","arguments":{"repository":"internal-tool","name":"anonymous","branches":false}}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"set_ai_exposure","arguments":{"repository":"side","messages":"everything"}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"ai_settings"}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"status"}}`,
+		`{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"portfolio"}}`,
+	}, "\n")
+	var res bytes.Buffer
+	must(serveMCP(dir, strings.NewReader(in), &res))
+	text := map[int]string{}
+	errs := map[int]bool{}
+	dec := json.NewDecoder(&res)
+	for dec.More() {
+		var r struct {
+			ID     int
+			Result struct {
+				Content []struct{ Text string }
+				IsError bool
+			}
+		}
+		must(dec.Decode(&r))
+		text[r.ID], errs[r.ID] = r.Result.Content[0].Text, r.Result.IsError
+	}
+	if errs[1] || !errs[2] {
+		t.Errorf("set_ai_exposure: %s / %s", text[1], text[2])
+	}
+	if s := text[3]; !strings.Contains(s, `"repository":"Payments backend","name":"alias"`) || !strings.Contains(s, `"repository":"Repository 1","name":"anonymous"`) ||
+		!strings.Contains(s, `"repository":"side","name":"real","messages":"subjects"`) || !strings.Contains(s, `"hidden":1`) {
+		t.Errorf("ai_settings = %s", s)
+	}
+	if s := text[4]; !strings.Contains(s, `"name":"Payments backend"`) || !strings.Contains(s, `"repository":"me/side"`) || strings.Count(s, `"commits":1`) != 3 {
+		t.Errorf("status = %s", s)
+	}
+	if s := text[5]; !strings.Contains(s, "### Payments backend") || !strings.Contains(s, "### Repository 1") || !strings.Contains(s, "commits: 3") {
+		t.Errorf("portfolio = %s", s)
+	}
+	for id := 3; id <= 5; id++ {
+		for _, leak := range []string{"acme-payments", "acme/", "secret-proj", "corp/", "internal-tool", "team/", "/work", "/home",
+			"feature/", "billing", "invoice", "a1b2c3d4", "dev@example.com"} {
+			if strings.Contains(text[id], leak) {
+				t.Errorf("tool %d shows %q:\n%s", id, leak, text[id])
+			}
+		}
 	}
 }

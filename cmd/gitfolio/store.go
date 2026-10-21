@@ -30,7 +30,20 @@ type Repo struct {
 	// Manifests records the user's decision per package manager file path: true = may be read.
 	// Local only, never exported or sent. Files missing here wait for approval.
 	Manifests map[string]bool `json:"manifests,omitempty"`
+	// AI is what AI coding tools may see of this repository through gitfolio mcp (config ai).
+	// Local only, never sent.
+	AI aiExposure `json:"ai,omitzero"`
 }
+
+// aiExposure is chosen by the user, or by their AI tool on their behalf.
+type aiExposure struct {
+	Name     string `json:"name,omitempty"`     // "": the repository's own name; anonymousName: a number; else this name
+	Messages string `json:"messages,omitempty"` // "" (off), "subjects" or "full": what of the commit messages
+	Branches bool   `json:"branches,omitempty"` // the branch names too
+	Hidden   bool   `json:"hidden,omitempty"`   // not shown at all
+}
+
+const anonymousName = "-"
 
 type FileStat struct {
 	Name    string `json:"name"`              // path in the repository, as git diff and log show it (e.g. "cmd/gitfolio/git.go")

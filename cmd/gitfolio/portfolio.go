@@ -71,7 +71,7 @@ func cmdPortfolio(dir string, args []string) error {
 		if base, err = filepath.Abs(filepath.Dir(from)); err != nil { // its pictures are found next to it
 			return err
 		}
-	} else if md, err = portfolioOf(dir, lang); err != nil {
+	} else if md, err = portfolioOf(dir, lang, false); err != nil {
 		return err
 	}
 	if !pdf {
@@ -105,8 +105,9 @@ func askPDF(lang string) bool {
 }
 
 // portfolioOf is the portfolio in Markdown. In local mode the statistics go first, as for gitfolio
-// stats. A part aline.team cannot give now is left out with a warning.
-func portfolioOf(dir, lang string) (string, error) {
+// stats. A part aline.team cannot give now is left out with a warning. For AI tools (ai) the
+// repositories are as config ai lets them see them.
+func portfolioOf(dir, lang string, ai bool) (string, error) {
 	c, err := newClient(dir)
 	if err != nil {
 		return "", err
@@ -129,6 +130,9 @@ func portfolioOf(dir, lang string) (string, error) {
 		return err
 	}); err != nil {
 		return "", err
+	}
+	if ai {
+		repos = aiView(lang, repos)
 	}
 	d, _, err := devTypeNow(dir, lang, c, local)
 	if err != nil {

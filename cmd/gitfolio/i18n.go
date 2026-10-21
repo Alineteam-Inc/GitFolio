@@ -671,6 +671,31 @@ var messages = map[string]map[string]string{
 		"ko": "알 수 없는 명령입니다: %q\n%s을(를) 찾으셨나요?\n",
 		"ja": "不明なコマンド %q です。%s のことですか?\n",
 	},
+	"aiTitle": {
+		"en": "What AI coding tools see of each repository through `gitfolio mcp` (change it with `gitfolio config ai`):\n%s",
+		"ko": "AI 코딩 도구가 `gitfolio mcp`로 보는 저장소별 범위입니다(`gitfolio config ai`로 변경):\n%s",
+		"ja": "AI コーディングツールが `gitfolio mcp` で見るリポジトリごとの範囲です(`gitfolio config ai` で変更):\n%s",
+	},
+	"aiSet": {
+		"en": "%s: %s\n",
+		"ko": "%s: %s\n",
+		"ja": "%s: %s\n",
+	},
+	"aiExposure": {
+		"en": "as %s, commit messages %s, branch names %s",
+		"ko": "%s(으)로 보임, 커밋 메시지 %s, 브랜치 이름 %s",
+		"ja": "%s として表示、コミットメッセージ %s、ブランチ名 %s",
+	},
+	"aiHiddenWord": {
+		"en": "hidden from AI tools",
+		"ko": "AI 도구에 숨김",
+		"ja": "AI ツールに非表示",
+	},
+	"aiAnonymous": {
+		"en": "Repository %d",
+		"ko": "저장소 %d",
+		"ja": "リポジトリ %d",
+	},
 	"didYouMeanWord": {
 		"en": "`gitfolio %s` takes no %q. Did you mean %s?\n",
 		"ko": "`gitfolio %s`에는 %q이(가) 없습니다.\n%s을(를) 찾으셨나요?\n",
