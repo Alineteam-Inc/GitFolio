@@ -42,10 +42,10 @@ gitfolio init
 ```
 
 Shows the data policy, signs you up or logs you in with an email code, and lets you choose the
-repositories. GitFolio starts in local mode: nothing is sent until you ask for your developer type,
-tech stack or portfolio, and then only daily totals. Init asks whether to sync with aline.team
-automatically instead: every `git push` is then sent right away. Your profile is at
-[aline.team/profile](https://aline.team/profile). When your login expires, GitFolio emails you a code
+repositories. GitFolio starts in local mode: nothing is sent by itself, and only when you ask for your
+developer type, tech stack or portfolio does it use the aline.team API, with daily totals. Init asks
+whether to sync with aline.team automatically instead: every `git push` is then sent right away. Your
+profile is at [aline.team/profile](https://aline.team/profile). When your login expires, GitFolio emails you a code
 and logs you in again on the spot.
 
 ## Nothing is collected without your permission
@@ -62,8 +62,9 @@ and logs you in again on the spot.
   files you created and later changes to them (by anyone; other people's commits are only counted here,
   never sent), substantive commits, files that show a tool (`Dockerfile`, `*.tf`, ...) and the languages
   used. No hashes, messages, paths or branches. In local mode (`gitfolio config autosync off`) only these
-  are sent, and only when you run `gitfolio stats` or `gitfolio sync`; while aline.team does not take
-  them yet, the commit records go instead, as before local mode (`--dry-run` may still show the statistics).
+  are used, with the aline.team API, when you run `gitfolio stats` or `gitfolio sync`; while aline.team
+  does not take them yet, the commit records go instead, as before local mode (`--dry-run` may still
+  show the statistics).
 - **Your account and this computer:** your email and the work emails you verify; at login, the OS and
   CPU type (e.g. `macOS arm64`), screen language and time zone; with every request, the GitFolio
   version, OS and CPU type.
@@ -183,7 +184,7 @@ gitfolio init
 ```
 
 데이터 정책을 보여 주고, 이메일 코드로 가입·로그인한 뒤, 수집할 저장소를 고릅니다. GitFolio는 로컬 모드로 시작해서,
-개발자 유형·기술 스택·포트폴리오를 요청할 때만 일 단위 총계를 보냅니다. init에서 aline.team과 자동으로 동기화할지 묻고,
+개발자 유형·기술 스택·포트폴리오를 요청할 때만 일 단위 총계로 aline.team API를 사용합니다. init에서 aline.team과 자동으로 동기화할지 묻고,
 자동을 고르면 `git push`할 때마다 바로 전송됩니다. 프로필은 [aline.team/profile](https://aline.team/profile)에서 봅니다.
 로그인이 만료되면 이메일로 코드를 보내 그 자리에서 다시 로그인합니다.
 
@@ -199,7 +200,7 @@ gitfolio init
 - **저장소별 일 단위 통계:** 날짜별 내 커밋 수, 언어별 변경 파일 수, 내가 만든 파일과 그 이후 변경 수(누가 고쳤든.
   다른 사람의 커밋은 여기서 세기만 하고 보내지 않음), 실질 커밋 수, 도구를 알 수 있는 파일(`Dockerfile`, `*.tf` 등),
   사용한 언어. 해시·메시지·경로·브랜치는 없습니다. 로컬 모드(`gitfolio config autosync off`)에서는 이것만,
-  `gitfolio stats`나 `gitfolio sync`를 실행할 때만 보냅니다. aline.team이 아직 이 통계를 받지 않으면 로컬 모드
+  `gitfolio stats`나 `gitfolio sync`를 실행할 때만 이것으로 aline.team API를 사용합니다. aline.team이 아직 이 통계를 받지 않으면 로컬 모드
   이전처럼 커밋 기록을 대신 보냅니다(`--dry-run`에는 통계로 보일 수 있음).
 - **계정과 이 컴퓨터:** 계정 이메일과 인증한 작업 이메일, 로그인할 때 OS·CPU 종류(예: `macOS arm64`)·화면 언어·시간대,
   요청마다 GitFolio 버전·OS·CPU 종류

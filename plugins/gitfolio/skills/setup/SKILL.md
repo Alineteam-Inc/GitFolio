@@ -38,8 +38,8 @@ ask, and never guess an email, a code or a repository.
    - Where the rules and the user's wish differ, tell the user and keep the stricter one unless they
      clearly choose otherwise.
    - Apply with `set_ai_exposure`. File paths, folders and file names are never shown, whatever is set.
-6. **Sync with aline.team?** GitFolio is in local mode by default: nothing is sent by itself, only daily
-   totals when the user asks for their type, stack or portfolio. Ask whether they want automatic sync
+6. **Sync with aline.team?** GitFolio is in local mode by default: nothing is sent by itself; it uses the
+   aline.team API, with daily totals, only when the user asks for their type, stack or portfolio. Ask whether they want automatic sync
    instead (the past commits right away, then after each git push, to keep their aline.team profile
    current). Call `set_sync_mode` only if they choose automatic.
 7. **Summary.** List what was set and how to change it later: `gitfolio config ai`, `gitfolio config
