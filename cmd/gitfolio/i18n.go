@@ -173,14 +173,15 @@ var messages = map[string]map[string]string{
  - Daily statistics of each repository (counts of commits,
    changed files per language, and later changes to files you
    created) are made on this computer and sent as well. In
-   local mode only these are used, with the aline.team API, when
-   you ask for your type, stack or portfolio.
+   local mode they are all GitFolio uses: it calls the aline.team
+   API with them when you look up your type, stack or portfolio.
  - Sensitive parts of commit messages (tokens, URLs, emails,
    ticket numbers, blocked words) are masked on this computer.
-   Local mode (the default) uses the aline.team API when you ask;
-   automatic sync sends data to aline.team (Alineteam Inc., United
-   States) after each git push and when you sync. Kept for 1 year from
-   sign-up, renewed automatically while you keep using GitFolio.
+   In local mode (the default) GitFolio calls the aline.team API
+   only when needed; with automatic sync it sends data to aline.team
+   (Alineteam Inc., United States) after each git push and when you
+   sync. Data is kept for 1 year from sign-up, renewed automatically
+   while you keep using GitFolio.
  - An aline.team account is required.
  - Privacy policy: https://aline.team/privacy
 `,
@@ -193,12 +194,13 @@ var messages = map[string]map[string]string{
    의존성 파악에만 사용합니다. 찾은 의존성의 이름만(버전·내용 제외) 보냅니다.
  - 저장소별 일 단위 통계(커밋 수, 언어별 변경 파일 수, 내가 만든
    파일의 이후 변경 수)를 이 컴퓨터에서 만들어 함께 보냅니다.
-   로컬 모드에서는 유형·스택·포트폴리오를 요청할 때 이 통계로만 aline.team API를 사용합니다.
+   로컬 모드에서는 이 통계만 쓰며, 개발자 유형·기술 스택·포트폴리오를
+   볼 때 이것으로 aline.team API를 호출합니다.
  - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
-   이 컴퓨터에서 가립니다. 로컬 모드(기본)는 요청할 때 aline.team API를 사용하고,
-   자동 동기화를 켜면 git push 직후와 동기화할 때
-   aline.team(Alineteam Inc., 미국)으로 전송되며
-   가입일로부터 1년간 보관됩니다. 계속 이용 중이면 자동 연장됩니다.
+   이 컴퓨터에서 가립니다. 로컬 모드(기본)는 필요할 때만 aline.team API를
+   호출하고, 자동 동기화를 켜면 git push 직후와 동기화할 때
+   aline.team(Alineteam Inc., 미국)으로 보냅니다. 보낸 데이터는
+   가입일로부터 1년간 보관되며, 계속 이용하면 자동으로 연장됩니다.
  - aline.team 가입이 필요합니다.
  - 개인정보처리방침: https://aline.team/privacy
 `,
@@ -212,13 +214,15 @@ var messages = map[string]map[string]string{
    依存関係の名前のみ(バージョン・内容を除く)を送信します。
  - リポジトリごとの日単位の統計(コミット数、言語別の変更ファイル数、
    自分が作成したファイルのその後の変更数)をこのコンピューターで作成し、
-   あわせて送信します。ローカルモードでは、タイプ・スタック・ポートフォリオを
-   求めたときにこの統計だけで aline.team の API を使います。
+   あわせて送信します。ローカルモードではこの統計だけを使い、
+   開発者タイプ・技術スタック・ポートフォリオを見るときに、これで
+   aline.team の API を呼び出します。
  - コミットメッセージの機密部分(トークン・URL・メールアドレス・
    チケット番号・ブロックワード)はこのコンピューターでマスキングします。
-   ローカルモード(既定)は求めたときに aline.team の API を使い、自動同期をオンにすると
-   git push の直後と同期時に aline.team(Alineteam Inc.、米国)へ
-   送信され、登録日から1年間保管されます。ご利用中は自動的に延長されます。
+   ローカルモード(既定)は必要なときだけ aline.team の API を呼び出し、
+   自動同期をオンにすると git push の直後と同期時に aline.team
+   (Alineteam Inc.、米国)へ送信します。送信したデータは登録日から
+   1年間保管され、ご利用中は自動的に延長されます。
  - aline.team のアカウントが必要です。
  - プライバシーポリシー: https://aline.team/privacy
 `,
@@ -432,8 +436,8 @@ var messages = map[string]map[string]string{
    puts them back as they were.
  - Keeps the collected commit information on this computer: %s
  - Automatic sync sends the past commits of the chosen repositories right
-   away, then after every git push. Local mode uses the aline.team API
-   only when you ask.
+   away, then after every git push. Local mode sends nothing on its
+   own and calls the aline.team API only when you look something up.
  - A daily sync, if you choose one, is registered with this computer's
    scheduler (launchd, systemd or cron, Task Scheduler).
  - Dependency detection, if you turn it on, reads only the package
@@ -449,7 +453,8 @@ var messages = map[string]map[string]string{
    훅은 그대로 먼저 실행되고, gitfolio remove로 원래대로 돌립니다.
  - 수집한 커밋 정보를 이 컴퓨터에 저장합니다: %s
  - 자동 동기화는 고른 저장소의 지난 커밋 기록을 바로 보내고, 이후 git push
-   때마다 보냅니다. 로컬 모드는 요청할 때만 aline.team API를 사용합니다.
+   때마다 보냅니다. 로컬 모드는 평소에는 보내지 않고, 볼 때만 aline.team
+   API를 호출합니다.
  - 매일 동기화를 고르면 이 컴퓨터의 예약 작업(launchd, systemd 또는 cron,
    작업 스케줄러)에 등록합니다.
  - 의존성 분석을 켜면 승인한 패키지 매니저 파일만 읽습니다.
@@ -465,8 +470,8 @@ var messages = map[string]map[string]string{
    戻ります。
  - 収集したコミット情報をこのコンピュータに保存します: %s
  - 自動同期は、選んだリポジトリの過去のコミット記録をすぐに送り、
-   以後 git push のたびに送ります。ローカルモードは求めたときだけ
-   aline.team の API を使います。
+   以後 git push のたびに送ります。ローカルモードは普段は送らず、
+   見るときだけ aline.team の API を呼び出します。
  - 毎日の同期を選ぶと、このコンピュータの予約タスク(launchd、systemd
    または cron、タスク スケジューラ)に登録します。
  - 依存関係の分析をオンにすると、承認したパッケージマネージャー
@@ -477,9 +482,9 @@ var messages = map[string]map[string]string{
 `,
 	},
 	"syncModeNotice": {
-		"en": "Choose whether GitFolio syncs with aline.team.\nLocal mode (default): sends nothing by itself; only when you ask for your developer type, tech stack or portfolio (`gitfolio stats`, `stack`, `portfolio`, or your AI tool) it uses the aline.team API, with daily totals.\nAutomatic sync: sends the past commits of the chosen repositories right away, then right after each git push, and every day if you schedule it, so your aline.team profile stays current.\n",
-		"ko": "aline.team과 함께 동기화할지 고릅니다.\n로컬 모드(기본): 스스로는 보내지 않습니다. 개발자 유형·기술 스택·포트폴리오를 요청할 때만(`gitfolio stats`·`stack`·`portfolio` 또는 AI 도구) 일 단위 총계로 aline.team API를 사용합니다.\n자동 동기화: 고른 저장소의 지난 커밋 기록을 바로 보내고, 이후 git push 직후에, 예약했다면 매일도 보내 aline.team 프로필을 최신으로 유지합니다.\n",
-		"ja": "aline.team と同期するかを選びます。\nローカルモード(既定): 自分からは送信しません。開発者タイプ・技術スタック・ポートフォリオを求めたときだけ(`gitfolio stats`・`stack`・`portfolio` または AI ツール)日単位の合計で aline.team の API を使います。\n自動同期: 選んだリポジトリの過去のコミット記録をすぐに送り、以後 git push の直後と、予約すれば毎日送信し、aline.team のプロフィールを最新に保ちます。\n",
+		"en": "Choose whether GitFolio syncs with aline.team.\nLocal mode (default): nothing goes out on its own. Only when you look up your developer type, tech stack or portfolio (`gitfolio stats`, `stack`, `portfolio`, or your AI tool) does GitFolio call the aline.team API, with daily totals made on this computer.\nAutomatic sync: sends the past commits of the chosen repositories right away, then after every git push (and every day, if you schedule it), so your aline.team profile stays current.\n",
+		"ko": "aline.team과 함께 동기화할지 고릅니다.\n로컬 모드(기본): 평소에는 아무것도 보내지 않습니다. 개발자 유형·기술 스택·포트폴리오를 볼 때만(`gitfolio stats`·`stack`·`portfolio` 또는 AI 도구) 이 컴퓨터에서 만든 일 단위 총계로 aline.team API를 호출합니다.\n자동 동기화: 고른 저장소의 지난 커밋 기록을 바로 보내고, 그 뒤로는 git push할 때마다(예약하면 매일도) 보내 aline.team 프로필을 최신으로 유지합니다.\n",
+		"ja": "aline.team と同期するかを選びます。\nローカルモード(既定): 普段は何も送りません。開発者タイプ・技術スタック・ポートフォリオを見るときだけ(`gitfolio stats`・`stack`・`portfolio` または AI ツール)、このコンピュータで作った日単位の合計で aline.team の API を呼び出します。\n自動同期: 選んだリポジトリの過去のコミット記録をすぐに送り、その後は git push のたびに(予約すれば毎日も)送信して、aline.team のプロフィールを最新に保ちます。\n",
 	},
 	"syncModeAsk": {
 		"en": "Sync with aline.team automatically? (no = local mode)",
@@ -1024,9 +1029,9 @@ var messages = map[string]map[string]string{
 		"ja": "リポジトリ %d 件の統計を送信しました。aline.team がこれから開発者タイプと技術スタックの期間を算出します。\n",
 	},
 	"scheduleLocal": {
-		"en": "Local mode uses the aline.team API only when you ask, so it has no daily sync. Turn automatic sync on first: gitfolio config autosync on\n",
-		"ko": "로컬 모드는 요청할 때만 aline.team API를 사용하므로 예약 동기화가 없습니다. 먼저 자동 동기화를 켜세요: gitfolio config autosync on\n",
-		"ja": "ローカルモードは求めたときだけ aline.team の API を使うため、予約同期はありません。先に自動同期をオンにしてください: gitfolio config autosync on\n",
+		"en": "Local mode calls the aline.team API only when needed, so there is no daily sync. To sync every day, turn automatic sync on first: gitfolio config autosync on\n",
+		"ko": "로컬 모드는 필요할 때만 aline.team API를 호출하므로 예약 동기화를 쓰지 않습니다. 매일 동기화하려면 먼저 자동 동기화를 켜세요: gitfolio config autosync on\n",
+		"ja": "ローカルモードは必要なときだけ aline.team の API を呼び出すため、予約同期は使いません。毎日同期するには、先に自動同期をオンにしてください: gitfolio config autosync on\n",
 	},
 	"statsUpdate": {
 		"en": "aline.team now takes the statistics only in a newer form; run `gitfolio update`, then they are sent.\n",
@@ -1184,9 +1189,9 @@ var messages = map[string]map[string]string{
 		"ja": "同期: %s\n",
 	},
 	"localModeOnce": {
-		"en": "Since GitFolio 0.6.0, autosync off is local mode: `gitfolio stats`, `stack` and `sync` use the aline.team\nAPI with daily statistics instead of sending commit records (commit records as before while aline.team does not take them yet).\nTo keep sending commit records: gitfolio config autosync on\n",
-		"ko": "GitFolio 0.6.0부터 autosync off는 로컬 모드입니다. `gitfolio stats`·`stack`·`sync`가 커밋 기록을 보내는 대신\n일 단위 통계로 aline.team API를 사용합니다(aline.team이 아직 통계를 받지 않으면 이전처럼 커밋 기록).\n커밋 기록을 계속 보내려면: gitfolio config autosync on\n",
-		"ja": "GitFolio 0.6.0 から autosync off はローカルモードです。`gitfolio stats`・`stack`・`sync` がコミット記録を送る代わりに\n日単位の統計で aline.team の API を使います(aline.team がまだ統計を受け付けない間は、これまでどおりコミット記録)。\nコミット記録を送り続けるには: gitfolio config autosync on\n",
+		"en": "Since GitFolio 0.6.0, autosync off is local mode: `gitfolio stats`, `stack` and `sync` no longer send commit\nrecords but call the aline.team API with daily statistics (commit records as before while aline.team does not take them yet).\nTo keep sending commit records: gitfolio config autosync on\n",
+		"ko": "GitFolio 0.6.0부터 autosync off는 로컬 모드입니다. 이제 `gitfolio stats`·`stack`·`sync`는 커밋 기록을 보내지 않고\n일 단위 통계로 aline.team API를 호출합니다(aline.team이 아직 통계를 받지 않으면 이전처럼 커밋 기록을 보냄).\n커밋 기록을 계속 보내려면: gitfolio config autosync on\n",
+		"ja": "GitFolio 0.6.0 から autosync off はローカルモードです。`gitfolio stats`・`stack`・`sync` はコミット記録を送らず、\n日単位の統計で aline.team の API を呼び出します(aline.team がまだ統計を受け付けない間は、これまでどおりコミット記録を送信)。\nコミット記録を送り続けるには: gitfolio config autosync on\n",
 	},
 	"historyOff": {
 		"en": "The git command history is off. Turn it on: gitfolio config git-history on\n",
