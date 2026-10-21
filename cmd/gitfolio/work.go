@@ -3,10 +3,12 @@ package main
 import (
 	"cmp"
 	"errors"
+	"fmt"
 	"maps"
 	"math"
 	"os"
 	"path"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -303,4 +305,98 @@ func mcpTimeline(dir string, args map[string]any) (any, error) {
 		list = append(list, month{k, m.commits, slices.Sorted(maps.Keys(m.repos)), shares(m.langs), shares(m.types)})
 	}
 	return map[string]any{"months": list}, nil
+}
+
+var (
+	trailerLine = regexp.MustCompile(`(?i)^(co-authored-by|signed-off-by|reviewed-by|acked-by|tested-by|reported-by|cc|change-id):`)
+	emailLike   = regexp.MustCompile(`[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}`)
+)
+
+// messageParts is a stored (already masked) commit message as AI tools may see it: the subject, and
+// the body without trailers (who co-wrote or signed off) and without anything that looks like an email.
+func messageParts(msg string) (subject, body string) {
+	subject, rest, _ := strings.Cut(strings.TrimSpace(msg), "\n")
+	var keep []string
+	for _, l := range strings.Split(rest, "\n") {
+		if !trailerLine.MatchString(strings.TrimSpace(l)) {
+			keep = append(keep, l)
+		}
+	}
+	clean := func(s string) string { return emailLike.ReplaceAllString(strings.TrimSpace(s), "[email]") }
+	return clean(subject), clean(strings.Join(keep, "\n"))
+}
+
+func mcpCommits(dir string, args map[string]any) (any, error) {
+	if want, _ := args["repository"].(string); want == "" {
+		return nil, errors.New("repository is required: one of those status shows")
+	}
+	repos, byRepo, p, err := aiCommits(dir, args)
+	if err != nil {
+		return nil, err
+	}
+	r := repos[0]
+	if r.AI.Messages == "" {
+		return nil, fmt.Errorf("%s does not show its commit messages to AI tools. The user can allow it: "+
+			"gitfolio config ai messages <repository> subjects (or full), or set_ai_exposure when they ask", r.Name)
+	}
+	kind, _ := args["type"].(string)
+	limit, offset := 100, 0
+	if v, ok := args["limit"].(float64); ok {
+		limit = min(max(int(v), 1), 500)
+	}
+	if v, ok := args["offset"].(float64); ok {
+		offset = max(int(v), 0)
+	}
+	type entry struct {
+		Date      string   `json:"date"`
+		Type      string   `json:"type"`
+		WorkKinds []string `json:"workKinds,omitempty"`
+		Added     int      `json:"linesAdded"`
+		Deleted   int      `json:"linesDeleted"`
+		WithAI    bool     `json:"withAI,omitempty"`
+		Branch    string   `json:"branch,omitempty"`
+		Subject   string   `json:"subject"`
+		Body      string   `json:"body,omitempty"`
+	}
+	var list []entry
+	commits := slices.Clone(byRepo[r.ID])
+	slices.SortStableFunc(commits, func(a, b Commit) int { return compareRFC3339(b.Date, a.Date) }) // newest first
+	for _, c := range commits {
+		t, err := time.Parse(time.RFC3339, c.Date)
+		typ := cmp.Or(commitKinds[commitType(c.Message)], "other")
+		if err != nil || !p.has(t.Local()) || (kind != "" && typ != kind) {
+			continue
+		}
+		e := entry{Date: t.Local().Format(time.DateOnly), Type: typ, WithAI: c.CreationType != "" && c.CreationType != creationHuman}
+		kinds := map[string]bool{}
+		for _, f := range c.Files {
+			e.Added, e.Deleted = e.Added+f.Add, e.Deleted+f.Del
+			if k := workKind(f.Name); k != "" {
+				kinds[k] = true
+			}
+		}
+		e.WorkKinds = slices.Sorted(maps.Keys(kinds))
+		if r.AI.Branches {
+			e.Branch = c.Branch
+		}
+		e.Subject, e.Body = messageParts(c.Message)
+		if r.AI.Messages != "full" {
+			e.Body = ""
+		}
+		list = append(list, e)
+	}
+	total := len(list)
+	list = list[min(offset, total):min(offset+limit, total)]
+	res := map[string]any{"repository": r.Name, "messages": r.AI.Messages, "total": total, "offset": offset, "commits": list}
+	if offset+len(list) < total {
+		res["nextOffset"] = offset + len(list)
+	}
+	return res, nil
+}
+
+// compareRFC3339 orders two commit dates by the time they stand for, whatever their time zones.
+func compareRFC3339(a, b string) int {
+	x, _ := time.Parse(time.RFC3339, a)
+	y, _ := time.Parse(time.RFC3339, b)
+	return x.Compare(y)
 }

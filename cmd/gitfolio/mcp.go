@@ -86,6 +86,26 @@ var mcpTools = []mcpTool{
 		run:         mcpTimeline,
 	},
 	{
+		Name:  "commits",
+		Title: "Commits of a repository",
+		Description: "The user's commits in one repository, newest first, for a period and commit type if given: date, type, " +
+			"kinds of work, lines, whether made with AI, and the commit message subject (and body where the user allows " +
+			"the full messages). Only for repositories whose messages the user lets AI tools see (ai_settings); never " +
+			"hashes, paths or file names, and branch names only where shown. Messages are already masked by the user's " +
+			"blocked words. Use it to name what the user achieved; take 100 at a time.",
+		InputSchema: func() map[string]any {
+			s := periodSchema(true)
+			props := s["properties"].(map[string]any)
+			props["repository"] = map[string]any{"type": "string", "description": "The repository, as status names it."}
+			props["type"] = map[string]any{"type": "string", "description": "Only this commit type: feature, fix, refactor, performance, test, docs, chore, ci, hotfix, revert."}
+			props["limit"] = map[string]any{"type": "integer", "description": "How many, 1 to 500. Default 100."}
+			props["offset"] = map[string]any{"type": "integer", "description": "How many to skip: nextOffset of the last answer."}
+			s["required"] = []string{"repository"}
+			return s
+		}(),
+		run: mcpCommits,
+	},
+	{
 		Name:  "ai_settings",
 		Title: "What AI tools see",
 		Description: "How each repository appears to AI tools, as the user set it: by its real name, anonymous or another " +
@@ -134,7 +154,7 @@ func periodSchema(repository bool) map[string]any {
 func init() {
 	for i := range mcpTools {
 		if mcpTools[i].Annotations == nil {
-			local := slices.Contains([]string{"status", "work", "timeline", "ai_settings"}, mcpTools[i].Name) // this computer only
+			local := slices.Contains([]string{"status", "work", "timeline", "commits", "ai_settings"}, mcpTools[i].Name) // this computer only
 			mcpTools[i].Annotations = map[string]any{"readOnlyHint": true, "openWorldHint": !local}
 		}
 		if mcpTools[i].InputSchema == nil {

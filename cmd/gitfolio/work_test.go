@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -119,5 +120,64 @@ func TestWorkTools(t *testing.T) {
 				t.Errorf("tool %d shows %q: %s", id, leak, text[id])
 			}
 		}
+	}
+}
+
+// commits answers only where the user lets messages show, subjects or full, without trailers or emails.
+func TestCommitsTool(t *testing.T) {
+	t.Setenv("GITFOLIO_LANG", "en")
+	dir := t.TempDir()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(saveRepos(dir, []Repo{
+		{ID: "a", Name: "app", AI: aiExposure{Messages: "full"}},
+		{ID: "b", Name: "lib", AI: aiExposure{Messages: "subjects", Branches: true}},
+		{ID: "c", Name: "work"},
+	}))
+	msg := "feat: invoices for teams\n\nSplit totals per seat; ask kim@corp.example for the rates.\n\nCo-authored-by: Kim <kim@corp.example>\nSigned-off-by: Me <me@example.com>"
+	var commits []Commit
+	for i, r := range []string{"a", "a", "a", "b", "c"} {
+		commits = append(commits, Commit{Repo: r, Hash: fmt.Sprint("h", i), Date: fmt.Sprintf("2025-06-%02dT12:00:00Z", 10+i),
+			Message: map[bool]string{true: msg, false: "fix: rounding"}[i%2 == 0], Branch: "feature/x", CreationType: creationHuman,
+			Files: []FileStat{{Name: "billing/invoice.go", Add: 5, Del: 1}, {Name: "billing/invoice_test.go", Add: 2}}})
+	}
+	must(writeCommits(dir, commits))
+	call := func(args map[string]any) (map[string]any, error) {
+		v, err := mcpCommits(dir, args)
+		if err != nil {
+			return nil, err
+		}
+		b, _ := json.Marshal(v)
+		var m map[string]any
+		must(json.Unmarshal(b, &m))
+		return m, nil
+	}
+	full, err := call(map[string]any{"repository": "app", "limit": float64(2)})
+	must(err)
+	b, _ := json.Marshal(full)
+	s := string(b)
+	if full["total"] != float64(3) || full["nextOffset"] != float64(2) || !strings.Contains(s, `"date":"2025-06-12"`) || !strings.Contains(s, `"type":"feature","workKinds":["source","test"]`) || !strings.Contains(s, `"linesAdded":7`) ||
+		!strings.Contains(s, `"body":"Split totals per seat; ask [email] for the rates."`) || strings.Contains(s, "Co-authored") ||
+		strings.Contains(s, "Signed-off") || strings.Contains(s, "@") || strings.Contains(s, "h0") || strings.Contains(s, "billing") || strings.Contains(s, "feature/x") {
+		t.Errorf("full messages = %s", s)
+	}
+	if fix, _ := call(map[string]any{"repository": "app", "type": "fix"}); fix["total"] != float64(1) {
+		t.Errorf("fixes only = %v", fix)
+	}
+	sub, err := call(map[string]any{"repository": "lib"})
+	must(err)
+	b, _ = json.Marshal(sub)
+	if s := string(b); !strings.Contains(s, `"subject":"fix: rounding"`) || strings.Contains(s, `"body"`) || !strings.Contains(s, `"branch":"feature/x"`) {
+		t.Errorf("subjects only = %s", s)
+	}
+	if _, err := call(map[string]any{"repository": "work"}); err == nil || !strings.Contains(err.Error(), "config ai messages") {
+		t.Errorf("messages off: %v", err)
+	}
+	if _, err := call(map[string]any{}); err == nil {
+		t.Error("no repository named, and it answered")
 	}
 }
