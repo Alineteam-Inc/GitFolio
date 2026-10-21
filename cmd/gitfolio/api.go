@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -293,9 +294,43 @@ var errSignupCancelled = errors.New("sign-up cancelled")
 // account. It also returns whether the user wants aline.team service notifications (sign-up only).
 // askCode gets the code length the server announced and is asked again while the code is wrong.
 func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), askCode func(retry bool, length int) string) (signInResult, error) {
-	var res signInResult
-	// The same device object goes to start (the code email shows the device and the time in its time
-	// zone, in its language for a new account) and to verify (language and time zone set up a new account).
+	s, err := c.startSignIn(email)
+	if err != nil {
+		return signInResult{}, err
+	}
+	if !s.exists {
+		ok, notify := confirmSignup()
+		if !ok {
+			return signInResult{}, errSignupCancelled
+		}
+		s.req["isNotified"] = notify // service notification opt-in, used for a new account only
+	}
+	for try := 0; ; try++ {
+		res, err := c.finishSignIn(s, askCode(try > 0, s.length))
+		if wrongCode(err) && try < maxCodeTries-1 {
+			continue
+		}
+		return res, err
+	}
+}
+
+// codeStart is a code sent by email and the request that will send it back: a sign-in or a work
+// email check, finished by another call (gitfolio mcp asks for the code in a second tool call).
+type codeStart struct {
+	req    map[string]any // challengeId, and the device for a sign-in
+	exists bool           // sign-in: the email has an account
+	length int            // digits in the code
+}
+
+func wrongCode(err error) bool {
+	var ae *apiError
+	return errors.As(err, &ae) && ae.Code == codeWrongCode
+}
+
+// startSignIn sends a sign-in code to email. The same device object goes to start (the code email
+// shows the device and the time in its time zone, in its language for a new account) and to verify
+// (language and time zone set up a new account).
+func (c *client) startSignIn(email string) (codeStart, error) {
 	device := map[string]string{"name": deviceName(), "language": strings.ToUpper(detectLang(os.Getenv))}
 	if tz := localTimezone(); tz != "" {
 		device["timezone"] = tz
@@ -306,34 +341,22 @@ func (c *client) signIn(email string, confirmSignup func() (ok, notify bool), as
 		CodeLength    int    `json:"codeLength"`
 	}
 	if err := c.send("POST", "/cli/start", map[string]any{"email": email, "device": device}, &start, false); err != nil {
+		return codeStart{}, err
+	}
+	return codeStart{map[string]any{"challengeId": start.ChallengeID, "device": device}, start.AccountExists, cmp.Or(start.CodeLength, 6)}, nil
+}
+
+// finishSignIn tries one code and, when it is right, stores the token.
+func (c *client) finishSignIn(s codeStart, code string) (signInResult, error) {
+	var res signInResult
+	s.req["code"] = code
+	if err := c.send("POST", "/cli/verify", s.req, &res, false); err != nil {
 		return res, err
 	}
-	req := map[string]any{"challengeId": start.ChallengeID, "device": device}
-	if !start.AccountExists {
-		ok, notify := confirmSignup()
-		if !ok {
-			return res, errSignupCancelled
-		}
-		req["isNotified"] = notify // service notification opt-in, used for a new account only
-	}
-	for try := 0; ; try++ {
-		if start.CodeLength <= 0 {
-			start.CodeLength = 6
-		}
-		req["code"] = askCode(try > 0, start.CodeLength)
-		err := c.send("POST", "/cli/verify", req, &res, false)
-		var ae *apiError
-		if errors.As(err, &ae) && ae.Code == codeWrongCode && try < maxCodeTries-1 {
-			continue
-		}
-		if err != nil {
-			return res, err
-		}
-		c.creds.Token, c.creds.TokenExpiresAt, c.creds.Email = res.Token, res.TokenExpiresAt, res.Account.Email
-		c.creds.Server = c.base
-		c.creds.Verified = lowered(res.VerifiedEmails)
-		return res, saveCredentials(c.dir, c.creds)
-	}
+	c.creds.Token, c.creds.TokenExpiresAt, c.creds.Email = res.Token, res.TokenExpiresAt, res.Account.Email
+	c.creds.Server = c.base
+	c.creds.Verified = lowered(res.VerifiedEmails)
+	return res, saveCredentials(c.dir, c.creds)
 }
 
 // meResult is the body of GET /cli/me, also returned by the work email calls.
@@ -372,6 +395,25 @@ var errSkipped = errors.New("skipped")
 // verifyEmail proves with a one-time code that the user owns a work email (POST /cli/emails, then
 // /cli/emails/verify; DESIGN 6.1.2). askCode works as in signIn; an empty code skips the email (errSkipped).
 func (c *client) verifyEmail(email string, askCode func(retry bool, length int) string) error {
+	s, done, err := c.startEmailCheck(email)
+	if err != nil || done {
+		return err
+	}
+	for try := 0; ; try++ {
+		code := askCode(try > 0, s.length)
+		if code == "" {
+			return errSkipped
+		}
+		err := c.finishEmailCheck(s, code)
+		if wrongCode(err) && try < maxCodeTries-1 {
+			continue
+		}
+		return err
+	}
+}
+
+// startEmailCheck sends a code to a work email; done when it is already verified for the account.
+func (c *client) startEmailCheck(email string) (s codeStart, done bool, err error) {
 	device := map[string]string{"name": deviceName()}
 	if tz := localTimezone(); tz != "" {
 		device["timezone"] = tz
@@ -380,39 +422,32 @@ func (c *client) verifyEmail(email string, askCode func(retry bool, length int) 
 		ChallengeID string `json:"challengeId"`
 		CodeLength  int    `json:"codeLength"`
 	}
-	err := c.call("POST", "/cli/emails", map[string]any{"email": email, "device": device}, &start)
+	err = c.call("POST", "/cli/emails", map[string]any{"email": email, "device": device}, &start)
 	var ae *apiError
-	if errors.As(err, &ae) && ae.Code == codeEmailVerified {
+	switch {
+	case errors.As(err, &ae) && ae.Code == codeEmailVerified:
 		_, err = c.me()
-		return err
+		return s, true, err
+	case errors.As(err, &ae) && ae.Code == codeTooManyEmails:
+		return s, false, failure("emailTooMany")
+	case err != nil:
+		return s, false, err
 	}
-	if errors.As(err, &ae) && ae.Code == codeTooManyEmails {
+	return codeStart{req: map[string]any{"challengeId": start.ChallengeID}, length: cmp.Or(start.CodeLength, 6)}, false, nil
+}
+
+// finishEmailCheck tries one code for a work email and keeps the account's verified emails.
+func (c *client) finishEmailCheck(s codeStart, code string) error {
+	var me meResult
+	err := c.call("POST", "/cli/emails/verify", map[string]any{"challengeId": s.req["challengeId"], "code": code}, &me)
+	var ae *apiError
+	if errors.As(err, &ae) && ae.Code == codeTooManyEmails { // checked again here: codes asked for earlier
 		return failure("emailTooMany")
 	}
 	if err != nil {
 		return err
 	}
-	if start.CodeLength <= 0 {
-		start.CodeLength = 6
-	}
-	for try := 0; ; try++ {
-		code := askCode(try > 0, start.CodeLength)
-		if code == "" {
-			return errSkipped
-		}
-		var me meResult
-		err := c.call("POST", "/cli/emails/verify", map[string]any{"challengeId": start.ChallengeID, "code": code}, &me)
-		if errors.As(err, &ae) && ae.Code == codeWrongCode && try < maxCodeTries-1 {
-			continue
-		}
-		if errors.As(err, &ae) && ae.Code == codeTooManyEmails { // checked again here: codes asked for earlier
-			return failure("emailTooMany")
-		}
-		if err != nil {
-			return err
-		}
-		return c.keepVerified(me.VerifiedEmails)
-	}
+	return c.keepVerified(me.VerifiedEmails)
 }
 
 // unverifyEmail removes a work email from the account's verified emails (DELETE /cli/emails).
