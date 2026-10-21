@@ -44,7 +44,11 @@ commands:
                         In local mode it sends the statistics first and gets the type each time
   stack                 how long you used each language, framework and library, from aline.team
                         (local mode: sends the statistics first)
-  export                print collected commits, dependencies and statistics as JSON
+  portfolio [file.md|file.pdf] [--from file.md]
+                        write your portfolio from your git history: developer type, tech stack and
+                        repositories (Markdown to edit, portfolio.md by default; a .pdf name prints
+                        it with Chrome, Edge or Chromium; --from prints your edited Markdown)
+  export               print collected commits, dependencies and statistics as JSON
   deps [on|off|review [path]]
                         dependency detection: show status, turn it on (you choose which
                         package manager files may be read) or off (collected dependencies
@@ -144,6 +148,8 @@ func run(args []string) error {
 		return cmdStats(dir, args[1:]) // outside the lock: it may wait on aline.team
 	case "stack":
 		return cmdStack(dir, args[1:]) // the same
+	case "portfolio":
+		return cmdPortfolio(dir, args[1:]) // the same; reads this computer's data under the lock
 	}
 	return withLock(dir, func() error {
 		switch args[0] {
@@ -176,7 +182,7 @@ func run(args []string) error {
 
 // commands are the commands people type; "hook" is run by git hooks only and never suggested.
 var commands = []string{"init", "login", "logout", "whoami", "add", "remove", "scan", "sync", "list", "status",
-	"stats", "stack", "export", "config", "deps", "schedule", "email", "history", "update", "version", "help"}
+	"stats", "stack", "portfolio", "export", "config", "deps", "schedule", "email", "history", "update", "version", "help"}
 
 // unknownCommand names the commands the user may have meant (similarCommands), or points to help.
 func unknownCommand(s string) error {

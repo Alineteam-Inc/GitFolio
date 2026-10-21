@@ -50,7 +50,7 @@ func languageOf(file string) string {
 // how many of them aline.team has, and what they show of the stack.
 type repoStatus struct {
 	commits, sent, changes, created, add, del, ai int
-	last                                          time.Time
+	first, last                                   time.Time
 	lines                                         map[string]int // changed lines per language
 	agents                                        map[string]int // commits per AI agent
 	deps                                          map[string][]string
@@ -72,8 +72,13 @@ func statusOf(r Repo, commits []Commit, deps []Dependency, st syncState) repoSta
 		for _, a := range c.AIAgents {
 			s.agents[a]++
 		}
-		if t, err := time.Parse(time.RFC3339, c.Date); err == nil && t.After(s.last) {
-			s.last = t
+		if t, err := time.Parse(time.RFC3339, c.Date); err == nil {
+			if t.After(s.last) {
+				s.last = t
+			}
+			if s.first.IsZero() || t.Before(s.first) {
+				s.first = t
+			}
 		}
 		for _, f := range c.Files {
 			s.changes++

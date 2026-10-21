@@ -65,41 +65,49 @@ func cmdStats(dir string, args []string) error {
 	} else if local {
 		refresh = true
 	}
-	p := filepath.Join(dir, devTypeFile)
-	var cache devTypeCache
-	if err := loadJSON(p, &cache); err != nil {
+	cache, saved, err := devTypeNow(dir, lang, c, refresh)
+	if err != nil {
 		return err
 	}
+	showDevType(lang, cache, saved)
+	return nil
+}
+
+// devTypeNow is the developer type: the one saved here, or, when there is none for this year and
+// account (or with refresh), the one aline.team has or makes now, saved for next time. saved tells
+// it is the saved one, also when aline.team could not be asked.
+func devTypeNow(dir, lang string, c *client, refresh bool) (cache devTypeCache, saved bool, err error) {
+	p := filepath.Join(dir, devTypeFile)
+	if err := loadJSON(p, &cache); err != nil {
+		return cache, false, err
+	}
 	year := time.Now().Year()
-	saved := cache.Detail.Title != "" && cache.Year == year && cache.Account == c.creds.Email
+	saved = cache.Detail.Title != "" && cache.Year == year && cache.Account == c.creds.Email
 	if saved && !refresh {
-		showDevType(lang, cache, true)
-		return nil
+		return cache, true, nil
 	}
 	if !c.ensureLogin() {
-		return failure("loginFirst")
+		return cache, false, failure("loginFirst")
 	}
 	var d devType
 	if err := c.call("GET", fmt.Sprintf("/cli/devtype?yearPeriod=%d", year), nil, &d); err != nil {
 		if saved { // offline or refused: what was saved still stands
 			warn(lang, "statsFetchFailed", err)
-			showDevType(lang, cache, true)
-			return nil
+			return cache, true, nil
 		}
 		var ne net.Error
 		if errors.As(err, &ne) && ne.Timeout() { // aline.team finishes it anyway and keeps it
-			return failure("statsSlow")
+			return cache, false, failure("statsSlow")
 		}
-		return err
+		return cache, false, err
 	}
 	cache = devTypeCache{FetchedAt: time.Now(), Year: year, Account: c.creds.Email, Detail: d}
 	if d.Title != "" { // nothing to analyse yet is not kept
 		if err := saveJSON(p, cache); err != nil {
-			return err
+			return cache, false, err
 		}
 	}
-	showDevType(lang, cache, false)
-	return nil
+	return cache, false, nil
 }
 
 // sendIfLocal sends the statistics before aline.team is asked about them in local mode, which sends
@@ -142,6 +150,16 @@ type techUsage struct {
 	Hidden       bool   `json:"isHidden"` // hidden from the profile by the user
 }
 
+type techUsages struct{ Languages, Frameworks, Libraries []techUsage }
+
+// techUsagesNow asks aline.team for the tech stack periods.
+func techUsagesNow(c *client) (u techUsages, err error) {
+	if !c.ensureLogin() {
+		return u, failure("loginFirst")
+	}
+	return u, c.call("GET", "/cli/tech-usages", nil, &u)
+}
+
 // cmdStack shows the user's tech stack periods from aline.team, asked for each time.
 func cmdStack(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
@@ -155,11 +173,8 @@ func cmdStack(dir string, args []string) error {
 	if _, err := sendIfLocal(dir, lang, c); err != nil {
 		return err
 	}
-	if !c.ensureLogin() {
-		return failure("loginFirst")
-	}
-	var u struct{ Languages, Frameworks, Libraries []techUsage }
-	if err := c.call("GET", "/cli/tech-usages", nil, &u); unsupported(err) {
+	u, err := techUsagesNow(c)
+	if unsupported(err) {
 		say(lang, "stackUnavailable") // a server without it yet
 		return nil
 	} else if err != nil {
@@ -168,13 +183,6 @@ func cmdStack(dir string, args []string) error {
 	if len(u.Languages)+len(u.Frameworks)+len(u.Libraries) == 0 {
 		say(lang, "stackEmpty")
 		return nil
-	}
-	month := func(s string) string { return cmp.Or(s[:min(len(s), 7)], "-") } // "2026-10-05T09:00:00" → "2026-10"
-	num := func(v *int) string {
-		if v == nil {
-			return "-"
-		}
-		return fmt.Sprint(*v)
 	}
 	var b strings.Builder
 	hidden := false
@@ -189,7 +197,7 @@ func cmdStack(dir string, args []string) error {
 			if t.Hidden { // a mark, not a word: the columns count letters, and Korean ones are two wide
 				name, hidden = name+" *", true
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", g.kind, name, month(t.StartDate), month(t.EndDate), num(t.CareerMonths), num(t.ProjectCount))
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", g.kind, name, yearMonth(t.StartDate), yearMonth(t.EndDate), number(t.CareerMonths), number(t.ProjectCount))
 		}
 	}
 	if err := w.Flush(); err != nil {

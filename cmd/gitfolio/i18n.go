@@ -932,6 +932,86 @@ var messages = map[string]map[string]string{
 		"ko": "aline.team에 아직 기술 스택이 없습니다. 보낸 저장소에서 만들어집니다(`gitfolio sync`).\n",
 		"ja": "aline.team にはまだ技術スタックがありません。送信したリポジトリから作られます(`gitfolio sync`)。\n",
 	},
+	"portfolioHead": {
+		"en": "# Development portfolio\n\nMade by GitFolio from my git history on %s. Repositories: %d, commits: %s, period: %s.\n",
+		"ko": "# 개발 포트폴리오\n\nGitFolio가 git 이력으로 만들었습니다(%s). 저장소 %d개, 커밋 %s개, %s.\n",
+		"ja": "# 開発ポートフォリオ\n\nGitFolio が git の履歴から作成しました(%s)。リポジトリ %d 件、コミット %s 件、%s。\n",
+	},
+	"portfolioType": {
+		"en": "## Developer type\n\n**%s** · main position %s · %d, by aline.team\n%s| Score | Human only | With AI |\n| --- | ---: | ---: |\n| Agility | %s | %s |\n| Stability | %s | %s |\n| Contribution | %s | %s |\n| Adaptability | %s | %s |\n| Consistency | %s | %s |\n\nType with AI: %s\n",
+		"ko": "## 개발자 유형\n\n**%s** · 주 포지션 %s · %d년, aline.team 산출\n%s| 능력치 | 사람만 | AI 포함 |\n| --- | ---: | ---: |\n| 민첩성 | %s | %s |\n| 안정성 | %s | %s |\n| 기여도 | %s | %s |\n| 적응성 | %s | %s |\n| 일관성 | %s | %s |\n\nAI 활용 유형: %s\n",
+		"ja": "## 開発者タイプ\n\n**%s** · 主なポジション %s · %d年、aline.team 算出\n%s| 能力値 | 人のみ | AI 込み |\n| --- | ---: | ---: |\n| 俊敏性 | %s | %s |\n| 安定性 | %s | %s |\n| 貢献度 | %s | %s |\n| 適応性 | %s | %s |\n| 一貫性 | %s | %s |\n\nAI 活用タイプ: %s\n",
+	},
+	"portfolioStack": {
+		"en": "## Tech stack\n\nFrom the first to the last commit of the repositories using each, as aline.team works it out.\n\n| Kind | Name | Period | Months | Repositories |\n| --- | --- | --- | ---: | ---: |\n",
+		"ko": "## 기술 스택\n\n각 기술을 쓴 저장소의 첫 커밋부터 마지막 커밋까지, aline.team 산출입니다.\n\n| 구분 | 이름 | 기간 | 개월 | 저장소 |\n| --- | --- | --- | ---: | ---: |\n",
+		"ja": "## 技術スタック\n\n各技術を使ったリポジトリの最初から最後のコミットまで、aline.team の算出です。\n\n| 種類 | 名前 | 期間 | 月数 | リポジトリ |\n| --- | --- | --- | ---: | ---: |\n",
+	},
+	"portfolioLanguage": {
+		"en": "Language",
+		"ko": "언어",
+		"ja": "言語",
+	},
+	"portfolioFramework": {
+		"en": "Framework",
+		"ko": "프레임워크",
+		"ja": "フレームワーク",
+	},
+	"portfolioLibrary": {
+		"en": "Library",
+		"ko": "라이브러리",
+		"ja": "ライブラリ",
+	},
+	"portfolioRepos": {
+		"en": "## Repositories\n",
+		"ko": "## 저장소\n",
+		"ja": "## リポジトリ\n",
+	},
+	"portfolioRepo": {
+		"en": "### %s\n\n%s\n\n- Commits: %s (with AI: %s)\n- Lines: +%s / -%s, new files: %s\n- Languages by changed lines: %s\n",
+		"ko": "### %s\n\n%s\n\n- 커밋 %s개, 그중 AI와 함께 %s\n- 바꾼 줄 +%s / -%s, 새로 만든 파일 %s개\n- 언어(바꾼 줄 기준): %s\n",
+		"ja": "### %s\n\n%s\n\n- コミット %s 件、うち AI と一緒に %s\n- 変更行 +%s / -%s、新規ファイル %s 件\n- 言語(変更行の割合): %s\n",
+	},
+	"portfolioSaved": {
+		"en": "Portfolio saved: %s\nEdit it into your own; `gitfolio portfolio --from <file.md>` prints it as a PDF.\n",
+		"ko": "포트폴리오를 저장했습니다: %s\n고쳐서 내 포트폴리오로 쓰고, `gitfolio portfolio --from <파일.md>`로 PDF를 만들 수 있습니다.\n",
+		"ja": "ポートフォリオを保存しました: %s\n自由に編集して使えます。`gitfolio portfolio --from <ファイル.md>` で PDF にできます。\n",
+	},
+	"portfolioSavedPDF": {
+		"en": "Portfolio saved as PDF: %s\n",
+		"ko": "포트폴리오 PDF를 저장했습니다: %s\n",
+		"ja": "ポートフォリオの PDF を保存しました: %s\n",
+	},
+	"portfolioExists": {
+		"en": "%s already exists. Give another file name, or run it at a terminal to overwrite it.\n",
+		"ko": "%s 파일이 이미 있습니다. 다른 이름을 주거나, 터미널에서 실행해 덮어쓰세요.\n",
+		"ja": "%s は既にあります。別の名前を指定するか、ターミナルで実行して上書きしてください。\n",
+	},
+	"portfolioOverwrite": {
+		"en": "%s already exists. Overwrite it?",
+		"ko": "%s 파일이 이미 있습니다. 덮어쓸까요?",
+		"ja": "%s は既にあります。上書きしますか?",
+	},
+	"portfolioNoBrowser": {
+		"en": "Making a PDF takes Chrome, Edge or Chromium, and none was found (CHROME_PATH can name one).\nWithout one: `gitfolio portfolio portfolio.md`, then print it from a Markdown editor.\n",
+		"ko": "PDF를 만들려면 Chrome·Edge·Chromium이 필요한데 찾지 못했습니다(CHROME_PATH로 지정 가능).\n없으면 `gitfolio portfolio portfolio.md`로 Markdown을 만든 뒤 Markdown 편집기에서 인쇄하세요.\n",
+		"ja": "PDF の作成には Chrome・Edge・Chromium が必要ですが、見つかりませんでした(CHROME_PATH で指定できます)。\nない場合は `gitfolio portfolio portfolio.md` で Markdown を作り、Markdown エディタから印刷してください。\n",
+	},
+	"portfolioPDFFailed": {
+		"en": "%s made no PDF: %s\n",
+		"ko": "%s가 PDF를 만들지 못했습니다: %s\n",
+		"ja": "%s は PDF を作成できませんでした: %s\n",
+	},
+	"portfolioNoType": {
+		"en": "The portfolio goes without the developer type: %v\n",
+		"ko": "개발자 유형 없이 포트폴리오를 만듭니다: %v\n",
+		"ja": "開発者タイプなしでポートフォリオを作成します: %v\n",
+	},
+	"portfolioNoStack": {
+		"en": "The portfolio goes without the tech stack: %v\n",
+		"ko": "기술 스택 없이 포트폴리오를 만듭니다: %v\n",
+		"ja": "技術スタックなしでポートフォリオを作成します: %v\n",
+	},
 	"stackUnavailable": {
 		"en": "aline.team does not give the CLI tech stack periods yet. They are on your aline.team profile.\n",
 		"ko": "aline.team이 아직 CLI에 기술 스택 기간을 주지 않습니다. aline.team 프로필에서 볼 수 있습니다.\n",

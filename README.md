@@ -90,6 +90,10 @@ gitfolio status [name]           # per repository: commits collected and sent, f
 gitfolio stats [--refresh]       # your developer type and five scores from aline.team (saved here after the first time;
                                  # in local mode it sends the statistics first and asks again each time)
 gitfolio stack                   # how long you used each language, framework and library, from aline.team
+gitfolio portfolio [file.md|file.pdf]
+                                 # your portfolio from your git history: developer type, tech stack, repositories
+                                 # (Markdown to edit; a .pdf name prints it with Chrome, Edge or Chromium;
+                                 # --from file.md prints your edited one)
 gitfolio sync [--dry-run]        # send what aline.team does not have yet (--dry-run: just show it)
 gitfolio config mask add <word>  # hide a customer or project name in commit messages
 gitfolio config autosync off     # local mode: send nothing by itself (on: send after every push)
@@ -198,6 +202,10 @@ gitfolio status [이름]           # 저장소별 모은 커밋·보낸 수, 파
 gitfolio stats [--refresh]       # aline.team의 개발자 유형과 능력치 다섯 가지 (처음 받은 뒤 이 컴퓨터에 저장.
                                  # 로컬 모드에서는 통계를 먼저 보내고 매번 새로 받음)
 gitfolio stack                   # aline.team의 언어·프레임워크·라이브러리별 사용 기간
+gitfolio portfolio [파일.md|파일.pdf]
+                                 # git 이력으로 만든 포트폴리오: 개발자 유형, 기술 스택, 저장소
+                                 # (고쳐 쓸 Markdown. .pdf 이름이면 Chrome·Edge·Chromium으로 인쇄,
+                                 # --from 파일.md는 고친 파일을 PDF로)
 gitfolio sync [--dry-run]        # aline.team에 없는 것만 전송 (--dry-run: 보여 주기만)
 gitfolio config mask add <단어>  # 커밋 메시지 속 고객사·프로젝트명 가리기
 gitfolio config autosync off     # 로컬 모드: 스스로는 보내지 않음 (on: push할 때마다 전송)
