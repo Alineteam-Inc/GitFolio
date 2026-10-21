@@ -67,6 +67,25 @@ var mcpTools = []mcpTool{
 		run: mcpStack,
 	},
 	{
+		Name:  "work",
+		Title: "Work by repository",
+		Description: "What the user's work in each repository was made of, counted on this computer, for a period if given: " +
+			"active period and months, commits, commit types (feature, fix, refactor, test, docs, ...) and kinds of work " +
+			"(source, test, docs, build, ci_deploy, database, config) as percentages, languages, lines, files created, " +
+			"the share made with AI, and branch names where the user lets them show. No paths, file or folder names. " +
+			"Use it as the facts of a portfolio; ask the user what the work was about.",
+		InputSchema: periodSchema(true),
+		run:         mcpWork,
+	},
+	{
+		Name:  "timeline",
+		Title: "Career timeline",
+		Description: "Month by month, for a period if given: the user's commits, the repositories worked in, languages by " +
+			"changed lines and commit types. Counted on this computer, for a tech stack career or a timeline of their work.",
+		InputSchema: periodSchema(true),
+		run:         mcpTimeline,
+	},
+	{
 		Name:  "ai_settings",
 		Title: "What AI tools see",
 		Description: "How each repository appears to AI tools, as the user set it: by its real name, anonymous or another " +
@@ -100,10 +119,22 @@ var mcpTools = []mcpTool{
 	},
 }
 
+// periodSchema is the input of a tool over a period of the history, of one repository if it takes one.
+func periodSchema(repository bool) map[string]any {
+	props := map[string]any{
+		"from": map[string]any{"type": "string", "description": "First year, month or day: 2025, 2025-06 or 2025-06-15. Empty: from the start."},
+		"to":   map[string]any{"type": "string", "description": "Last year, month or day, included. Empty: until now."},
+	}
+	if repository {
+		props["repository"] = map[string]any{"type": "string", "description": "One repository, as status names it. Empty: all."}
+	}
+	return map[string]any{"type": "object", "properties": props}
+}
+
 func init() {
 	for i := range mcpTools {
 		if mcpTools[i].Annotations == nil {
-			local := mcpTools[i].Name == "status" || mcpTools[i].Name == "ai_settings" // this computer only
+			local := slices.Contains([]string{"status", "work", "timeline", "ai_settings"}, mcpTools[i].Name) // this computer only
 			mcpTools[i].Annotations = map[string]any{"readOnlyHint": true, "openWorldHint": !local}
 		}
 		if mcpTools[i].InputSchema == nil {
