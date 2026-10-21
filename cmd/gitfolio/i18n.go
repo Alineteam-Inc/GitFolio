@@ -395,10 +395,61 @@ var messages = map[string]map[string]string{
 		"ko": "의존성 분석은 저장소마다 사용자가 고른 패키지 매니저 파일(package.json, go.mod,\npom.xml, build.gradle 등)만, 의존성 파악 용도로만 읽습니다.\n의존성 이름과 버전만 남기고, 그중 내 커밋이 바꾼 모듈의 의존성 이름만 aline.team에 보내 기술 스택에 넣습니다.\n파일 원문과 경로는 저장하지도 전송하지도 않습니다.\n읽는 때는 요청할 때뿐입니다: 승인한 직후, `gitfolio deps scan` 실행 시, 켜 두었다면 scan·sync·예약 동기화 때\n(`gitfolio deps auto on`). push 때는 읽지 않습니다.\n",
 		"ja": "依存関係の分析では、リポジトリごとにあなたが選んだパッケージマネージャーのファイル\n(package.json、go.mod、pom.xml、build.gradle など)のみを、依存関係の把握のためだけに読み取ります。\n依存関係の名前とバージョンのみを保持し、そのうち自分のコミットが変更したモジュールの依存関係の名前だけを\naline.team に送信して技術スタックに加えます。ファイルの内容とパスは保存も送信もしません。\n読むのは求められたときだけです: 承認した直後、`gitfolio deps scan` の実行時、オンにした場合は scan・sync・予約同期のとき\n(`gitfolio deps auto on`)。push のときは読みません。\n",
 	},
+	"setupActions": {
+		"en": ` [What starting GitFolio does]
+ - Logs in to aline.team; an email without an account gets a new one
+   (agreeing to the terms of service and the privacy policy).
+ - Installs git hooks (post-commit, pre-push) in the repositories you
+   choose. Hooks you already have still run first; gitfolio remove
+   puts them back as they were.
+ - Keeps the collected commit information on this computer: %s
+ - Automatic sync sends the past commits of the chosen repositories right
+   away, then after every git push. Local mode sends nothing by itself.
+ - A daily sync, if you choose one, is registered with this computer's
+   scheduler (launchd, systemd or cron, Task Scheduler).
+ - Dependency detection, if you turn it on, reads only the package
+   manager files you approve.
+ - AI coding tools (gitfolio mcp) see a repository by its real name at
+   most: no commit messages, branch names or file paths unless you allow
+   them (gitfolio config ai).
+`,
+		"ko": ` [GitFolio를 시작하면 하는 일]
+ - aline.team에 로그인합니다. 계정이 없는 이메일이면 새 계정을 만듭니다
+   (이용약관·개인정보처리방침 동의).
+ - 고른 저장소에 git 훅(post-commit·pre-push)을 설치합니다. 원래 있던
+   훅은 그대로 먼저 실행되고, gitfolio remove로 원래대로 돌립니다.
+ - 수집한 커밋 정보를 이 컴퓨터에 저장합니다: %s
+ - 자동 동기화는 고른 저장소의 지난 커밋 기록을 바로 보내고, 이후 git push
+   때마다 보냅니다. 로컬 모드는 스스로 보내지 않습니다.
+ - 매일 동기화를 고르면 이 컴퓨터의 예약 작업(launchd, systemd 또는 cron,
+   작업 스케줄러)에 등록합니다.
+ - 의존성 분석을 켜면 승인한 패키지 매니저 파일만 읽습니다.
+ - AI 코딩 도구(gitfolio mcp)에는 저장소가 실제 이름까지만 보이고, 커밋
+   메시지·브랜치 이름·파일 경로는 허용하기 전에는 보이지 않습니다
+   (gitfolio config ai).
+`,
+		"ja": ` [GitFolio を始めると行うこと]
+ - aline.team にログインします。アカウントのないメールアドレスなら
+   新しいアカウントを作ります(利用規約・プライバシーポリシーに同意)。
+ - 選んだリポジトリに git フック(post-commit・pre-push)をインストール
+   します。既存のフックはそのまま先に実行され、gitfolio remove で元に
+   戻ります。
+ - 収集したコミット情報をこのコンピュータに保存します: %s
+ - 自動同期は、選んだリポジトリの過去のコミット記録をすぐに送り、
+   以後 git push のたびに送ります。ローカルモードは自分からは送りません。
+ - 毎日の同期を選ぶと、このコンピュータの予約タスク(launchd、systemd
+   または cron、タスク スケジューラ)に登録します。
+ - 依存関係の分析をオンにすると、承認したパッケージマネージャー
+   ファイルだけを読みます。
+ - AI コーディングツール(gitfolio mcp)には、リポジトリは実名までしか
+   見えず、コミットメッセージ・ブランチ名・ファイルパスは許可するまで
+   見えません(gitfolio config ai)。
+`,
+	},
 	"syncModeNotice": {
-		"en": "Choose how GitFolio syncs with aline.team.\nAutomatic: sends right after each git push, and every day if you schedule it, so your profile stays current.\nLocal mode: sends nothing by itself; `gitfolio stats` and `gitfolio stack` send your statistics when you run them and show your developer type and tech stack periods.\n",
-		"ko": "aline.team과 동기화하는 방식을 고릅니다.\n자동 동기화: git push 직후에, 예약했다면 매일도 보내 프로필을 최신으로 유지합니다.\n로컬 모드: 스스로는 보내지 않습니다. `gitfolio stats`·`gitfolio stack`을 실행할 때만 통계를 보내 개발자 유형과 기술 스택 기간을 보여 줍니다.\n",
-		"ja": "aline.team との同期方法を選びます。\n自動同期: git push の直後と、予約すれば毎日送信し、プロフィールを最新に保ちます。\nローカルモード: 自分からは送信しません。`gitfolio stats`・`gitfolio stack` を実行したときだけ統計を送り、開発者タイプと技術スタックの期間を表示します。\n",
+		"en": "Choose how GitFolio syncs with aline.team.\nAutomatic: sends the past commits of the chosen repositories right away, then right after each git push, and every day if you schedule it, so your profile stays current.\nLocal mode: sends nothing by itself; `gitfolio stats` and `gitfolio stack` send your statistics when you run them and show your developer type and tech stack periods.\n",
+		"ko": "aline.team과 동기화하는 방식을 고릅니다.\n자동 동기화: 고른 저장소의 지난 커밋 기록을 바로 보내고, 이후 git push 직후에, 예약했다면 매일도 보내 프로필을 최신으로 유지합니다.\n로컬 모드: 스스로는 보내지 않습니다. `gitfolio stats`·`gitfolio stack`을 실행할 때만 통계를 보내 개발자 유형과 기술 스택 기간을 보여 줍니다.\n",
+		"ja": "aline.team との同期方法を選びます。\n自動同期: 選んだリポジトリの過去のコミット記録をすぐに送り、以後 git push の直後と、予約すれば毎日送信し、プロフィールを最新に保ちます。\nローカルモード: 自分からは送信しません。`gitfolio stats`・`gitfolio stack` を実行したときだけ統計を送り、開発者タイプと技術スタックの期間を表示します。\n",
 	},
 	"syncModeAsk": {
 		"en": "Sync automatically? (No = local mode)",
@@ -441,9 +492,9 @@ var messages = map[string]map[string]string{
 		"ja": "あなたのコミットがある新しいリポジトリは見つかりませんでした。\n",
 	},
 	"companyNotice": {
-		"en": "Repositories with your commits are listed above (commits, latest date).\nFrom the chosen ones, commit information is sent, never source code; sensitive parts of commit messages are masked.\nHide customer or internal project names in commit messages with `gitfolio config mask add <word>`.\n",
-		"ko": "위는 본인 커밋이 있는 저장소입니다. (커밋 수, 최근 커밋 날짜)\n선택한 저장소는 소스 코드 없이 커밋 정보만 전송하며, 커밋 메시지의 민감한 부분은 가려서 보냅니다.\n커밋 메시지 속 고객사·사내 프로젝트명은 `gitfolio config mask add <단어>`로 가릴 수 있습니다.\n",
-		"ja": "上記はあなたのコミットがあるリポジトリです。(コミット数、最新コミット日)\n選択したリポジトリからは、ソースコードではなくコミット情報のみを送信し、コミットメッセージの機密部分はマスキングします。\nコミットメッセージ内の顧客名や社内プロジェクト名は `gitfolio config mask add <単語>` で隠せます。\n",
+		"en": "Repositories with your commits are listed above (commits, latest date).\nFrom the chosen ones, commit information is sent, never source code; sensitive parts of commit messages are masked.\nHide customer or internal project names in commit messages with `gitfolio config mask add <word>`.\nThe chosen repositories get git hooks (post-commit, pre-push); hooks already there still run first, and `gitfolio remove` puts them back.\n",
+		"ko": "위는 본인 커밋이 있는 저장소입니다. (커밋 수, 최근 커밋 날짜)\n선택한 저장소는 소스 코드 없이 커밋 정보만 전송하며, 커밋 메시지의 민감한 부분은 가려서 보냅니다.\n커밋 메시지 속 고객사·사내 프로젝트명은 `gitfolio config mask add <단어>`로 가릴 수 있습니다.\n선택한 저장소에는 git 훅(post-commit·pre-push)을 설치합니다. 원래 있던 훅은 그대로 먼저 실행되고, `gitfolio remove`로 원래대로 돌립니다.\n",
+		"ja": "上記はあなたのコミットがあるリポジトリです。(コミット数、最新コミット日)\n選択したリポジトリからは、ソースコードではなくコミット情報のみを送信し、コミットメッセージの機密部分はマスキングします。\nコミットメッセージ内の顧客名や社内プロジェクト名は `gitfolio config mask add <単語>` で隠せます。\n選んだリポジトリには git フック(post-commit・pre-push)をインストールします。既存のフックはそのまま先に実行され、`gitfolio remove` で元に戻ります。\n",
 	},
 	"selectRepos": {
 		"en": "Which repositories should GitFolio collect? [all / 1,3,5-7 / Enter = none] > ",
@@ -670,6 +721,11 @@ var messages = map[string]map[string]string{
 		"en": "Unknown command %q. Did you mean %s?\n",
 		"ko": "알 수 없는 명령입니다: %q\n%s을(를) 찾으셨나요?\n",
 		"ja": "不明なコマンド %q です。%s のことですか?\n",
+	},
+	"aiDefaults": {
+		"en": "AI coding tools (`gitfolio mcp`) see these repositories by their real names, without commit messages, branch names or file paths. Change it with `gitfolio config ai`.\n",
+		"ko": "AI 코딩 도구(`gitfolio mcp`)에는 이 저장소들이 실제 이름으로 보이고, 커밋 메시지·브랜치 이름·파일 경로는 보이지 않습니다. 바꾸려면 `gitfolio config ai`.\n",
+		"ja": "AI コーディングツール(`gitfolio mcp`)には、これらのリポジトリが実名で見え、コミットメッセージ・ブランチ名・ファイルパスは見えません。変更は `gitfolio config ai`。\n",
 	},
 	"aiTitle": {
 		"en": "What AI coding tools see of each repository through `gitfolio mcp` (change it with `gitfolio config ai`):\n%s",
@@ -1153,9 +1209,9 @@ var messages = map[string]map[string]string{
 		"ja": "y または n で答えてください。\n",
 	},
 	"scheduleAsk": {
-		"en": "Collect and send automatically every day at a set time?\n(without it, run `gitfolio sync` yourself; pushed commits are still sent right away)",
-		"ko": "매일 정해진 시각에 자동으로 수집·전송할까요?\n(예약하지 않으면 `gitfolio sync`로 직접 실행, push한 커밋은 지금처럼 바로 전송)",
-		"ja": "毎日決まった時刻に自動で収集・送信しますか?\n(予約しない場合は `gitfolio sync` を直接実行。push したコミットはこれまでどおりすぐ送信)",
+		"en": "Collect and send automatically every day at a set time? (registered with this computer's scheduler)\n(without it, run `gitfolio sync` yourself; pushed commits are still sent right away)",
+		"ko": "매일 정해진 시각에 자동으로 수집·전송할까요? (이 컴퓨터의 예약 작업에 등록)\n(예약하지 않으면 `gitfolio sync`로 직접 실행, push한 커밋은 지금처럼 바로 전송)",
+		"ja": "毎日決まった時刻に自動で収集・送信しますか?(このコンピュータの予約タスクに登録)\n(予約しない場合は `gitfolio sync` を直接実行。push したコミットはこれまでどおりすぐ送信)",
 	},
 	"scheduleAskNew": {
 		"en": " [HH:MM, e.g. 09:00 / Enter = no] > ",

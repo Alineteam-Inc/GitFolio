@@ -56,7 +56,7 @@ func saveCredentials(dir string, c Credentials) error {
 // what the user changes.
 func cmdInit(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
-	fmt.Fprint(out, header()+"\n"+indent(tr(lang, "policy"))+"\n")
+	fmt.Fprint(out, header()+"\n"+indent(tr(lang, "policy"))+"\n"+indent(fmt.Sprintf(tr(lang, "setupActions"), tildePath(dir)))+"\n")
 	if interactive() {
 		prompt(tr(lang, "pressEnter"))
 	}
@@ -195,6 +195,9 @@ func cmdInit(dir string, args []string) error {
 	daily := cmp.Or(cfg.Schedule, tr(lang, "off"))
 	blank()
 	sayKV(lang, "initDone", len(repos), primaryEmail(cfg), tr(lang, map[bool]string{true: "syncAuto", false: "syncLocal"}[!cfg.AutoSyncOff]), onOff(cfg.Deps), daily)
+	if len(repos) > 0 {
+		notice(tr(lang, "aiDefaults"))
+	}
 	return nil
 }
 

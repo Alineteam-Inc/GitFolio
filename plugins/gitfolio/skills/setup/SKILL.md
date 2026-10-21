@@ -14,9 +14,13 @@ ask, and never guess an email, a code or a repository.
 
 1. **Check.** Call the GitFolio `status` tool. Without GitFolio's tools, the GitFolio CLI is missing or old:
    point the user to https://github.com/Alineteam-Inc/GitFolio#install and stop.
-2. **Policy.** Call `policy` and show the user, in their language, what is collected, where it goes and the
-   links to the terms of service and the privacy policy. An email without an account is signed up, which
-   means agreeing to them. Go on only when the user agrees.
+2. **Policy and actions.** Call `policy` and show the user, in their language, before doing anything:
+   - what is collected and where it goes (`dataPolicy`), with the links to the terms of service and the
+     privacy policy;
+   - every action starting GitFolio takes (`setupActions`): an account for a new email, git hooks in the
+     chosen repositories, data kept on this computer, what is sent and when, a daily sync in the
+     scheduler, what AI tools see.
+   Go on only when the user agrees. Before each later step that does one of these, say so again in a line.
 3. **Email (required).** Ask for the email to use. You may mention the git email of this repository, but
    the user decides. Ask whether they want aline.team service emails (no unless they say yes). Call
    `login_start` with `agreed: true`, then ask for the code from the email and call `login_verify`.

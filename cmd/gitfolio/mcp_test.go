@@ -276,7 +276,8 @@ func TestMCPSetup(t *testing.T) {
 	if _, err := call("login_start", map[string]any{"email": "dev@example.com"}); err == nil || !strings.Contains(err.Error(), "policy") {
 		t.Errorf("login without agreeing: %v", err)
 	}
-	if p, _ := call("policy", nil); !strings.Contains(fmt.Sprint(p["dataPolicy"]), "Source code is never collected") {
+	if p, _ := call("policy", nil); !strings.Contains(fmt.Sprint(p["dataPolicy"]), "Source code is never collected") ||
+		!strings.Contains(fmt.Sprint(p["setupActions"]), "git hooks (post-commit, pre-push)") {
 		t.Errorf("policy = %v", p)
 	}
 	if _, err := call("login_verify", map[string]any{"code": "123456"}); err == nil {
@@ -300,7 +301,8 @@ func TestMCPSetup(t *testing.T) {
 		t.Errorf("logging in again = %v", again)
 	}
 	a, err := call("add_repository", map[string]any{"path": repo})
-	if err != nil || a["repository"] != filepath.Base(repo) || !strings.Contains(fmt.Sprint(a["next"]), "set_ai_exposure") {
+	if err != nil || a["repository"] != filepath.Base(repo) || !strings.Contains(fmt.Sprint(a["next"]), "set_ai_exposure") ||
+		!strings.Contains(fmt.Sprint(a["hooksInstalled"]), "pre-push") {
 		t.Errorf("add_repository = %v, %v", a, err)
 	}
 	if _, err := call("set_sync_mode", map[string]any{"mode": "off"}); err == nil {

@@ -158,7 +158,8 @@ var mcpSetupTools = []mcpTool{
 	{
 		Name:  "policy",
 		Title: "Data policy",
-		Description: "GitFolio's data policy and aline.team's terms of service and privacy policy. Before logging the user in, " +
+		Description: "GitFolio's data policy, what starting it does on this computer and on aline.team (setupActions: account, " +
+			"git hooks, local data, sending, scheduler), and the terms of service and privacy policy. Before logging the user in, " +
 			"show them these and get their agreement: an email without an account is signed up, which means agreeing to them.",
 		run: mcpPolicy,
 	},
@@ -655,9 +656,11 @@ var mcpPending struct {
 	tries        int
 }
 
-func mcpPolicy(_ string, _ map[string]any) (any, error) {
+func mcpPolicy(dir string, _ map[string]any) (any, error) {
+	lang := detectLang(os.Getenv)
 	return map[string]any{
-		"dataPolicy":     strings.TrimSpace(tr(detectLang(os.Getenv), "policy")),
+		"dataPolicy":     strings.TrimSpace(tr(lang, "policy")),
+		"setupActions":   strings.TrimSpace(fmt.Sprintf(tr(lang, "setupActions"), tildePath(dir))),
 		"termsOfService": "https://aline.team/terms",
 		"privacyPolicy":  "https://aline.team/privacy",
 		"signingUp":      "An email without an aline.team account is signed up, which means agreeing to the terms of service and the privacy policy.",
@@ -808,6 +811,7 @@ func mcpAddRepository(dir string, args map[string]any) (any, error) {
 		return nil, err
 	}
 	return map[string]any{"repository": filepath.Base(top), "commitsCollected": n,
+		"hooksInstalled": "post-commit and pre-push; hooks it already had still run first, and gitfolio remove puts them back",
 		"next": "Agree with the user how this repository appears to AI tools (set_ai_exposure): by its real name (default), " +
 			"anonymous or another name; its commit messages and branch names stay hidden unless they allow them. " +
 			"Follow the rules of the codebase if it has any about company names or commit messages."}, nil
