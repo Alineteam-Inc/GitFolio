@@ -36,6 +36,7 @@ func TestStats(t *testing.T) {
 		}
 	}
 	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: srv}))
+	must(saveConfig(dir, Config{})) // automatic sync: the saved type is used without asking again
 
 	must(cmdStats(dir, nil))
 	if f.devTypeCalls != 1 || !strings.Contains(buf.String(), "ARCHITECT") || !strings.Contains(buf.String(), "72") ||
@@ -86,6 +87,7 @@ func TestStats(t *testing.T) {
 	// Nothing to analyse yet: said so, and nothing is kept, so the next run asks again.
 	dir = t.TempDir()
 	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: srv}))
+	must(saveConfig(dir, Config{})) // automatic sync: the saved type is used without asking again
 	f.devType = nil
 	buf.Reset()
 	must(cmdStats(dir, nil))

@@ -42,8 +42,9 @@ gitfolio init
 ```
 
 Shows the data policy, signs you up or logs you in with an email code, and lets you choose the
-repositories. After that every `git push` is sent automatically, unless you choose local mode: then
-nothing is sent until you run `gitfolio stats` or `gitfolio sync`. Your profile is at
+repositories. GitFolio starts in local mode: nothing is sent until you ask for your developer type,
+tech stack or portfolio, and then only daily totals. Init asks whether to sync with aline.team
+automatically instead: every `git push` is then sent right away. Your profile is at
 [aline.team/profile](https://aline.team/profile). When your login expires, GitFolio emails you a code
 and logs you in again on the spot.
 
@@ -181,8 +182,9 @@ irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | 
 gitfolio init
 ```
 
-데이터 정책을 보여 주고, 이메일 코드로 가입·로그인한 뒤, 수집할 저장소를 고릅니다. 이후 `git push`할 때마다
-자동으로 전송됩니다. 로컬 모드를 고르면 `gitfolio stats`나 `gitfolio sync`를 실행할 때까지 아무것도 보내지 않습니다. 프로필은 [aline.team/profile](https://aline.team/profile)에서 봅니다.
+데이터 정책을 보여 주고, 이메일 코드로 가입·로그인한 뒤, 수집할 저장소를 고릅니다. GitFolio는 로컬 모드로 시작해서,
+개발자 유형·기술 스택·포트폴리오를 요청할 때만 일 단위 총계를 보냅니다. init에서 aline.team과 자동으로 동기화할지 묻고,
+자동을 고르면 `git push`할 때마다 바로 전송됩니다. 프로필은 [aline.team/profile](https://aline.team/profile)에서 봅니다.
 로그인이 만료되면 이메일로 코드를 보내 그 자리에서 다시 로그인합니다.
 
 ### 허락 없이 수집하지 않습니다

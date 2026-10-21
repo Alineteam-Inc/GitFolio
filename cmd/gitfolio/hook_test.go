@@ -112,6 +112,9 @@ func hooksEndToEnd(t *testing.T, bin string, husky bool) {
 	if err := saveCredentials(dir, Credentials{Token: testToken}); err != nil { // nothing is collected before login
 		t.Fatal(err)
 	}
+	if err := saveConfig(dir, Config{}); err != nil { // automatic sync: pushes are sent right away
+		t.Fatal(err)
+	}
 	run(nil, repo, "gitfolio", "add", ".")
 	if b, _ := os.ReadFile(filepath.Join(hooks, "pre-push")); !strings.Contains(string(b), hookMarker) {
 		t.Fatal("pre-push hook not installed")

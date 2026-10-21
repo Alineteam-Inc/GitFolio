@@ -134,6 +134,7 @@ func TestPortfolio(t *testing.T) {
 		}
 	}
 	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}))
+	must(saveConfig(dir, Config{})) // automatic sync: no sync runs first
 	must(saveRepos(dir, []Repo{{ID: "a", Name: "app", Provider: "GITHUB", Namespace: "me/app"}}))
 	must(writeCommits(dir, []Commit{{Repo: "a", Hash: "1", Date: "2026-09-01T12:00:00Z", CreationType: creationHuman,
 		Files: []FileStat{{Name: "main.go", Add: 1}}}}))

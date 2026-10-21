@@ -127,8 +127,15 @@ func saveRepos(dir string, repos []Repo) error {
 	return saveJSON(filepath.Join(dir, "repos.json"), repos)
 }
 
+// loadConfig reads the settings. Before any are saved GitFolio is in local mode: it sends nothing by
+// itself until the user turns automatic sync with aline.team on (init, config autosync on). Settings
+// saved earlier keep what they say, automatic sync included.
 func loadConfig(dir string) (cfg Config, err error) {
-	err = loadJSON(filepath.Join(dir, "config.json"), &cfg)
+	p := filepath.Join(dir, "config.json")
+	if _, err := os.Stat(p); errors.Is(err, fs.ErrNotExist) {
+		return Config{AutoSyncOff: true, LocalModeKnown: true}, nil
+	}
+	err = loadJSON(p, &cfg)
 	return cfg, err
 }
 

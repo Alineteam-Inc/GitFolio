@@ -227,8 +227,9 @@ var mcpSetupTools = []mcpTool{
 	{
 		Name:  "set_sync_mode",
 		Title: "Choose the sync mode",
-		Description: "automatic: the user's commits go to aline.team right after each git push. local: nothing is sent by " +
-			"itself; daily statistics go only when GitFolio's devtype, stack or portfolio is asked for. Ask the user.",
+		Description: "local (the default): nothing is sent by itself; daily totals go only when GitFolio's devtype, stack or " +
+			"portfolio is asked for. automatic: the user's commits go to aline.team right after each git push, the past ones " +
+			"right away. Ask the user; leave it local unless they choose automatic.",
 		InputSchema: map[string]any{"type": "object", "required": []string{"mode"}, "properties": map[string]any{
 			"mode": map[string]any{"type": "string", "enum": []string{"automatic", "local"}},
 		}},

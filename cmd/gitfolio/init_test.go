@@ -239,3 +239,17 @@ func TestAskRepoChoices(t *testing.T) {
 		}
 	}
 }
+
+// Before any settings are saved GitFolio is in local mode; settings saved earlier keep automatic sync.
+func TestLocalModeByDefault(t *testing.T) {
+	dir := t.TempDir()
+	if cfg, err := loadConfig(dir); err != nil || !cfg.AutoSyncOff || !cfg.LocalModeKnown {
+		t.Errorf("new settings = %+v, %v; want local mode", cfg, err)
+	}
+	if err := saveConfig(dir, Config{Emails: []string{"me@example.com"}}); err != nil {
+		t.Fatal(err)
+	}
+	if cfg, _ := loadConfig(dir); cfg.AutoSyncOff {
+		t.Error("saved automatic sync read back as local mode")
+	}
+}

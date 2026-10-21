@@ -67,8 +67,8 @@ commands:
                         add or remove blocked words (customer or internal project names);
                         added words are also applied to already stored data
   config autosync on|off
-                        send to aline.team right after each git push (on by default);
-                        off is local mode: nothing is sent until stats, stack or sync, and
+                        on: sync with aline.team right after each git push; off (the default):
+                        local mode, nothing is sent until stats, stack, portfolio or sync, and
                         the daily sync is removed
   config git-history on|off
                         keep git's own record of the git commands gitfolio runs (on by default;

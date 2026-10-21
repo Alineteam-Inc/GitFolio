@@ -178,7 +178,8 @@ var messages = map[string]map[string]string{
  - Sensitive parts of commit messages (tokens, URLs, emails,
    ticket numbers, blocked words) are masked on this computer.
    Data is sent to aline.team (Alineteam Inc., United States)
-   after each git push and when you sync. Kept for 1 year from
+   when you ask for it (local mode, the default) or, with automatic
+   sync, after each git push and when you sync. Kept for 1 year from
    sign-up, renewed automatically while you keep using GitFolio.
  - An aline.team account is required.
  - Privacy policy: https://aline.team/privacy
@@ -194,7 +195,8 @@ var messages = map[string]map[string]string{
    파일의 이후 변경 수)를 이 컴퓨터에서 만들어 함께 보냅니다.
    로컬 모드에서는 gitfolio stats나 sync를 실행할 때 이 통계만 보냅니다.
  - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
-   이 컴퓨터에서 가립니다. 데이터는 git push 직후와 동기화할 때
+   이 컴퓨터에서 가립니다. 데이터는 요청할 때(로컬 모드, 기본) 또는
+   자동 동기화를 켜면 git push 직후와 동기화할 때
    aline.team(Alineteam Inc., 미국)으로 전송되며
    가입일로부터 1년간 보관됩니다. 계속 이용 중이면 자동 연장됩니다.
  - aline.team 가입이 필요합니다.
@@ -214,7 +216,8 @@ var messages = map[string]map[string]string{
    実行時にこの統計のみを送信します。
  - コミットメッセージの機密部分(トークン・URL・メールアドレス・
    チケット番号・ブロックワード)はこのコンピューターでマスキングします。
-   データは git push の直後と同期時に aline.team(Alineteam Inc.、米国)へ
+   データは求めたとき(ローカルモード、既定)、または自動同期をオンにすると
+   git push の直後と同期時に aline.team(Alineteam Inc.、米国)へ
    送信され、登録日から1年間保管されます。ご利用中は自動的に延長されます。
  - aline.team のアカウントが必要です。
  - プライバシーポリシー: https://aline.team/privacy
@@ -472,14 +475,14 @@ var messages = map[string]map[string]string{
 `,
 	},
 	"syncModeNotice": {
-		"en": "Choose how GitFolio syncs with aline.team.\nAutomatic: sends the past commits of the chosen repositories right away, then right after each git push, and every day if you schedule it, so your profile stays current.\nLocal mode: sends nothing by itself; `gitfolio stats` and `gitfolio stack` send your statistics when you run them and show your developer type and tech stack periods.\n",
-		"ko": "aline.team과 동기화하는 방식을 고릅니다.\n자동 동기화: 고른 저장소의 지난 커밋 기록을 바로 보내고, 이후 git push 직후에, 예약했다면 매일도 보내 프로필을 최신으로 유지합니다.\n로컬 모드: 스스로는 보내지 않습니다. `gitfolio stats`·`gitfolio stack`을 실행할 때만 통계를 보내 개발자 유형과 기술 스택 기간을 보여 줍니다.\n",
-		"ja": "aline.team との同期方法を選びます。\n自動同期: 選んだリポジトリの過去のコミット記録をすぐに送り、以後 git push の直後と、予約すれば毎日送信し、プロフィールを最新に保ちます。\nローカルモード: 自分からは送信しません。`gitfolio stats`・`gitfolio stack` を実行したときだけ統計を送り、開発者タイプと技術スタックの期間を表示します。\n",
+		"en": "Choose whether GitFolio syncs with aline.team.\nLocal mode (default): sends nothing by itself; daily totals go only when you ask for your developer type, tech stack or portfolio (`gitfolio stats`, `stack`, `portfolio`, or your AI tool).\nAutomatic sync: sends the past commits of the chosen repositories right away, then right after each git push, and every day if you schedule it, so your aline.team profile stays current.\n",
+		"ko": "aline.team과 함께 동기화할지 고릅니다.\n로컬 모드(기본): 스스로는 보내지 않습니다. 개발자 유형·기술 스택·포트폴리오를 요청할 때만(`gitfolio stats`·`stack`·`portfolio` 또는 AI 도구) 일 단위 총계를 보냅니다.\n자동 동기화: 고른 저장소의 지난 커밋 기록을 바로 보내고, 이후 git push 직후에, 예약했다면 매일도 보내 aline.team 프로필을 최신으로 유지합니다.\n",
+		"ja": "aline.team と同期するかを選びます。\nローカルモード(既定): 自分からは送信しません。開発者タイプ・技術スタック・ポートフォリオを求めたときだけ(`gitfolio stats`・`stack`・`portfolio` または AI ツール)日単位の合計を送ります。\n自動同期: 選んだリポジトリの過去のコミット記録をすぐに送り、以後 git push の直後と、予約すれば毎日送信し、aline.team のプロフィールを最新に保ちます。\n",
 	},
 	"syncModeAsk": {
-		"en": "Sync automatically? (No = local mode)",
-		"ko": "자동으로 동기화할까요? (아니요 = 로컬 모드)",
-		"ja": "自動で同期しますか? (いいえ = ローカルモード)",
+		"en": "Sync with aline.team automatically? (no = local mode)",
+		"ko": "aline.team과 자동으로 동기화할까요? (아니요 = 로컬 모드)",
+		"ja": "aline.team と自動で同期しますか?(いいえ = ローカルモード)",
 	},
 	"syncAuto": {
 		"en": "automatic",
