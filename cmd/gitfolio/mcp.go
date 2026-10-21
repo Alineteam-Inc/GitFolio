@@ -701,23 +701,13 @@ func mcpLoginStart(dir string, args map[string]any) (any, error) {
 }
 
 func mcpLoginVerify(dir string, args map[string]any) (any, error) {
-	s := mcpPending.login
-	if s == nil {
-		return nil, errors.New("no code is waiting: call login_start first")
-	}
-	code, _ := args["code"].(string)
-	if code = strings.TrimSpace(code); !validCode(code, s.length) {
-		return nil, fmt.Errorf("the code is %d digits", s.length)
-	}
-	c, err := newClient(dir)
-	if err != nil {
+	var res signInResult
+	if err := mcpCode(dir, args, &mcpPending.login, "login_start", func(c *client, s codeStart, code string) (err error) {
+		res, err = c.finishSignIn(s, code)
+		return err
+	}); err != nil {
 		return nil, err
 	}
-	res, err := c.finishSignIn(*s, code)
-	if err != nil {
-		return nil, mcpCodeError(err, func() { mcpPending.login = nil })
-	}
-	mcpPending.login = nil
 	r := map[string]any{"loggedIn": true, "newAccount": res.Account.Created,
 		"next": "Register the user's repositories with add_repository, choose the sync mode with set_sync_mode, and agree with " +
 			"the user what AI tools may see of each repository (set_ai_exposure)."}
@@ -727,15 +717,29 @@ func mcpLoginVerify(dir string, args map[string]any) (any, error) {
 	return r, nil
 }
 
-// mcpCodeError is a wrong code's answer while tries are left; otherwise the code waiting is dropped.
-func mcpCodeError(err error, drop func()) error {
+// mcpCode finishes what start left waiting in *pending with the code the user gives. A wrong code can be
+// given again while tries are left; any other end drops what was waiting.
+func mcpCode(dir string, args map[string]any, pending **codeStart, start string, finish func(c *client, s codeStart, code string) error) error {
+	s := *pending
+	if s == nil {
+		return fmt.Errorf("no code is waiting: call %s first", start)
+	}
+	code, _ := args["code"].(string)
+	if code = strings.TrimSpace(code); !validCode(code, s.length) {
+		return fmt.Errorf("the code is %d digits", s.length)
+	}
+	c, err := newClient(dir)
+	if err != nil {
+		return err
+	}
+	err = finish(c, *s, code)
 	if wrongCode(err) {
 		if mcpPending.tries++; mcpPending.tries < maxCodeTries {
 			return fmt.Errorf("wrong code: ask the user again (%d tries left)", maxCodeTries-mcpPending.tries)
 		}
 		err = errors.New("too many wrong codes: start again")
 	}
-	drop()
+	*pending = nil
 	return err
 }
 
@@ -774,22 +778,11 @@ func mcpEmailStart(dir string, args map[string]any) (any, error) {
 }
 
 func mcpEmailVerify(dir string, args map[string]any) (any, error) {
-	s := mcpPending.email
-	if s == nil {
-		return nil, errors.New("no code is waiting: call email_start first")
-	}
-	code, _ := args["code"].(string)
-	if code = strings.TrimSpace(code); !validCode(code, s.length) {
-		return nil, fmt.Errorf("the code is %d digits", s.length)
-	}
-	c, err := newClient(dir)
-	if err != nil {
+	if err := mcpCode(dir, args, &mcpPending.email, "email_start", func(c *client, s codeStart, code string) error {
+		return c.finishEmailCheck(s, code)
+	}); err != nil {
 		return nil, err
 	}
-	if err := c.finishEmailCheck(*s, code); err != nil {
-		return nil, mcpCodeError(err, func() { mcpPending.email = nil })
-	}
-	mcpPending.email = nil
 	return map[string]any{"verified": true, "email": mcpPending.address}, nil
 }
 
