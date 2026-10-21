@@ -220,11 +220,6 @@ var messages = map[string]map[string]string{
  - プライバシーポリシー: https://aline.team/privacy
 `,
 	},
-	"pressEnter": {
-		"en": "Press Enter to continue, or Ctrl+C to quit. ",
-		"ko": "계속하려면 Enter, 중단하려면 Ctrl+C ",
-		"ja": "続行するには Enter、中止するには Ctrl+C ",
-	},
 	"rootsAsk": {
 		"en": "Which folders hold your repositories? (comma-separated)\n",
 		"ko": "저장소를 모아 둔 폴더를 입력하세요. (여러 개는 쉼표로 구분)\n",
@@ -395,6 +390,36 @@ var messages = map[string]map[string]string{
 		"ko": "의존성 분석은 저장소마다 사용자가 고른 패키지 매니저 파일(package.json, go.mod,\npom.xml, build.gradle 등)만, 의존성 파악 용도로만 읽습니다.\n의존성 이름과 버전만 남기고, 그중 내 커밋이 바꾼 모듈의 의존성 이름만 aline.team에 보내 기술 스택에 넣습니다.\n파일 원문과 경로는 저장하지도 전송하지도 않습니다.\n읽는 때는 요청할 때뿐입니다: 승인한 직후, `gitfolio deps scan` 실행 시, 켜 두었다면 scan·sync·예약 동기화 때\n(`gitfolio deps auto on`). push 때는 읽지 않습니다.\n",
 		"ja": "依存関係の分析では、リポジトリごとにあなたが選んだパッケージマネージャーのファイル\n(package.json、go.mod、pom.xml、build.gradle など)のみを、依存関係の把握のためだけに読み取ります。\n依存関係の名前とバージョンのみを保持し、そのうち自分のコミットが変更したモジュールの依存関係の名前だけを\naline.team に送信して技術スタックに加えます。ファイルの内容とパスは保存も送信もしません。\n読むのは求められたときだけです: 承認した直後、`gitfolio deps scan` の実行時、オンにした場合は scan・sync・予約同期のとき\n(`gitfolio deps auto on`)。push のときは読みません。\n",
 	},
+	"policyAgree": {
+		"en": "Do you agree to this data policy and go on?",
+		"ko": "이 데이터 정책에 동의하고 계속할까요?",
+		"ja": "このデータポリシーに同意して続けますか?",
+	},
+	"policyDeclined": {
+		"en": "Nothing was set up. Run `gitfolio init` again when you are ready.\n",
+		"ko": "아무것도 설정하지 않았습니다. 준비되면 `gitfolio init`을 다시 실행하세요.\n",
+		"ja": "何も設定していません。準備ができたら `gitfolio init` を再実行してください。\n",
+	},
+	"hooksAsk": {
+		"en": "Install git hooks (post-commit, pre-push) in the chosen repositories?\nHooks already there still run first, and `gitfolio remove` puts them back. Without them, pushes are not\nsent right away (`gitfolio sync` or the daily sync sends them) and AI tools used at commit time go unnoticed.",
+		"ko": "고른 저장소에 git 훅(post-commit·pre-push)을 설치할까요?\n원래 있던 훅은 그대로 먼저 실행되고, `gitfolio remove`로 원래대로 돌립니다. 설치하지 않으면 push 직후에\n보내지 않고(`gitfolio sync`나 매일 동기화로 보냄), 커밋할 때 쓴 AI 도구도 기록하지 못합니다.",
+		"ja": "選んだリポジトリに git フック(post-commit・pre-push)をインストールしますか?\n既存のフックはそのまま先に実行され、`gitfolio remove` で元に戻ります。インストールしない場合は push 直後に\n送信せず(`gitfolio sync` か毎日の同期で送信)、コミット時に使った AI ツールも記録できません。",
+	},
+	"aiNameAsk": {
+		"en": "How should AI coding tools (Claude Code, Codex: gitfolio mcp) see the chosen repositories?\n1) by their real names  2) anonymous (\"Repository 1\")  3) not at all\nFile paths are never shown; set each repository later with `gitfolio config ai`.",
+		"ko": "AI 코딩 도구(Claude Code·Codex: gitfolio mcp)에 고른 저장소를 어떻게 보일까요?\n1) 실제 이름으로  2) 익명으로(\"저장소 1\")  3) 보이지 않게\n파일 경로는 보이지 않으며, 저장소별로는 나중에 `gitfolio config ai`로 바꿉니다.",
+		"ja": "AI コーディングツール(Claude Code・Codex: gitfolio mcp)に選んだリポジトリをどう見せますか?\n1) 実名で  2) 匿名で(\"リポジトリ 1\")  3) 見せない\nファイルパスは見せません。リポジトリごとには後で `gitfolio config ai` で変更します。",
+	},
+	"aiDetailAsk": {
+		"en": "Should they also see commit messages and branch names?\n1) no  2) subjects and branch names  3) whole messages and branch names",
+		"ko": "커밋 메시지와 브랜치 이름도 보일까요?\n1) 아니요  2) 메시지 제목과 브랜치 이름  3) 메시지 전체와 브랜치 이름",
+		"ja": "コミットメッセージとブランチ名も見せますか?\n1) いいえ  2) メッセージの件名とブランチ名  3) メッセージ全体とブランチ名",
+	},
+	"choiceAgain": {
+		"en": "Answer with a number from 1 to %d.\n",
+		"ko": "1부터 %d까지의 번호로 답하세요.\n",
+		"ja": "1 から %d までの番号で答えてください。\n",
+	},
 	"setupActions": {
 		"en": ` [What starting GitFolio does]
  - Logs in to aline.team; an email without an account gets a new one
@@ -492,9 +517,9 @@ var messages = map[string]map[string]string{
 		"ja": "あなたのコミットがある新しいリポジトリは見つかりませんでした。\n",
 	},
 	"companyNotice": {
-		"en": "Repositories with your commits are listed above (commits, latest date).\nFrom the chosen ones, commit information is sent, never source code; sensitive parts of commit messages are masked.\nHide customer or internal project names in commit messages with `gitfolio config mask add <word>`.\nThe chosen repositories get git hooks (post-commit, pre-push); hooks already there still run first, and `gitfolio remove` puts them back.\n",
-		"ko": "위는 본인 커밋이 있는 저장소입니다. (커밋 수, 최근 커밋 날짜)\n선택한 저장소는 소스 코드 없이 커밋 정보만 전송하며, 커밋 메시지의 민감한 부분은 가려서 보냅니다.\n커밋 메시지 속 고객사·사내 프로젝트명은 `gitfolio config mask add <단어>`로 가릴 수 있습니다.\n선택한 저장소에는 git 훅(post-commit·pre-push)을 설치합니다. 원래 있던 훅은 그대로 먼저 실행되고, `gitfolio remove`로 원래대로 돌립니다.\n",
-		"ja": "上記はあなたのコミットがあるリポジトリです。(コミット数、最新コミット日)\n選択したリポジトリからは、ソースコードではなくコミット情報のみを送信し、コミットメッセージの機密部分はマスキングします。\nコミットメッセージ内の顧客名や社内プロジェクト名は `gitfolio config mask add <単語>` で隠せます。\n選んだリポジトリには git フック(post-commit・pre-push)をインストールします。既存のフックはそのまま先に実行され、`gitfolio remove` で元に戻ります。\n",
+		"en": "Repositories with your commits are listed above (commits, latest date).\nFrom the chosen ones, commit information is sent, never source code; sensitive parts of commit messages are masked.\nHide customer or internal project names in commit messages with `gitfolio config mask add <word>`.\n",
+		"ko": "위는 본인 커밋이 있는 저장소입니다. (커밋 수, 최근 커밋 날짜)\n선택한 저장소는 소스 코드 없이 커밋 정보만 전송하며, 커밋 메시지의 민감한 부분은 가려서 보냅니다.\n커밋 메시지 속 고객사·사내 프로젝트명은 `gitfolio config mask add <단어>`로 가릴 수 있습니다.\n",
+		"ja": "上記はあなたのコミットがあるリポジトリです。(コミット数、最新コミット日)\n選択したリポジトリからは、ソースコードではなくコミット情報のみを送信し、コミットメッセージの機密部分はマスキングします。\nコミットメッセージ内の顧客名や社内プロジェクト名は `gitfolio config mask add <単語>` で隠せます。\n",
 	},
 	"selectRepos": {
 		"en": "Which repositories should GitFolio collect? [all / 1,3,5-7 / Enter = none] > ",
@@ -721,11 +746,6 @@ var messages = map[string]map[string]string{
 		"en": "Unknown command %q. Did you mean %s?\n",
 		"ko": "알 수 없는 명령입니다: %q\n%s을(를) 찾으셨나요?\n",
 		"ja": "不明なコマンド %q です。%s のことですか?\n",
-	},
-	"aiDefaults": {
-		"en": "AI coding tools (`gitfolio mcp`) see these repositories by their real names, without commit messages, branch names or file paths. Change it with `gitfolio config ai`.\n",
-		"ko": "AI 코딩 도구(`gitfolio mcp`)에는 이 저장소들이 실제 이름으로 보이고, 커밋 메시지·브랜치 이름·파일 경로는 보이지 않습니다. 바꾸려면 `gitfolio config ai`.\n",
-		"ja": "AI コーディングツール(`gitfolio mcp`)には、これらのリポジトリが実名で見え、コミットメッセージ・ブランチ名・ファイルパスは見えません。変更は `gitfolio config ai`。\n",
 	},
 	"aiTitle": {
 		"en": "What AI coding tools see of each repository through `gitfolio mcp` (change it with `gitfolio config ai`):\n%s",

@@ -56,9 +56,10 @@ func saveCredentials(dir string, c Credentials) error {
 // what the user changes.
 func cmdInit(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
-	fmt.Fprint(out, header()+"\n"+indent(tr(lang, "policy"))+"\n"+indent(fmt.Sprintf(tr(lang, "setupActions"), tildePath(dir)))+"\n")
-	if interactive() {
-		prompt(tr(lang, "pressEnter"))
+	fmt.Fprint(out, header()+"\n"+indent(tr(lang, "policy"))+"\n")
+	if interactive() && (!askYesNo(lang, "policyAgree", true) || stdinClosed) {
+		say(lang, "policyDeclined")
+		return nil
 	}
 	if err := cmdLogin(dir); err != nil {
 		return err
@@ -118,6 +119,10 @@ func cmdInit(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
+	hooks, ai := true, aiExposure{}
+	if len(chosen) > 0 && interactive() {
+		hooks, ai = askRepoChoices(lang)
+	}
 
 	// Settings. Syncing automatically sends right after git push (config autosync) and, when scheduled,
 	// every day; local mode sends nothing by itself, only when a command needs aline.team's answer.
@@ -157,6 +162,7 @@ func cmdInit(dir string, args []string) error {
 	widest := 0
 	for i, p := range chosen {
 		rs[i] = newRepo(p)
+		rs[i].NoHooks, rs[i].AI = !hooks, ai
 		widest = max(widest, width(rs[i].Name))
 	}
 	if deps && interactive() {
@@ -195,9 +201,6 @@ func cmdInit(dir string, args []string) error {
 	daily := cmp.Or(cfg.Schedule, tr(lang, "off"))
 	blank()
 	sayKV(lang, "initDone", len(repos), primaryEmail(cfg), tr(lang, map[bool]string{true: "syncAuto", false: "syncLocal"}[!cfg.AutoSyncOff]), onOff(cfg.Deps), daily)
-	if len(repos) > 0 {
-		notice(tr(lang, "aiDefaults"))
-	}
 	return nil
 }
 
@@ -379,6 +382,36 @@ func askYesNo(lang, key string, def bool, args ...any) bool {
 			return false
 		}
 		notice(tr(lang, "yesNoAgain"))
+	}
+}
+
+// askRepoChoices asks, once for all the chosen repositories, what the user must decide for them: git
+// hooks, and what AI coding tools see. Each defaults to the usual answer; config ai and remove change
+// them later, per repository.
+func askRepoChoices(lang string) (hooks bool, ai aiExposure) {
+	hooks = askYesNo(lang, "hooksAsk", true)
+	switch askChoice(lang, "aiNameAsk", 3, 0) {
+	case 1:
+		ai.Name = anonymousName
+	case 2:
+		return hooks, aiExposure{Hidden: true}
+	}
+	detail := askChoice(lang, "aiDetailAsk", 3, 0)
+	ai.Messages, ai.Branches = []string{"", "subjects", "full"}[detail], detail > 0
+	return hooks, ai
+}
+
+// askChoice asks to pick one of n numbered answers in key's text; Enter keeps def (0-based).
+func askChoice(lang, key string, n, def int) int {
+	for {
+		a := strings.TrimSpace(prompt(tr(lang, key) + fmt.Sprintf(" [%d] > ", def+1)))
+		if a == "" || stdinClosed {
+			return def
+		}
+		if i, err := strconv.Atoi(a); err == nil && i >= 1 && i <= n {
+			return i - 1
+		}
+		notice(fmt.Sprintf(tr(lang, "choiceAgain"), n))
 	}
 }
 

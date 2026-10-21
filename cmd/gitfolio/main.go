@@ -378,7 +378,7 @@ func registerRepo(dir string, repo Repo, ask bool) (int, error) {
 	if err := saveRepos(dir, repos); err != nil {
 		return 0, err
 	}
-	if err := installHooks(top); err != nil {
+	if err := installHooksUnless(r.NoHooks, top); err != nil {
 		warn(detectLang(os.Getenv), "hooksNotInstalled", err)
 	}
 	return n, nil

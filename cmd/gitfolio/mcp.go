@@ -213,11 +213,13 @@ var mcpSetupTools = []mcpTool{
 	{
 		Name:  "add_repository",
 		Title: "Register a repository",
-		Description: "Register a git repository on this computer with GitFolio: collects the user's own pushed commits and " +
-			"installs git hooks so later pushes are collected. Only repositories the user chose. Afterwards agree with " +
-			"them how it appears to AI tools (set_ai_exposure).",
-		InputSchema: map[string]any{"type": "object", "properties": map[string]any{
-			"path": map[string]any{"type": "string", "description": "A path in the repository. Empty: the current folder."},
+		Description: "Register a git repository on this computer with GitFolio: collects the user's own pushed commits and, " +
+			"if the user agrees, installs git hooks (post-commit, pre-push) so later pushes are sent right away. Only " +
+			"repositories the user chose; ask about the hooks first. Afterwards agree with them how it appears to AI tools " +
+			"(set_ai_exposure).",
+		InputSchema: map[string]any{"type": "object", "required": []string{"hooks"}, "properties": map[string]any{
+			"path":  map[string]any{"type": "string", "description": "A path in the repository. Empty: the current folder."},
+			"hooks": map[string]any{"type": "boolean", "description": "The user agreed to git hooks in this repository."},
 		}},
 		Annotations: mcpWrites,
 		run:         mcpAddRepository,
@@ -806,12 +808,19 @@ func mcpAddRepository(dir string, args map[string]any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	r := newRepo(top)
+	if h, ok := args["hooks"].(bool); ok {
+		r.NoHooks = !h
+	}
 	var n int
-	if err := withLock(dir, func() error { n, err = registerRepo(dir, newRepo(top), true); return err }); err != nil {
+	if err := withLock(dir, func() error { n, err = registerRepo(dir, r, true); return err }); err != nil {
 		return nil, err
 	}
-	return map[string]any{"repository": filepath.Base(top), "commitsCollected": n,
-		"hooksInstalled": "post-commit and pre-push; hooks it already had still run first, and gitfolio remove puts them back",
+	hooks := "post-commit and pre-push; hooks it already had still run first, and gitfolio remove puts them back"
+	if r.NoHooks {
+		hooks = "none: pushes are sent by gitfolio sync or the daily sync"
+	}
+	return map[string]any{"repository": filepath.Base(top), "commitsCollected": n, "hooksInstalled": hooks,
 		"next": "Agree with the user how this repository appears to AI tools (set_ai_exposure): by its real name (default), " +
 			"anonymous or another name; its commit messages and branch names stay hidden unless they allow them. " +
 			"Follow the rules of the codebase if it has any about company names or commit messages."}, nil

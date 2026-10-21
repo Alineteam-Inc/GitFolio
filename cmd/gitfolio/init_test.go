@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"io"
 	"os"
 	"os/exec"
@@ -215,5 +216,26 @@ func TestProgress(t *testing.T) {
 	want := "\r\x1b[2K  ℹ Syncing...  \x1b[36m██████\x1b[0m\x1b[2m░░░░░░░░░░░░░░\x1b[0m  30%\r\x1b[2K"
 	if string(got) != want {
 		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
+
+// init asks once what the chosen repositories get: git hooks, and what AI coding tools see of them.
+func TestAskRepoChoices(t *testing.T) {
+	t.Setenv("GITFOLIO_LANG", "en")
+	defer func(r *bufio.Reader, o io.Writer) { stdin, out = r, o }(stdin, out)
+	out = io.Discard
+	for answers, want := range map[string]struct {
+		hooks bool
+		ai    aiExposure
+	}{
+		"\n\n\n":              {true, aiExposure{}}, // Enter: hooks, real name, nothing more
+		"n\n2\n2\n":           {false, aiExposure{Name: anonymousName, Messages: "subjects", Branches: true}},
+		"y\n3\n":              {true, aiExposure{Hidden: true}},                     // hidden: nothing more asked
+		"maybe\ny\n9\n1\n3\n": {true, aiExposure{Messages: "full", Branches: true}}, // asked again after a wrong answer
+	} {
+		stdinClosed, stdin = false, bufio.NewReader(strings.NewReader(answers))
+		if hooks, ai := askRepoChoices("en"); hooks != want.hooks || ai != want.ai {
+			t.Errorf("answers %q: hooks %v, ai %+v; want %v, %+v", answers, hooks, ai, want.hooks, want.ai)
+		}
 	}
 }
