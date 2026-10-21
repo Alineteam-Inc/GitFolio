@@ -54,6 +54,9 @@ func cmdSchedule(dir string, args []string) error {
 	if args[0] == "off" {
 		return setSchedule(dir, lang, "")
 	}
+	if _, _, ok := parseHHMM(args[0]); !ok {
+		return wrongWord("schedule", args[0], []string{"off"}, "gitfolio schedule [HH:MM | off]")
+	}
 	if cfg.AutoSyncOff { // local mode sends nothing by itself
 		return failure("scheduleLocal")
 	}

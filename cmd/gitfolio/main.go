@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -199,21 +200,61 @@ func unknownCommand(s string) error {
 // similarCommands are the commands s may have meant: version for -v and --version, the commands s
 // starts (sta: status), then misspellings one or two edits away (stauts: status; one for short names).
 func similarCommands(s string) []string {
-	s = strings.ToLower(strings.TrimLeft(s, "-"))
-	if s == "v" || s == "version" {
+	if s := strings.ToLower(strings.TrimLeft(s, "-")); s == "v" || s == "version" {
 		return []string{"version"}
 	}
+	return similar(s, commands)
+}
+
+// similar are the words s may have meant: the ones s starts, then misspellings one or two edits away
+// (one for short words). Flags are compared without their dashes (--dryrun: --dry-run).
+func similar(s string, words []string) []string {
+	s = strings.ToLower(strings.TrimLeft(s, "-"))
+	bare := func(w string) string { return strings.TrimLeft(w, "-") }
 	var prefix, close []string
-	for _, c := range commands {
-		switch d := editDistance(s, c); {
-		case len(s) >= 2 && strings.HasPrefix(c, s):
-			prefix = append(prefix, c)
-		case d <= 1 || (d == 2 && len(c) > 4):
-			close = append(close, c)
+	for _, w := range words {
+		switch d := editDistance(s, bare(w)); {
+		case len(s) >= 2 && strings.HasPrefix(bare(w), s):
+			prefix = append(prefix, w)
+		case d <= 1 || (d == 2 && len(bare(w)) > 4):
+			close = append(close, w)
 		}
 	}
-	slices.SortStableFunc(close, func(a, b string) int { return editDistance(s, a) - editDistance(s, b) }) // closest first
+	slices.SortStableFunc(close, func(a, b string) int { return editDistance(s, bare(a)) - editDistance(s, bare(b)) }) // closest first
 	return append(prefix, close...)
+}
+
+// wrongWord answers a word that cmd ("config autosync") does not take with the words the user may have
+// meant from those it takes, else with its usage.
+func wrongWord(cmd, got string, words []string, usage string) error {
+	like := similar(got, words)
+	if len(like) == 0 || slices.Contains(words, got) { // a right word in the wrong place
+		return failure("usage", usage)
+	}
+	for i, w := range like {
+		like[i] = "`gitfolio " + cmd + " " + w + "`"
+	}
+	return failure("didYouMeanWord", cmd, got, strings.Join(like, ", "))
+}
+
+// parseFlags is fs.Parse in GitFolio's words: an unknown flag is answered by wrongWord, nothing printed.
+func parseFlags(fs *flag.FlagSet, args []string, usage string) error {
+	fs.SetOutput(io.Discard)
+	err := fs.Parse(args)
+	if err == nil {
+		return nil
+	}
+	var flags []string
+	fs.VisitAll(func(f *flag.Flag) { flags = append(flags, "--"+f.Name) })
+	_, bad, _ := strings.Cut(err.Error(), "not defined: ") // "" for -h or a bad value: the usage
+	// Shown as typed: "--dryrun", not the "-dryrun" the flag package reports.
+	for _, a := range args {
+		if name, _, _ := strings.Cut(strings.TrimLeft(a, "-"), "="); bad != "" && "-"+name == bad {
+			bad = a
+			break
+		}
+	}
+	return wrongWord(fs.Name(), bad, flags, usage)
 }
 
 // editDistance counts the insertions, deletions, substitutions and swaps of neighbouring letters that
@@ -335,7 +376,7 @@ func registerRepo(dir string, repo Repo, ask bool) (int, error) {
 func cmdRemove(dir string, args []string) error {
 	fs := flag.NewFlagSet("remove", flag.ContinueOnError)
 	purge := fs.Bool("purge", false, "also delete this repository's collected commits")
-	if err := fs.Parse(flagsFirst(args)); err != nil {
+	if err := parseFlags(fs, flagsFirst(args), "gitfolio remove [path] [--purge]"); err != nil {
 		return err
 	}
 	p := pathArg(fs.Args())
@@ -395,7 +436,7 @@ func cmdScan(dir string, args []string) error {
 	fs := flag.NewFlagSet("scan", flag.ContinueOnError)
 	all := fs.Bool("all", false, "scan every registered repository")
 	rebuild := fs.Bool("rebuild", false, "drop stored commits and collect again")
-	if err := fs.Parse(flagsFirst(args)); err != nil {
+	if err := parseFlags(fs, flagsFirst(args), "gitfolio scan [path] [--all] [--rebuild]"); err != nil {
 		return err
 	}
 	repos, err := loadRepos(dir)
@@ -627,7 +668,16 @@ func cmdConfig(dir string, args []string) error {
 		return nil
 	}
 	if len(args) < 3 || args[0] != "mask" || (args[1] != "add" && args[1] != "rm") {
-		return failure("usage", "gitfolio config mask add|rm <word>... | config autosync on|off | config git-history on|off")
+		const usage = "gitfolio config mask add|rm <word>... | config autosync on|off | config git-history on|off"
+		switch {
+		case !slices.Contains([]string{"mask", "autosync", "git-history"}, args[0]):
+			return wrongWord("config", args[0], []string{"mask", "autosync", "git-history"}, usage)
+		case len(args) > 1 && args[0] == "mask":
+			return wrongWord("config mask", args[1], []string{"add", "rm"}, usage)
+		case len(args) > 1:
+			return wrongWord("config "+args[0], args[1], []string{"on", "off"}, usage)
+		}
+		return failure("usage", usage)
 	}
 	for _, w := range args[2:] {
 		if w = strings.TrimSpace(w); w == "" {

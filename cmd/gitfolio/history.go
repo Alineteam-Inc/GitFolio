@@ -111,6 +111,9 @@ func parseHistory(b []byte) []historyRun {
 // cmdHistory shows the git commands gitfolio ran: the last 20 runs, or all of them with --all.
 func cmdHistory(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
+	if len(args) > 1 || (len(args) == 1 && args[0] != "--all") {
+		return wrongWord("history", args[len(args)-1], []string{"--all"}, "gitfolio history [--all]")
+	}
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err

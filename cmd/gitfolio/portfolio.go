@@ -33,7 +33,7 @@ func cmdPortfolio(dir string, args []string) error {
 		case !strings.HasPrefix(args[i], "-") && out == "":
 			out = args[i]
 		default:
-			return failure("usage", portfolioUsage)
+			return wrongWord("portfolio", args[i], []string{"--from"}, portfolioUsage)
 		}
 	}
 	switch {

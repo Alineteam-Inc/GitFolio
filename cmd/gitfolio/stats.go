@@ -52,7 +52,7 @@ func cmdStats(dir string, args []string) error {
 	refresh := false
 	for _, a := range args {
 		if a != "--refresh" {
-			return failure("usage", "gitfolio stats [--refresh]")
+			return wrongWord("stats", a, []string{"--refresh"}, "gitfolio stats [--refresh]")
 		}
 		refresh = true
 	}

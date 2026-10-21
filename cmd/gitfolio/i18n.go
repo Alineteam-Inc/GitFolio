@@ -671,6 +671,11 @@ var messages = map[string]map[string]string{
 		"ko": "알 수 없는 명령입니다: %q\n%s을(를) 찾으셨나요?\n",
 		"ja": "不明なコマンド %q です。%s のことですか?\n",
 	},
+	"didYouMeanWord": {
+		"en": "`gitfolio %s` takes no %q. Did you mean %s?\n",
+		"ko": "`gitfolio %s`에는 %q이(가) 없습니다.\n%s을(를) 찾으셨나요?\n",
+		"ja": "`gitfolio %s` に %q はありません。%s のことですか?\n",
+	},
 	"unknownCommand": {
 		"en": "Unknown command %q. See `gitfolio help`.\n",
 		"ko": "알 수 없는 명령입니다: %q\n`gitfolio help`에서 명령 목록을 확인하세요.\n",

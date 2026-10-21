@@ -118,7 +118,8 @@ func cmdEmail(dir string, args []string) error {
 		return nil
 	}
 	if len(args) < 2 || !slices.Contains([]string{"add", "verify", "rm", "primary"}, args[0]) {
-		return failure("usage", "gitfolio email [add <email>... | verify <email> | rm <email> | primary <email>]")
+		return wrongWord("email", args[0], []string{"add", "verify", "rm", "primary"},
+			"gitfolio email [add <email>... | verify <email> | rm <email> | primary <email>]")
 	}
 	e := strings.ToLower(strings.TrimSpace(args[1]))
 	var done string

@@ -680,7 +680,7 @@ func cmdDeps(dir string, args []string) error {
 		}
 		fs := flag.NewFlagSet("deps scan", flag.ContinueOnError)
 		all := fs.Bool("all", false, "every registered repository")
-		if err := fs.Parse(flagsFirst(args[1:])); err != nil {
+		if err := parseFlags(fs, flagsFirst(args[1:]), "gitfolio deps scan [path] [--all]"); err != nil {
 			return err
 		}
 		var top string
@@ -707,7 +707,11 @@ func cmdDeps(dir string, args []string) error {
 		}
 		return nil
 	}
-	return failure("usage", "gitfolio deps [on|off|review [path]|scan [path] [--all]|auto on|off]")
+	const usage = "gitfolio deps [on|off|review [path]|scan [path] [--all]|auto on|off]"
+	if len(args) > 1 && args[0] == "auto" {
+		return wrongWord("deps auto", args[1], []string{"on", "off"}, usage)
+	}
+	return wrongWord("deps", args[0], []string{"on", "off", "review", "scan", "auto"}, usage)
 }
 
 // reviewAndRescan asks about the manifest files of rs in one list and collects again the repositories

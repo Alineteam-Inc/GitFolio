@@ -617,7 +617,7 @@ func (c *client) upsert(author string, commits []Commit, modified []modifiedFile
 func cmdSync(dir string, args []string) error {
 	fs := flag.NewFlagSet("sync", flag.ContinueOnError)
 	dryRun := fs.Bool("dry-run", false, "print what would be sent, send nothing")
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args, "gitfolio sync [--dry-run]"); err != nil {
 		return err
 	}
 	lang := detectLang(os.Getenv)
