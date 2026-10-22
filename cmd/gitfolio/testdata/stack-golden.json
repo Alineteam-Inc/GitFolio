@@ -1,0 +1,5824 @@
+{
+ "format": 1,
+ "cases": [
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@adonisjs/core"
+   ],
+   "expected": [
+    {
+     "key": "ADONISJS",
+     "name": "AdonisJS",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@adonisjs/framework"
+   ],
+   "expected": [
+    {
+     "key": "ADONISJS",
+     "name": "AdonisJS",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@angular/core"
+   ],
+   "expected": [
+    {
+     "key": "ANGULAR",
+     "name": "Angular",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@anthropic-ai/sdk"
+   ],
+   "expected": [
+    {
+     "key": "ANTHROPIC_SDK",
+     "name": "Anthropic SDK",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@apollo/client"
+   ],
+   "expected": [
+    {
+     "key": "APOLLO_CLIENT",
+     "name": "Apollo Client",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@apollo/server"
+   ],
+   "expected": [
+    {
+     "key": "APOLLO_SERVER",
+     "name": "Apollo Server",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@aws-sdk/client-dynamodb"
+   ],
+   "expected": [
+    {
+     "key": "DYNAMODB",
+     "name": "DynamoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@capacitor/cli"
+   ],
+   "expected": [
+    {
+     "key": "CAPACITOR",
+     "name": "Capacitor",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@capacitor/core"
+   ],
+   "expected": [
+    {
+     "key": "CAPACITOR",
+     "name": "Capacitor",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@chakra-ui/react"
+   ],
+   "expected": [
+    {
+     "key": "CHAKRA_UI",
+     "name": "Chakra UI",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@clickhouse/client"
+   ],
+   "expected": [
+    {
+     "key": "CLICKHOUSE",
+     "name": "ClickHouse",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@confluentinc/kafka-javascript"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@elastic/elasticsearch"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@emotion/react"
+   ],
+   "expected": [
+    {
+     "key": "EMOTION",
+     "name": "Emotion",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@emotion/styled"
+   ],
+   "expected": [
+    {
+     "key": "EMOTION",
+     "name": "Emotion",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@feathersjs/feathers"
+   ],
+   "expected": [
+    {
+     "key": "FEATHERSJS",
+     "name": "FeathersJS",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@grpc/grpc-js"
+   ],
+   "expected": [
+    {
+     "key": "GRPC",
+     "name": "gRPC",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@hapi/hapi"
+   ],
+   "expected": [
+    {
+     "key": "HAPI",
+     "name": "Hapi",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@ionic/angular"
+   ],
+   "expected": [
+    {
+     "key": "IONIC",
+     "name": "Ionic",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@ionic/react"
+   ],
+   "expected": [
+    {
+     "key": "IONIC",
+     "name": "Ionic",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@ionic/vue"
+   ],
+   "expected": [
+    {
+     "key": "IONIC",
+     "name": "Ionic",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@langchain/core"
+   ],
+   "expected": [
+    {
+     "key": "LANGCHAIN",
+     "name": "LangChain",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@loopback/core"
+   ],
+   "expected": [
+    {
+     "key": "LOOPBACK",
+     "name": "LoopBack",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@material-ui/core"
+   ],
+   "expected": [
+    {
+     "key": "MATERIAL_UI",
+     "name": "Material UI",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@mui/material"
+   ],
+   "expected": [
+    {
+     "key": "MATERIAL_UI",
+     "name": "Material UI",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@nestjs/core"
+   ],
+   "expected": [
+    {
+     "key": "NESTJS",
+     "name": "NestJS",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@ngrx/store"
+   ],
+   "expected": [
+    {
+     "key": "NGRX",
+     "name": "NgRx",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@playwright/test"
+   ],
+   "expected": [
+    {
+     "key": "PLAYWRIGHT",
+     "name": "Playwright",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@prisma/client"
+   ],
+   "expected": [
+    {
+     "key": "PRISMA",
+     "name": "Prisma",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@reduxjs/toolkit"
+   ],
+   "expected": [
+    {
+     "key": "REDUX",
+     "name": "Redux",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@remix-run/react"
+   ],
+   "expected": [
+    {
+     "key": "REMIX",
+     "name": "Remix",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@storybook/react"
+   ],
+   "expected": [
+    {
+     "key": "STORYBOOK",
+     "name": "Storybook",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@strapi/strapi"
+   ],
+   "expected": [
+    {
+     "key": "STRAPI",
+     "name": "Strapi",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@sveltejs/kit"
+   ],
+   "expected": [
+    {
+     "key": "SVELTEKIT",
+     "name": "SvelteKit",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@tanstack/query-core"
+   ],
+   "expected": [
+    {
+     "key": "TANSTACK_QUERY",
+     "name": "TanStack Query",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@tanstack/react-query"
+   ],
+   "expected": [
+    {
+     "key": "TANSTACK_QUERY",
+     "name": "TanStack Query",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@tensorflow/tfjs"
+   ],
+   "expected": [
+    {
+     "key": "TENSORFLOW_JS",
+     "name": "TensorFlow.js",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@tensorflow/tfjs-node"
+   ],
+   "expected": [
+    {
+     "key": "TENSORFLOW_JS",
+     "name": "TensorFlow.js",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "@trpc/server"
+   ],
+   "expected": [
+    {
+     "key": "TRPC",
+     "name": "tRPC",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "antd"
+   ],
+   "expected": [
+    {
+     "key": "ANT_DESIGN",
+     "name": "Ant Design",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "apollo-server"
+   ],
+   "expected": [
+    {
+     "key": "APOLLO_SERVER",
+     "name": "Apollo Server",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "astro"
+   ],
+   "expected": [
+    {
+     "key": "ASTRO",
+     "name": "Astro",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "bootstrap"
+   ],
+   "expected": [
+    {
+     "key": "BOOTSTRAP",
+     "name": "Bootstrap",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "cassandra-driver"
+   ],
+   "expected": [
+    {
+     "key": "CASSANDRA",
+     "name": "Cassandra",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "cypress"
+   ],
+   "expected": [
+    {
+     "key": "CYPRESS",
+     "name": "Cypress",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "drizzle-orm"
+   ],
+   "expected": [
+    {
+     "key": "DRIZZLE",
+     "name": "Drizzle",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "electron"
+   ],
+   "expected": [
+    {
+     "key": "ELECTRON",
+     "name": "Electron",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "elysia"
+   ],
+   "expected": [
+    {
+     "key": "ELYSIA",
+     "name": "Elysia",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "expo"
+   ],
+   "expected": [
+    {
+     "key": "EXPO",
+     "name": "Expo",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "express"
+   ],
+   "expected": [
+    {
+     "key": "EXPRESS",
+     "name": "Express.js",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "fastify"
+   ],
+   "expected": [
+    {
+     "key": "FASTIFY",
+     "name": "Fastify",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "gatsby"
+   ],
+   "expected": [
+    {
+     "key": "GATSBY",
+     "name": "Gatsby",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "graphql"
+   ],
+   "expected": [
+    {
+     "key": "GRAPHQL",
+     "name": "GraphQL",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "grpc"
+   ],
+   "expected": [
+    {
+     "key": "GRPC",
+     "name": "gRPC",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "hapi"
+   ],
+   "expected": [
+    {
+     "key": "HAPI",
+     "name": "Hapi",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "hono"
+   ],
+   "expected": [
+    {
+     "key": "HONO",
+     "name": "Hono",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "htmx.org"
+   ],
+   "expected": [
+    {
+     "key": "HTMX",
+     "name": "htmx",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "ionic-angular"
+   ],
+   "expected": [
+    {
+     "key": "IONIC",
+     "name": "Ionic",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "ioredis"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "jest"
+   ],
+   "expected": [
+    {
+     "key": "JEST",
+     "name": "Jest",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "kafkajs"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "knex"
+   ],
+   "expected": [
+    {
+     "key": "KNEX",
+     "name": "Knex",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "koa"
+   ],
+   "expected": [
+    {
+     "key": "KOA",
+     "name": "Koa",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "langchain"
+   ],
+   "expected": [
+    {
+     "key": "LANGCHAIN",
+     "name": "LangChain",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "llamaindex"
+   ],
+   "expected": [
+    {
+     "key": "LLAMA_INDEX",
+     "name": "LlamaIndex",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "loopback"
+   ],
+   "expected": [
+    {
+     "key": "LOOPBACK",
+     "name": "LoopBack",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "mobx"
+   ],
+   "expected": [
+    {
+     "key": "MOBX",
+     "name": "MobX",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "mocha"
+   ],
+   "expected": [
+    {
+     "key": "MOCHA",
+     "name": "Mocha",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "moleculer"
+   ],
+   "expected": [
+    {
+     "key": "MOLECULER",
+     "name": "Moleculer",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "mongodb"
+   ],
+   "expected": [
+    {
+     "key": "MONGODB",
+     "name": "MongoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "mongoose"
+   ],
+   "expected": [
+    {
+     "key": "MONGOOSE",
+     "name": "Mongoose",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "mysql"
+   ],
+   "expected": [
+    {
+     "key": "MYSQL",
+     "name": "MySQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "mysql2"
+   ],
+   "expected": [
+    {
+     "key": "MYSQL",
+     "name": "MySQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "next"
+   ],
+   "expected": [
+    {
+     "key": "NEXTJS",
+     "name": "Next.js",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "nuxt"
+   ],
+   "expected": [
+    {
+     "key": "NUXTJS",
+     "name": "Nuxt.js",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "nuxt3"
+   ],
+   "expected": [
+    {
+     "key": "NUXTJS",
+     "name": "Nuxt.js",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "openai"
+   ],
+   "expected": [
+    {
+     "key": "OPENAI_SDK",
+     "name": "OpenAI SDK",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "pg"
+   ],
+   "expected": [
+    {
+     "key": "POSTGRESQL",
+     "name": "PostgreSQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "phaser"
+   ],
+   "expected": [
+    {
+     "key": "PHASER",
+     "name": "Phaser",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "pinia"
+   ],
+   "expected": [
+    {
+     "key": "PINIA",
+     "name": "Pinia",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "pixi.js"
+   ],
+   "expected": [
+    {
+     "key": "PIXIJS",
+     "name": "PixiJS",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "playwright"
+   ],
+   "expected": [
+    {
+     "key": "PLAYWRIGHT",
+     "name": "Playwright",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "prisma"
+   ],
+   "expected": [
+    {
+     "key": "PRISMA",
+     "name": "Prisma",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "qwik"
+   ],
+   "expected": [
+    {
+     "key": "QWIK",
+     "name": "Qwik",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "react"
+   ],
+   "expected": [
+    {
+     "key": "REACT",
+     "name": "React",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "react-dom"
+   ],
+   "expected": [
+    {
+     "key": "REACT",
+     "name": "React",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "react-native"
+   ],
+   "expected": [
+    {
+     "key": "REACT_NATIVE",
+     "name": "React Native",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "redis"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "redux"
+   ],
+   "expected": [
+    {
+     "key": "REDUX",
+     "name": "Redux",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "sails"
+   ],
+   "expected": [
+    {
+     "key": "SAILS",
+     "name": "Sails.js",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "selenium-webdriver"
+   ],
+   "expected": [
+    {
+     "key": "SELENIUM",
+     "name": "Selenium",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "sequelize"
+   ],
+   "expected": [
+    {
+     "key": "SEQUELIZE",
+     "name": "Sequelize",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "socket.io"
+   ],
+   "expected": [
+    {
+     "key": "WEBSOCKET",
+     "name": "WebSocket",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "socket.io-client"
+   ],
+   "expected": [
+    {
+     "key": "WEBSOCKET",
+     "name": "WebSocket",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "solid-js"
+   ],
+   "expected": [
+    {
+     "key": "SOLID",
+     "name": "Solid.js",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "storybook"
+   ],
+   "expected": [
+    {
+     "key": "STORYBOOK",
+     "name": "Storybook",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "styled-components"
+   ],
+   "expected": [
+    {
+     "key": "STYLED_COMPONENTS",
+     "name": "Styled Components",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "svelte"
+   ],
+   "expected": [
+    {
+     "key": "SVELTE",
+     "name": "Svelte",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "swr"
+   ],
+   "expected": [
+    {
+     "key": "SWR",
+     "name": "SWR",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "tailwindcss"
+   ],
+   "expected": [
+    {
+     "key": "TAILWIND_CSS",
+     "name": "Tailwind CSS",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "typeorm"
+   ],
+   "expected": [
+    {
+     "key": "TYPEORM",
+     "name": "TypeORM",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "vite"
+   ],
+   "expected": [
+    {
+     "key": "VITE",
+     "name": "Vite",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "vitest"
+   ],
+   "expected": [
+    {
+     "key": "VITEST",
+     "name": "Vitest",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "vue"
+   ],
+   "expected": [
+    {
+     "key": "VUEJS",
+     "name": "Vue.js",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "webpack"
+   ],
+   "expected": [
+    {
+     "key": "WEBPACK",
+     "name": "Webpack",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "ws"
+   ],
+   "expected": [
+    {
+     "key": "WEBSOCKET",
+     "name": "WebSocket",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "single",
+   "input": [
+    "zustand"
+   ],
+   "expected": [
+    {
+     "key": "ZUSTAND",
+     "name": "Zustand",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/99designs/gqlgen"
+   ],
+   "expected": [
+    {
+     "key": "GRAPHQL",
+     "name": "GraphQL",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/ClickHouse/clickhouse-go"
+   ],
+   "expected": [
+    {
+     "key": "CLICKHOUSE",
+     "name": "ClickHouse",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/aws/aws-sdk-go-v2/service/dynamodb"
+   ],
+   "expected": [
+    {
+     "key": "DYNAMODB",
+     "name": "DynamoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/confluentinc/confluent-kafka-go"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/elastic/go-elasticsearch"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/gin-gonic/gin"
+   ],
+   "expected": [
+    {
+     "key": "GIN",
+     "name": "Gin",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/go-chi/chi"
+   ],
+   "expected": [
+    {
+     "key": "CHI",
+     "name": "Chi",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/go-chi/chi/v5"
+   ],
+   "expected": [
+    {
+     "key": "CHI",
+     "name": "Chi",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/go-redis/redis"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/go-sql-driver/mysql"
+   ],
+   "expected": [
+    {
+     "key": "MYSQL",
+     "name": "MySQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/gocql/gocql"
+   ],
+   "expected": [
+    {
+     "key": "CASSANDRA",
+     "name": "Cassandra",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/gofiber/fiber"
+   ],
+   "expected": [
+    {
+     "key": "FIBER",
+     "name": "Fiber",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/gofiber/fiber/v2"
+   ],
+   "expected": [
+    {
+     "key": "FIBER",
+     "name": "Fiber",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/gofiber/fiber/v3"
+   ],
+   "expected": [
+    {
+     "key": "FIBER",
+     "name": "Fiber",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/gorilla/mux"
+   ],
+   "expected": [
+    {
+     "key": "GORILLA_MUX",
+     "name": "Gorilla Mux",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/gorilla/websocket"
+   ],
+   "expected": [
+    {
+     "key": "WEBSOCKET",
+     "name": "WebSocket",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/graphql-go/graphql"
+   ],
+   "expected": [
+    {
+     "key": "GRAPHQL",
+     "name": "GraphQL",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/hajimehoshi/ebiten"
+   ],
+   "expected": [
+    {
+     "key": "EBITEN",
+     "name": "Ebiten",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/hajimehoshi/ebiten/v2"
+   ],
+   "expected": [
+    {
+     "key": "EBITEN",
+     "name": "Ebiten",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/jackc/pgx"
+   ],
+   "expected": [
+    {
+     "key": "POSTGRESQL",
+     "name": "PostgreSQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/jackc/pgx/v5"
+   ],
+   "expected": [
+    {
+     "key": "POSTGRESQL",
+     "name": "PostgreSQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/jinzhu/gorm"
+   ],
+   "expected": [
+    {
+     "key": "GORM",
+     "name": "GORM",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/kataras/iris"
+   ],
+   "expected": [
+    {
+     "key": "IRIS",
+     "name": "Iris",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/kataras/iris/v12"
+   ],
+   "expected": [
+    {
+     "key": "IRIS",
+     "name": "Iris",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/labstack/echo"
+   ],
+   "expected": [
+    {
+     "key": "ECHO",
+     "name": "Echo",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/labstack/echo/v4"
+   ],
+   "expected": [
+    {
+     "key": "ECHO",
+     "name": "Echo",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/labstack/echo/v5"
+   ],
+   "expected": [
+    {
+     "key": "ECHO",
+     "name": "Echo",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/lib/pq"
+   ],
+   "expected": [
+    {
+     "key": "POSTGRESQL",
+     "name": "PostgreSQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/redis/go-redis/v9"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "github.com/segmentio/kafka-go"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "go.mongodb.org/mongo-driver"
+   ],
+   "expected": [
+    {
+     "key": "MONGODB",
+     "name": "MongoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "google.golang.org/grpc"
+   ],
+   "expected": [
+    {
+     "key": "GRPC",
+     "name": "gRPC",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "gorm.io/gorm"
+   ],
+   "expected": [
+    {
+     "key": "GORM",
+     "name": "GORM",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "single",
+   "input": [
+    "nhooyr.io/websocket"
+   ],
+   "expected": [
+    {
+     "key": "WEBSOCKET",
+     "name": "WebSocket",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "actix-web"
+   ],
+   "expected": [
+    {
+     "key": "ACTIX_WEB",
+     "name": "Actix Web",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "async-graphql"
+   ],
+   "expected": [
+    {
+     "key": "GRAPHQL",
+     "name": "GraphQL",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "aws-sdk-dynamodb"
+   ],
+   "expected": [
+    {
+     "key": "DYNAMODB",
+     "name": "DynamoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "axum"
+   ],
+   "expected": [
+    {
+     "key": "AXUM",
+     "name": "Axum",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "bevy"
+   ],
+   "expected": [
+    {
+     "key": "BEVY",
+     "name": "Bevy",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "clickhouse-rs"
+   ],
+   "expected": [
+    {
+     "key": "CLICKHOUSE",
+     "name": "ClickHouse",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "diesel"
+   ],
+   "expected": [
+    {
+     "key": "DIESEL",
+     "name": "Diesel",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "dioxus"
+   ],
+   "expected": [
+    {
+     "key": "DIOXUS",
+     "name": "Dioxus",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "elasticsearch"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "embassy-executor"
+   ],
+   "expected": [
+    {
+     "key": "EMBASSY",
+     "name": "Embassy",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "embedded-hal"
+   ],
+   "expected": [
+    {
+     "key": "EMBEDDED_HAL",
+     "name": "embedded-hal",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "ggez"
+   ],
+   "expected": [
+    {
+     "key": "GGEZ",
+     "name": "ggez",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "leptos"
+   ],
+   "expected": [
+    {
+     "key": "LEPTOS",
+     "name": "Leptos",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "macroquad"
+   ],
+   "expected": [
+    {
+     "key": "MACROQUAD",
+     "name": "Macroquad",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "mongodb"
+   ],
+   "expected": [
+    {
+     "key": "MONGODB",
+     "name": "MongoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "ntex"
+   ],
+   "expected": [
+    {
+     "key": "NTEX",
+     "name": "ntex",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "poem"
+   ],
+   "expected": [
+    {
+     "key": "POEM",
+     "name": "Poem",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "rdkafka"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "redis"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "rocket"
+   ],
+   "expected": [
+    {
+     "key": "ROCKET",
+     "name": "Rocket",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "scylla"
+   ],
+   "expected": [
+    {
+     "key": "CASSANDRA",
+     "name": "Cassandra",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "tauri"
+   ],
+   "expected": [
+    {
+     "key": "TAURI",
+     "name": "Tauri",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "tokio"
+   ],
+   "expected": [
+    {
+     "key": "TOKIO",
+     "name": "Tokio",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "tokio-postgres"
+   ],
+   "expected": [
+    {
+     "key": "POSTGRESQL",
+     "name": "PostgreSQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "tokio-tungstenite"
+   ],
+   "expected": [
+    {
+     "key": "WEBSOCKET",
+     "name": "WebSocket",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "tonic"
+   ],
+   "expected": [
+    {
+     "key": "TONIC",
+     "name": "Tonic",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "warp"
+   ],
+   "expected": [
+    {
+     "key": "WARP",
+     "name": "Warp",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "single",
+   "input": [
+    "yew"
+   ],
+   "expected": [
+    {
+     "key": "YEW",
+     "name": "Yew",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "adafruit-blinka"
+   ],
+   "expected": [
+    {
+     "key": "ADAFRUIT_BLINKA",
+     "name": "Adafruit Blinka",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "aiohttp"
+   ],
+   "expected": [
+    {
+     "key": "AIOHTTP",
+     "name": "aiohttp",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "anthropic"
+   ],
+   "expected": [
+    {
+     "key": "ANTHROPIC_SDK",
+     "name": "Anthropic SDK",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "apache-airflow"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_AIRFLOW",
+     "name": "Apache Airflow",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "beautifulsoup4"
+   ],
+   "expected": [
+    {
+     "key": "BEAUTIFULSOUP",
+     "name": "BeautifulSoup",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "cassandra-driver"
+   ],
+   "expected": [
+    {
+     "key": "CASSANDRA",
+     "name": "Cassandra",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "celery"
+   ],
+   "expected": [
+    {
+     "key": "CELERY",
+     "name": "Celery",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "clickhouse-driver"
+   ],
+   "expected": [
+    {
+     "key": "CLICKHOUSE",
+     "name": "ClickHouse",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "confluent-kafka"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "dbt-core"
+   ],
+   "expected": [
+    {
+     "key": "DBT",
+     "name": "dbt",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "django"
+   ],
+   "expected": [
+    {
+     "key": "DJANGO",
+     "name": "Django",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "elasticsearch"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "fastapi"
+   ],
+   "expected": [
+    {
+     "key": "FASTAPI",
+     "name": "FastAPI",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "flask"
+   ],
+   "expected": [
+    {
+     "key": "FLASK",
+     "name": "Flask",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "gradio"
+   ],
+   "expected": [
+    {
+     "key": "GRADIO",
+     "name": "Gradio",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "graphene"
+   ],
+   "expected": [
+    {
+     "key": "GRAPHQL",
+     "name": "GraphQL",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "grpcio"
+   ],
+   "expected": [
+    {
+     "key": "GRPC",
+     "name": "gRPC",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "huggingface-hub"
+   ],
+   "expected": [
+    {
+     "key": "HUGGING_FACE",
+     "name": "Hugging Face",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "kafka-python"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "keras"
+   ],
+   "expected": [
+    {
+     "key": "KERAS",
+     "name": "Keras",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "kfp"
+   ],
+   "expected": [
+    {
+     "key": "KUBEFLOW",
+     "name": "Kubeflow",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "langchain"
+   ],
+   "expected": [
+    {
+     "key": "LANGCHAIN",
+     "name": "LangChain",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "langchain-core"
+   ],
+   "expected": [
+    {
+     "key": "LANGCHAIN",
+     "name": "LangChain",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "lightgbm"
+   ],
+   "expected": [
+    {
+     "key": "LIGHTGBM",
+     "name": "LightGBM",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "litestar"
+   ],
+   "expected": [
+    {
+     "key": "LITESTAR",
+     "name": "Litestar",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "llama-index"
+   ],
+   "expected": [
+    {
+     "key": "LLAMA_INDEX",
+     "name": "LlamaIndex",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "matplotlib"
+   ],
+   "expected": [
+    {
+     "key": "MATPLOTLIB",
+     "name": "Matplotlib",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "mlflow"
+   ],
+   "expected": [
+    {
+     "key": "MLFLOW",
+     "name": "MLflow",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "mysqlclient"
+   ],
+   "expected": [
+    {
+     "key": "MYSQL",
+     "name": "MySQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "numpy"
+   ],
+   "expected": [
+    {
+     "key": "NUMPY",
+     "name": "NumPy",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "openai"
+   ],
+   "expected": [
+    {
+     "key": "OPENAI_SDK",
+     "name": "OpenAI SDK",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "pandas"
+   ],
+   "expected": [
+    {
+     "key": "PANDAS",
+     "name": "pandas",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "polars"
+   ],
+   "expected": [
+    {
+     "key": "POLARS",
+     "name": "Polars",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "psycopg"
+   ],
+   "expected": [
+    {
+     "key": "POSTGRESQL",
+     "name": "PostgreSQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "psycopg2"
+   ],
+   "expected": [
+    {
+     "key": "POSTGRESQL",
+     "name": "PostgreSQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "psycopg2-binary"
+   ],
+   "expected": [
+    {
+     "key": "POSTGRESQL",
+     "name": "PostgreSQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "pygame"
+   ],
+   "expected": [
+    {
+     "key": "PYGAME",
+     "name": "Pygame",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "pymongo"
+   ],
+   "expected": [
+    {
+     "key": "MONGODB",
+     "name": "MongoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "pymysql"
+   ],
+   "expected": [
+    {
+     "key": "MYSQL",
+     "name": "MySQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "pyspark"
+   ],
+   "expected": [
+    {
+     "key": "PYSPARK",
+     "name": "PySpark",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "pytest"
+   ],
+   "expected": [
+    {
+     "key": "PYTEST",
+     "name": "pytest",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "quart"
+   ],
+   "expected": [
+    {
+     "key": "QUART",
+     "name": "Quart",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "ray"
+   ],
+   "expected": [
+    {
+     "key": "RAY",
+     "name": "Ray",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "redis"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "rpi-gpio"
+   ],
+   "expected": [
+    {
+     "key": "RPI_GPIO",
+     "name": "RPi.GPIO",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "sanic"
+   ],
+   "expected": [
+    {
+     "key": "SANIC",
+     "name": "Sanic",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "scikit-learn"
+   ],
+   "expected": [
+    {
+     "key": "SCIKIT_LEARN",
+     "name": "scikit-learn",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "scrapy"
+   ],
+   "expected": [
+    {
+     "key": "SCRAPY",
+     "name": "Scrapy",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "seaborn"
+   ],
+   "expected": [
+    {
+     "key": "SEABORN",
+     "name": "Seaborn",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "sqlalchemy"
+   ],
+   "expected": [
+    {
+     "key": "SQLALCHEMY",
+     "name": "SQLAlchemy",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "starlite"
+   ],
+   "expected": [
+    {
+     "key": "LITESTAR",
+     "name": "Litestar",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "strawberry-graphql"
+   ],
+   "expected": [
+    {
+     "key": "GRAPHQL",
+     "name": "GraphQL",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "streamlit"
+   ],
+   "expected": [
+    {
+     "key": "STREAMLIT",
+     "name": "Streamlit",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "tensorflow"
+   ],
+   "expected": [
+    {
+     "key": "TENSORFLOW",
+     "name": "TensorFlow",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "torch"
+   ],
+   "expected": [
+    {
+     "key": "PYTORCH",
+     "name": "PyTorch",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "tornado"
+   ],
+   "expected": [
+    {
+     "key": "TORNADO",
+     "name": "Tornado",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "transformers"
+   ],
+   "expected": [
+    {
+     "key": "HUGGING_FACE",
+     "name": "Hugging Face",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "vllm"
+   ],
+   "expected": [
+    {
+     "key": "VLLM",
+     "name": "vLLM",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "websockets"
+   ],
+   "expected": [
+    {
+     "key": "WEBSOCKET",
+     "name": "WebSocket",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "single",
+   "input": [
+    "xgboost"
+   ],
+   "expected": [
+    {
+     "key": "XGBOOST",
+     "name": "XGBoost",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "co.elastic.clients:core"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.badlogicgames.gdx:core"
+   ],
+   "expected": [
+    {
+     "key": "LIBGDX",
+     "name": "LibGDX",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.clickhouse:core"
+   ],
+   "expected": [
+    {
+     "key": "CLICKHOUSE",
+     "name": "ClickHouse",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.datastax.oss:core"
+   ],
+   "expected": [
+    {
+     "key": "CASSANDRA",
+     "name": "Cassandra",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.graphql-java:core"
+   ],
+   "expected": [
+    {
+     "key": "GRAPHQL",
+     "name": "GraphQL",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.linecorp.armeria:core"
+   ],
+   "expected": [
+    {
+     "key": "ARMERIA",
+     "name": "Armeria",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.microsoft.sqlserver:core"
+   ],
+   "expected": [
+    {
+     "key": "SQLSERVER",
+     "name": "Microsoft SQL Server",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.mysql:core"
+   ],
+   "expected": [
+    {
+     "key": "MYSQL",
+     "name": "MySQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.oracle.database.jdbc:core"
+   ],
+   "expected": [
+    {
+     "key": "ORACLE_DB",
+     "name": "Oracle Database",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.querydsl:core"
+   ],
+   "expected": [
+    {
+     "key": "QUERYDSL",
+     "name": "QueryDSL",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.sparkjava:core"
+   ],
+   "expected": [
+    {
+     "key": "SPARK_JAVA",
+     "name": "Spark Java",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.typesafe.play:core"
+   ],
+   "expected": [
+    {
+     "key": "PLAY",
+     "name": "Play Framework",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "com.vaadin:core"
+   ],
+   "expected": [
+    {
+     "key": "VAADIN",
+     "name": "Vaadin",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "io.dropwizard:core"
+   ],
+   "expected": [
+    {
+     "key": "DROPWIZARD",
+     "name": "Dropwizard",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "io.grpc:core"
+   ],
+   "expected": [
+    {
+     "key": "GRPC",
+     "name": "gRPC",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "io.helidon:core"
+   ],
+   "expected": [
+    {
+     "key": "HELIDON",
+     "name": "Helidon",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "io.helidon.microprofile:core"
+   ],
+   "expected": [
+    {
+     "key": "HELIDON",
+     "name": "Helidon",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "io.helidon.webserver:core"
+   ],
+   "expected": [
+    {
+     "key": "HELIDON",
+     "name": "Helidon",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "io.javalin:core"
+   ],
+   "expected": [
+    {
+     "key": "JAVALIN",
+     "name": "Javalin",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "io.ktor:core"
+   ],
+   "expected": [
+    {
+     "key": "KTOR",
+     "name": "Ktor",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "io.lettuce:core"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "io.micronaut:core"
+   ],
+   "expected": [
+    {
+     "key": "MICRONAUT",
+     "name": "Micronaut",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "io.quarkus:core"
+   ],
+   "expected": [
+    {
+     "key": "QUARKUS",
+     "name": "Quarkus",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "io.vertx:core"
+   ],
+   "expected": [
+    {
+     "key": "VERTX",
+     "name": "Vert.x",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "jakarta.persistence:core"
+   ],
+   "expected": [
+    {
+     "key": "JPA",
+     "name": "JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "javax.persistence:core"
+   ],
+   "expected": [
+    {
+     "key": "JPA",
+     "name": "JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "mysql:core"
+   ],
+   "expected": [
+    {
+     "key": "MYSQL",
+     "name": "MySQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.apache.kafka:core"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.apache.spark:core"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_SPARK",
+     "name": "Apache Spark",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.axonframework:core"
+   ],
+   "expected": [
+    {
+     "key": "AXON",
+     "name": "Axon Framework",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.deeplearning4j:core"
+   ],
+   "expected": [
+    {
+     "key": "DEEPLEARNING4J",
+     "name": "Deeplearning4j",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.elasticsearch:core"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.grails:core"
+   ],
+   "expected": [
+    {
+     "key": "GRAILS",
+     "name": "Grails",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.hibernate:core"
+   ],
+   "expected": [
+    {
+     "key": "HIBERNATE",
+     "name": "Hibernate",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.hibernate.orm:core"
+   ],
+   "expected": [
+    {
+     "key": "HIBERNATE",
+     "name": "Hibernate",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.junit.jupiter:core"
+   ],
+   "expected": [
+    {
+     "key": "JUNIT5",
+     "name": "JUnit 5",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.mapstruct:core"
+   ],
+   "expected": [
+    {
+     "key": "MAPSTRUCT",
+     "name": "MapStruct",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.mariadb.jdbc:core"
+   ],
+   "expected": [
+    {
+     "key": "MARIADB",
+     "name": "MariaDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.mockito:core"
+   ],
+   "expected": [
+    {
+     "key": "MOCKITO",
+     "name": "Mockito",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.mongodb:core"
+   ],
+   "expected": [
+    {
+     "key": "MONGODB",
+     "name": "MongoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.mybatis:core"
+   ],
+   "expected": [
+    {
+     "key": "MYBATIS",
+     "name": "MyBatis",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.mybatis.spring.boot:core"
+   ],
+   "expected": [
+    {
+     "key": "MYBATIS",
+     "name": "MyBatis",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.nd4j:core"
+   ],
+   "expected": [
+    {
+     "key": "DEEPLEARNING4J",
+     "name": "Deeplearning4j",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.playframework:core"
+   ],
+   "expected": [
+    {
+     "key": "PLAY",
+     "name": "Play Framework",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.postgresql:core"
+   ],
+   "expected": [
+    {
+     "key": "POSTGRESQL",
+     "name": "PostgreSQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.springframework:core"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_FRAMEWORK",
+     "name": "Spring Framework",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.springframework.boot:core"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.springframework.cloud:core"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_CLOUD",
+     "name": "Spring Cloud",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.springframework.data:core"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.springframework.graphql:core"
+   ],
+   "expected": [
+    {
+     "key": "GRAPHQL",
+     "name": "GraphQL",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.springframework.kafka:core"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.springframework.security:core"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_SECURITY",
+     "name": "Spring Security",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "org.testcontainers:core"
+   ],
+   "expected": [
+    {
+     "key": "TESTCONTAINERS",
+     "name": "Testcontainers",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "redis.clients:core"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single",
+   "input": [
+    "software.amazon.awssdk.dynamodb:core"
+   ],
+   "expected": [
+    {
+     "key": "DYNAMODB",
+     "name": "DynamoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "org.springframework.boot.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "io.quarkus.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "QUARKUS",
+     "name": "Quarkus",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "io.micronaut.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "MICRONAUT",
+     "name": "Micronaut",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "io.vertx.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "VERTX",
+     "name": "Vert.x",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "io.helidon.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "HELIDON",
+     "name": "Helidon",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "io.ktor.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "KTOR",
+     "name": "Ktor",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "com.typesafe.play.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "PLAY",
+     "name": "Play Framework",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "io.dropwizard.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "DROPWIZARD",
+     "name": "Dropwizard",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "org.grails.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "GRAILS",
+     "name": "Grails",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "io.javalin.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "JAVALIN",
+     "name": "Javalin",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "com.sparkjava.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "SPARK_JAVA",
+     "name": "Spark Java",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "com.vaadin.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "VAADIN",
+     "name": "Vaadin",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "org.axonframework.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "AXON",
+     "name": "Axon Framework",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "com.linecorp.armeria.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "ARMERIA",
+     "name": "Armeria",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "org.springframework.data.sub:core"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "org.springframework.security.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_SECURITY",
+     "name": "Spring Security",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "org.springframework.cloud.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_CLOUD",
+     "name": "Spring Cloud",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "org.springframework.kafka.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-prefix",
+   "input": [
+    "org.springframework.sub:core"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_FRAMEWORK",
+     "name": "Spring Framework",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-security"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    },
+    {
+     "key": "SPRING_SECURITY",
+     "name": "Spring Security",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-security-reactive"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    },
+    {
+     "key": "SPRING_SECURITY",
+     "name": "Spring Security",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-oauth2-"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    },
+    {
+     "key": "SPRING_SECURITY",
+     "name": "Spring Security",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-oauth2-client"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    },
+    {
+     "key": "SPRING_SECURITY",
+     "name": "Spring Security",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-data-jpa"
+   ],
+   "expected": [
+    {
+     "key": "JPA",
+     "name": "JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    },
+    {
+     "key": "SPRING_DATA_JPA",
+     "name": "Spring Data JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-data-jpa-reactive"
+   ],
+   "expected": [
+    {
+     "key": "JPA",
+     "name": "JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    },
+    {
+     "key": "SPRING_DATA_JPA",
+     "name": "Spring Data JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-data-mongodb"
+   ],
+   "expected": [
+    {
+     "key": "MONGODB",
+     "name": "MongoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-data-mongodb-reactive"
+   ],
+   "expected": [
+    {
+     "key": "MONGODB",
+     "name": "MongoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-data-redis"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-data-redis-reactive"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-data-elasticsearch"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-data-elasticsearch-reactive"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-data-cassandra"
+   ],
+   "expected": [
+    {
+     "key": "CASSANDRA",
+     "name": "Cassandra",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-data-cassandra-reactive"
+   ],
+   "expected": [
+    {
+     "key": "CASSANDRA",
+     "name": "Cassandra",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-graphql"
+   ],
+   "expected": [
+    {
+     "key": "GRAPHQL",
+     "name": "GraphQL",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-graphql-reactive"
+   ],
+   "expected": [
+    {
+     "key": "GRAPHQL",
+     "name": "GraphQL",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-websocket"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    },
+    {
+     "key": "WEBSOCKET",
+     "name": "WebSocket",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-websocket-reactive"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    },
+    {
+     "key": "WEBSOCKET",
+     "name": "WebSocket",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-kafka"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-kafka-reactive"
+   ],
+   "expected": [
+    {
+     "key": "APACHE_KAFKA",
+     "name": "Apache Kafka",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.data:spring-data-jpa"
+   ],
+   "expected": [
+    {
+     "key": "JPA",
+     "name": "JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_DATA_JPA",
+     "name": "Spring Data JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.data:spring-data-jpa-reactive"
+   ],
+   "expected": [
+    {
+     "key": "JPA",
+     "name": "JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_DATA_JPA",
+     "name": "Spring Data JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.data:spring-data-mongodb"
+   ],
+   "expected": [
+    {
+     "key": "MONGODB",
+     "name": "MongoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.data:spring-data-mongodb-reactive"
+   ],
+   "expected": [
+    {
+     "key": "MONGODB",
+     "name": "MongoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.data:spring-data-redis"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.data:spring-data-redis-reactive"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.data:spring-data-elasticsearch"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.data:spring-data-elasticsearch-reactive"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.data:spring-data-cassandra"
+   ],
+   "expected": [
+    {
+     "key": "CASSANDRA",
+     "name": "Cassandra",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "single-artifact",
+   "input": [
+    "org.springframework.data:spring-data-cassandra-reactive"
+   ],
+   "expected": [
+    {
+     "key": "CASSANDRA",
+     "name": "Cassandra",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "combo",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-web",
+    "org.springframework:spring-context"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "combo",
+   "input": [
+    "org.springframework:spring-context"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_FRAMEWORK",
+     "name": "Spring Framework",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "combo",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-data-jpa",
+    "org.springframework.boot:spring-boot-starter-security"
+   ],
+   "expected": [
+    {
+     "key": "JPA",
+     "name": "JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    },
+    {
+     "key": "SPRING_DATA_JPA",
+     "name": "Spring Data JPA",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SPRING_SECURITY",
+     "name": "Spring Security",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "edge",
+   "input": [
+    "org.springframework.bootx:core"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_FRAMEWORK",
+     "name": "Spring Framework",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "maven",
+   "kind": "edge",
+   "input": [
+    "org.springframework.boot"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "combo",
+   "input": [
+    "next",
+    "react",
+    "react-dom",
+    "typescript"
+   ],
+   "expected": [
+    {
+     "key": "NEXTJS",
+     "name": "Next.js",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    },
+    {
+     "key": "REACT",
+     "name": "React",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "edge",
+   "input": [
+    "React"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "edge",
+   "input": [
+    "@mui/material",
+    "@mui/icons-material"
+   ],
+   "expected": [
+    {
+     "key": "MATERIAL_UI",
+     "name": "Material UI",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "edge",
+   "input": [
+    "Django"
+   ],
+   "expected": [
+    {
+     "key": "DJANGO",
+     "name": "Django",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "edge",
+   "input": [
+    "scikit_learn"
+   ],
+   "expected": [
+    {
+     "key": "SCIKIT_LEARN",
+     "name": "scikit-learn",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pypi",
+   "kind": "edge",
+   "input": [
+    "Flask.SQLAlchemy"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "cargo",
+   "kind": "edge",
+   "input": [
+    "Tokio"
+   ],
+   "expected": [
+    {
+     "key": "TOKIO",
+     "name": "Tokio",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "go",
+   "kind": "edge",
+   "input": [
+    "github.com/gin-gonic/gin/v2"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "edge",
+   "input": [
+    "bad name"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "edge",
+   "input": [
+    "evil\"name"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "edge",
+   "input": [
+    "left-pad"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "unknown",
+   "kind": "edge",
+   "input": [
+    "react"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "npm",
+   "kind": "edge",
+   "input": [],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "Dockerfile"
+   ],
+   "expected": [
+    {
+     "key": "DOCKER",
+     "name": "Docker",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "docker/Dockerfile"
+   ],
+   "expected": [
+    {
+     "key": "DOCKER",
+     "name": "Docker",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "Dockerfile.prod"
+   ],
+   "expected": [
+    {
+     "key": "DOCKER",
+     "name": "Docker",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "infra/Dockerfile.dev"
+   ],
+   "expected": [
+    {
+     "key": "DOCKER",
+     "name": "Docker",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "dockerfile"
+   ],
+   "expected": [
+    {
+     "key": "DOCKER",
+     "name": "Docker",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "Dockerfile.md"
+   ],
+   "expected": [
+    {
+     "key": "DOCKER",
+     "name": "Docker",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "main.tf"
+   ],
+   "expected": [
+    {
+     "key": "TERRAFORM",
+     "name": "Terraform",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "infra/vpc.tf"
+   ],
+   "expected": [
+    {
+     "key": "TERRAFORM",
+     "name": "Terraform",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "prod.tfvars"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "infra\\main.tf"
+   ],
+   "expected": [
+    {
+     "key": "TERRAFORM",
+     "name": "Terraform",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "Chart.yaml"
+   ],
+   "expected": [
+    {
+     "key": "HELM",
+     "name": "Helm",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "KUBERNETES",
+     "name": "Kubernetes",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "deploy/helm/Chart.yaml"
+   ],
+   "expected": [
+    {
+     "key": "HELM",
+     "name": "Helm",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "KUBERNETES",
+     "name": "Kubernetes",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "CHART.YAML"
+   ],
+   "expected": [
+    {
+     "key": "HELM",
+     "name": "Helm",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "KUBERNETES",
+     "name": "Kubernetes",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "helmfile.yaml"
+   ],
+   "expected": [
+    {
+     "key": "HELM",
+     "name": "Helm",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "KUBERNETES",
+     "name": "Kubernetes",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "bun.lockb"
+   ],
+   "expected": [
+    {
+     "key": "BUN",
+     "name": "Bun",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "nx.json"
+   ],
+   "expected": [
+    {
+     "key": "NX",
+     "name": "Nx",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "turbo.json"
+   ],
+   "expected": [
+    {
+     "key": "TURBOREPO",
+     "name": "Turborepo",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "CMakeLists.txt"
+   ],
+   "expected": [
+    {
+     "key": "CMAKE",
+     "name": "CMake",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "native/CMakeLists.txt"
+   ],
+   "expected": [
+    {
+     "key": "CMAKE",
+     "name": "CMake",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "AndroidManifest.xml"
+   ],
+   "expected": [
+    {
+     "key": "ANDROID_NATIVE",
+     "name": "Android Native",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "app/src/main/AndroidManifest.xml"
+   ],
+   "expected": [
+    {
+     "key": "ANDROID_NATIVE",
+     "name": "Android Native",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "android/app/src/main/AndroidManifest.xml"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "ios/Runner/Dockerfile"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "mobile/android/build/Dockerfile"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "src/App.vue"
+   ],
+   "expected": [
+    {
+     "key": "VUEJS",
+     "name": "Vue.js",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "src/Comp.SVELTE"
+   ],
+   "expected": [
+    {
+     "key": "SVELTE",
+     "name": "Svelte",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "README.md"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "src/main.rs"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "Dockerfile",
+    "infra/main.tf",
+    "deploy/Chart.yaml",
+    "web/src/App.vue",
+    "android/AndroidManifest.xml",
+    "turbo.json"
+   ],
+   "expected": [
+    {
+     "key": "DOCKER",
+     "name": "Docker",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "HELM",
+     "name": "Helm",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "KUBERNETES",
+     "name": "Kubernetes",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "TERRAFORM",
+     "name": "Terraform",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "TURBOREPO",
+     "name": "Turborepo",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "VUEJS",
+     "name": "Vue.js",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  }
+ ]
+}

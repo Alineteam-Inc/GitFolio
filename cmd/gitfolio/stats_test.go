@@ -168,52 +168,115 @@ func TestDevTypeArt(t *testing.T) {
 	}
 }
 
-// stack shows aline.team's tech stack periods in one table, asked for each time.
+// stack works the tech stack out on this computer, with no login and nothing sent, as aline.team does per
+// repository: languages by file, techs a file's presence or the approved dependencies show, each counted
+// once per repository with the span and months of the user's commits there.
 func TestStack(t *testing.T) {
-	f := &fakeAline{token: testToken, techUsages: map[string]any{
-		"languages":  []map[string]any{{"name": "Go", "startDate": "2025-03-02T10:00:00", "endDate": "2026-10-05T09:00:00", "careerMonths": 20, "projectCount": 3}},
-		"frameworks": []map[string]any{{"name": "Spring Boot", "framework": "SPRING_BOOT", "startDate": "2024-01-10T10:00:00", "endDate": "2025-12-01T10:00:00", "careerMonths": 23, "projectCount": 1, "isHidden": true}},
-		"libraries":  []map[string]any{},
-	}}
-	ts := httptest.NewServer(f.handler())
-	defer ts.Close()
-	t.Setenv("GITFOLIO_API_URL", ts.URL)
 	t.Setenv("GITFOLIO_LANG", "en")
 	var buf bytes.Buffer
-	defer func(o, e io.Writer) { out, errOut = o, e }(out, errOut)
+	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
 	out, errOut = &buf, &buf
-	dir := t.TempDir()
-	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}); err != nil {
+	dir := t.TempDir() // no login: none is needed
+	commit := func(repo, date string, files ...string) Commit {
+		c := Commit{Repo: repo, Hash: date, Date: date}
+		for _, f := range files {
+			c.Files = append(c.Files, FileStat{Name: f, Add: 1})
+		}
+		return c
+	}
+	api, web := Repo{ID: "api", Name: "api"}, Repo{ID: "web", Name: "web"}
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(saveRepos(dir, []Repo{api, web}))
+	must(writeCommits(dir, []Commit{
+		commit("api", "2024-01-15T10:00:00Z", "src/App.java", "Dockerfile"),
+		commit("api", "2024-03-20T09:00:00Z", "src/Svc.java"),
+		commit("web", "2024-02-01T00:00:00Z", "app.ts", "Dockerfile.prod"),
+		commit("web", "2024-06-01T00:00:00Z", "app.ts", "logo.png"),
+	}))
+	must(saveJSON(filepath.Join(dir, "deps.json"), []Dependency{
+		{Repo: "api", Ecosystem: "maven", Name: "org.springframework.boot:spring-boot-starter-data-jpa"},
+		{Repo: "api", Ecosystem: "maven", Name: "org.springframework:spring-core"}, // under Spring Boot: not its own
+		{Repo: "web", Ecosystem: "npm", Name: "react"},
+		{Repo: "web", Ecosystem: "npm", Name: "@reduxjs/toolkit"},
+	}))
+	v, err := jsonStdout(t, func() error { return cmdStack(dir, []string{"--json"}) })
+	if err != nil {
 		t.Fatal(err)
 	}
+	byName := map[string]map[string]any{}
+	names := map[string][]string{}
+	for _, list := range []string{"languages", "frameworks", "libraries"} {
+		for _, it := range v[list].([]any) {
+			m := it.(map[string]any)
+			byName[m["name"].(string)] = m
+			names[list] = append(names[list], m["name"].(string))
+		}
+	}
+	if fmt.Sprint(names) != "map[frameworks:[Spring Boot] languages:[Java TypeScript] libraries:[Docker JPA React Redux Spring Data JPA]]" {
+		t.Errorf("stack: %v", names)
+	}
+	if d := byName["Docker"]; d["projectCount"] != 2.0 || d["startDate"] != "2024-01-15T10:00:00" || d["endDate"] != "2024-06-01T00:00:00" ||
+		d["careerMonths"] != 4.0 || fmt.Sprint(d["activityMonths"]) != "[2024-01 2024-02 2024-03 2024-06]" {
+		t.Errorf("Docker, in both repositories: %v", d) // Jan 15–Jun 1 merged: 4 whole months
+	}
+	if j := byName["Java"]; j["projectCount"] != 1.0 || j["careerMonths"] != 2.0 || fmt.Sprint(j["activityMonths"]) != "[2024-01 2024-03]" {
+		t.Errorf("Java: %v", j) // Jan 15 10:00 to Mar 20 09:00: 2 whole months
+	}
+
+	jsonOut, out = false, &buf // one command per process otherwise
 	if err := cmdStack(dir, nil); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"KIND", "language", "Go", "2025-03", "2026-10", "framework", "Spring Boot *", "2024-01", "* hidden on your aline.team profile"} {
+	for _, want := range []string{"KIND", "language", "Java", "2024-01", "2024-03", "framework", "Spring Boot", "library", "Redux"} {
 		if !strings.Contains(buf.String(), want) {
 			t.Errorf("stack shows no %q:\n%s", want, buf.String())
 		}
 	}
-	f.techUsages = map[string]any{"languages": []any{}, "frameworks": []any{}, "libraries": []any{}}
 	buf.Reset()
-	if err := cmdStack(dir, nil); err != nil || !strings.Contains(buf.String(), "no tech stack") {
+	if err := cmdStack(t.TempDir(), nil); err != nil || !strings.Contains(buf.String(), "No tech stack yet") {
 		t.Errorf("empty stack: %v\n%s", err, buf.String())
 	}
-	if cmdStack(dir, []string{"--all"}) == nil {
-		t.Error("an argument was taken")
+	for _, args := range [][]string{{"--all"}, {"--json", "--all"}} {
+		if cmdStack(dir, args) == nil {
+			t.Errorf("stack %v was taken", args)
+		}
 	}
-	f.noStats = true // a server without it yet
-	buf.Reset()
-	if err := cmdStack(dir, nil); err != nil || !strings.Contains(buf.String(), "does not give the CLI") {
-		t.Errorf("server without tech stack periods: %v\n%s", err, buf.String())
+}
+
+// Whole months as java.time counts them, over spans merged where they overlap or touch.
+func TestMergedMonths(t *testing.T) {
+	at := func(s string) time.Time { v, _ := time.Parse(time.RFC3339, s); return v }
+	for _, c := range []struct {
+		spans [][2]string
+		want  int
+	}{
+		{[][2]string{{"2024-01-15T10:00:00Z", "2024-03-15T09:00:00Z"}}, 1}, // the time of day not reached yet
+		{[][2]string{{"2024-01-15T10:00:00Z", "2024-03-15T10:00:00Z"}}, 2},
+		{[][2]string{{"2024-01-31T00:00:00Z", "2024-02-29T00:00:00Z"}}, 0},
+		{[][2]string{{"2024-01-01T00:00:00Z", "2024-01-01T00:00:00Z"}}, 0},
+		{[][2]string{{"2024-01-01T00:00:00Z", "2024-03-01T00:00:00Z"}, {"2024-02-01T00:00:00Z", "2024-05-01T00:00:00Z"},
+			{"2024-07-01T00:00:00Z", "2024-08-01T00:00:00Z"}}, 5},
+		{[][2]string{{"2024-02-01T00:00:00Z", "2024-03-01T00:00:00Z"}, {"2024-01-01T00:00:00Z", "2024-02-01T00:00:00Z"}}, 2}, // touching
+	} {
+		var spans [][2]time.Time
+		for _, s := range c.spans {
+			spans = append(spans, [2]time.Time{at(s[0]), at(s[1])})
+		}
+		if got := mergedMonths(spans); got != c.want {
+			t.Errorf("%v: %d, want %d", c.spans, got, c.want)
+		}
 	}
 }
 
 // stats and stack --json print one JSON document on stdout for programs, and what people read goes
 // to stderr. A failure is printed by main, with the code errorCode gives.
 func TestStatsJSON(t *testing.T) {
-	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "ARCHITECT", "agilityStat": 72, "devTypeReason": "because"},
-		techUsages: map[string]any{"languages": []map[string]any{{"name": "Go", "careerMonths": 20}}}}
+	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "ARCHITECT", "agilityStat": 72, "devTypeReason": "because"}}
 	ts := httptest.NewServer(f.handler())
 	defer ts.Close()
 	t.Setenv("GITFOLIO_API_URL", ts.URL)
@@ -248,21 +311,6 @@ func TestStatsJSON(t *testing.T) {
 		t.Errorf("stats --json, nothing yet: %v %v", v, err)
 	}
 
-	v, err = stdout(cmdStack, "--json")
-	langs, _ := v["languages"].([]any)
-	if fw, ok := v["frameworks"].([]any); err != nil || len(langs) != 1 || langs[0].(map[string]any)["name"] != "Go" || !ok || len(fw) != 0 {
-		t.Errorf("stack --json: %v %v", v, err)
-	}
-	for _, args := range [][]string{{"--all"}, {"--json", "--all"}} {
-		if cmdStack(dir, args) == nil {
-			t.Errorf("stack %v was taken", args)
-		}
-	}
-	f.noStats = true
-	if v, err := stdout(cmdStack, "--json"); v != nil || errorCode(err) != "stackUnavailable" {
-		t.Errorf("stack --json, server without it: %v %v", v, err)
-	}
-
 	for err, want := range map[error]string{
 		failure("loginFirst"): "loginFirst",
 		fmt.Errorf("%w again", &apiError{Status: 401, Code: codeTokenInvalid}): "loginFirst",
@@ -278,8 +326,7 @@ func TestStatsJSON(t *testing.T) {
 // In local mode stats and stack send the statistics first; with --json only their own result goes to
 // stdout, not the sync's as a second document.
 func TestLocalModeJSON(t *testing.T) {
-	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "BUILDER"},
-		techUsages: map[string]any{"languages": []map[string]any{{"name": "Go"}}}}
+	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "BUILDER"}}
 	ts := httptest.NewServer(f.handler())
 	defer ts.Close()
 	t.Setenv("GITFOLIO_API_URL", ts.URL)
@@ -312,47 +359,5 @@ func TestLocalModeJSON(t *testing.T) {
 	}
 	if _, ok := f.stats["GITHUB/me/app"]; !ok {
 		t.Error("the statistics were not sent first")
-	}
-}
-
-// stack --json adds the months each tech was used in, matched by kind and name, when aline.team gives
-// them; a server without them yet gives the periods alone.
-func TestStackActivityMonths(t *testing.T) {
-	f := &fakeAline{token: testToken, techUsages: map[string]any{
-		"languages":  []map[string]any{{"name": "Go"}, {"name": "Java"}},
-		"frameworks": []map[string]any{{"name": "Spring Boot", "framework": "SPRING_BOOT"}},
-	}}
-	ts := httptest.NewServer(f.handler())
-	defer ts.Close()
-	t.Setenv("GITFOLIO_API_URL", ts.URL)
-	t.Setenv("GITFOLIO_LANG", "en")
-	var buf bytes.Buffer
-	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
-	out, errOut = &buf, &buf
-	dir := t.TempDir()
-	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}); err != nil {
-		t.Fatal(err)
-	}
-	stack := func() map[string]any {
-		t.Helper()
-		v, err := jsonStdout(t, func() error { return cmdStack(dir, []string{"--json"}) })
-		if err != nil {
-			t.Fatal(err)
-		}
-		return v
-	}
-	if langs := stack()["languages"].([]any); langs[0].(map[string]any)["activityMonths"] != nil {
-		t.Errorf("months from a server without them: %v", langs)
-	}
-	f.months = map[string]any{
-		"languages":  []map[string]any{{"name": "Java", "activityMonths": []string{"2024-01", "2024-03"}}},
-		"frameworks": []map[string]any{{"name": "Spring Boot", "activityMonths": []string{"2025-06"}}},
-		"libraries":  []map[string]any{{"name": "Go", "activityMonths": []string{"1999-01"}}}, // another kind: not Go the language
-	}
-	v := stack()
-	langs, fws := v["languages"].([]any), v["frameworks"].([]any)
-	if langs[0].(map[string]any)["activityMonths"] != nil || fmt.Sprint(langs[1].(map[string]any)["activityMonths"]) != "[2024-01 2024-03]" ||
-		fmt.Sprint(fws[0].(map[string]any)["activityMonths"]) != "[2025-06]" {
-		t.Errorf("activity months: %v", v)
 	}
 }

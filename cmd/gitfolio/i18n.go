@@ -251,11 +251,6 @@ var appMessages = map[string]map[string]string{
 		"ko": "%s(으)로 된 aline.team 계정이 아직 없습니다. 가입하려면 약관 동의가 필요합니다.\n",
 		"ja": "%s の aline.team アカウントはまだありません。登録には規約への同意が必要です。\n",
 	},
-	"stackUnavailable": {
-		"en": "aline.team does not give tech stack periods here yet. They are on your aline.team profile.\n",
-		"ko": "aline.team이 아직 이곳에 기술 스택 기간을 주지 않습니다. aline.team 프로필에서 볼 수 있습니다.\n",
-		"ja": "aline.team はまだここに技術スタックの期間を提供していません。aline.team のプロフィールで確認できます。\n",
-	},
 	"statsSlow": {
 		"en": "aline.team is still making your developer type. It keeps it when done; try again in a minute.\n",
 		"ko": "aline.team이 아직 개발자 유형을 만드는 중입니다. 다 만들면 aline.team에 저장되니 잠시 뒤 다시 시도하세요.\n",
@@ -285,7 +280,7 @@ var messages = map[string]map[string]string{
    changed files per language, and later changes to files you
    created) are made on this computer and sent as well. In
    local mode only these are sent, when you look up your
-   developer type or tech stack, or sync.
+   developer type, or sync.
  - Sensitive parts of commit messages (tokens, URLs, emails,
    ticket numbers, blocked words) are masked on this computer.
    Data is sent to aline.team (Alineteam Inc., United States)
@@ -303,7 +298,7 @@ var messages = map[string]map[string]string{
    의존성 파악에만 사용합니다. 찾은 의존성의 이름만(버전·내용 제외) 보냅니다.
  - 저장소별 일 단위 통계(커밋 수, 언어별 변경 파일 수, 내가 만든
    파일의 이후 변경 수)를 이 컴퓨터에서 만들어 함께 보냅니다.
-   로컬 모드에서는 개발자 유형·기술 스택을 볼 때나 동기화할 때 이 통계만 보냅니다.
+   로컬 모드에서는 개발자 유형을 볼 때나 동기화할 때 이 통계만 보냅니다.
  - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
    이 컴퓨터에서 가립니다. 데이터는 git push 직후와 동기화할 때
    aline.team(Alineteam Inc., 미국)으로 전송되며
@@ -321,7 +316,7 @@ var messages = map[string]map[string]string{
    依存関係の名前のみ(バージョン・内容を除く)を送信します。
  - リポジトリごとの日単位の統計(コミット数、言語別の変更ファイル数、
    自分が作成したファイルのその後の変更数)をこのコンピューターで作成し、
-   あわせて送信します。ローカルモードでは、開発者タイプ・技術スタックを
+   あわせて送信します。ローカルモードでは、開発者タイプを
    見るときや同期するときに、この統計のみを送信します。
  - コミットメッセージの機密部分(トークン・URL・メールアドレス・
    チケット番号・ブロックワード)はこのコンピューターでマスキングします。
@@ -502,9 +497,9 @@ var messages = map[string]map[string]string{
 		"ja": "依存関係の分析では、リポジトリごとにあなたが選んだパッケージマネージャーのファイル\n(package.json、go.mod、pom.xml、build.gradle など)のみを、依存関係の把握のためだけに読み取ります。\n依存関係の名前とバージョンのみを保持し、そのうち自分のコミットが変更したモジュールの依存関係の名前だけを\naline.team に送信して技術スタックに加えます。ファイルの内容とパスは保存も送信もしません。\n読むのは求められたときだけです: 承認した直後、`gitfolio deps scan` の実行時、オンにした場合は scan・sync・予約同期のとき\n(`gitfolio deps auto on`)。push のときは読みません。\n",
 	},
 	"syncModeNotice": {
-		"en": "Choose how GitFolio syncs with aline.team.\nAutomatic: sends right after each git push, and every day if you schedule it, so your profile stays current.\nLocal mode: sends nothing by itself; `gitfolio stats` and `gitfolio stack` send your statistics when you run them and show your developer type and tech stack periods.\n",
-		"ko": "aline.team과 동기화하는 방식을 고릅니다.\n자동 동기화: git push 직후에, 예약했다면 매일도 보내 프로필을 최신으로 유지합니다.\n로컬 모드: 스스로는 보내지 않습니다. `gitfolio stats`·`gitfolio stack`을 실행할 때만 통계를 보내 개발자 유형과 기술 스택 기간을 보여 줍니다.\n",
-		"ja": "aline.team との同期方法を選びます。\n自動同期: git push の直後と、予約すれば毎日送信し、プロフィールを最新に保ちます。\nローカルモード: 自分からは送信しません。`gitfolio stats`・`gitfolio stack` を実行したときだけ統計を送り、開発者タイプと技術スタックの期間を表示します。\n",
+		"en": "Choose how GitFolio syncs with aline.team.\nAutomatic: sends right after each git push, and every day if you schedule it, so your profile stays current.\nLocal mode: sends nothing by itself; `gitfolio stats` sends your statistics when you run it and shows your developer type.\n`gitfolio stack` works your tech stack out on this computer in either mode.\n",
+		"ko": "aline.team과 동기화하는 방식을 고릅니다.\n자동 동기화: git push 직후에, 예약했다면 매일도 보내 프로필을 최신으로 유지합니다.\n로컬 모드: 스스로는 보내지 않습니다. `gitfolio stats`를 실행할 때만 통계를 보내 개발자 유형을 보여 줍니다.\n`gitfolio stack`은 어느 방식에서나 이 컴퓨터에서 기술 스택을 계산합니다.\n",
+		"ja": "aline.team との同期方法を選びます。\n自動同期: git push の直後と、予約すれば毎日送信し、プロフィールを最新に保ちます。\nローカルモード: 自分からは送信しません。`gitfolio stats` を実行したときだけ統計を送り、開発者タイプを表示します。\n`gitfolio stack` はどちらの方式でも、このコンピューターで技術スタックを計算します。\n",
 	},
 	"syncModeAsk": {
 		"en": "Sync automatically? (No = local mode)",
@@ -1134,24 +1129,14 @@ var messages = map[string]map[string]string{
 		"ja": "aline.team は新しい形式の統計のみを受け付けるようになりました。`gitfolio update` で更新すると送信します。\n",
 	},
 	"stackTitle": {
-		"en": "Your tech stack on aline.team, from the first to the last commit of the repositories using each:\n",
-		"ko": "aline.team의 기술 스택 사용 기간입니다. 각 기술을 쓴 저장소의 첫 커밋부터 마지막 커밋까지:\n",
-		"ja": "aline.team の技術スタックの使用期間です。各技術を使ったリポジトリの最初から最後のコミットまで:\n",
+		"en": "Your tech stack from the registered repositories, from your first to your last commit in the repositories using each:\n",
+		"ko": "등록한 저장소로 만든 기술 스택입니다. 각 기술을 쓴 저장소에서 내 첫 커밋부터 마지막 커밋까지:\n",
+		"ja": "登録したリポジトリから作った技術スタックです。各技術を使ったリポジトリでの自分の最初から最後のコミットまで:\n",
 	},
 	"stackEmpty": {
-		"en": "aline.team has no tech stack for you yet. It comes from the repositories you send (`gitfolio sync`).\n",
-		"ko": "aline.team에 아직 기술 스택이 없습니다. 보낸 저장소에서 만들어집니다(`gitfolio sync`).\n",
-		"ja": "aline.team にはまだ技術スタックがありません。送信したリポジトリから作られます(`gitfolio sync`)。\n",
-	},
-	"stackUnavailable": {
-		"en": "aline.team does not give the CLI tech stack periods yet. They are on your aline.team profile.\n",
-		"ko": "aline.team이 아직 CLI에 기술 스택 기간을 주지 않습니다. aline.team 프로필에서 볼 수 있습니다.\n",
-		"ja": "aline.team はまだ CLI に技術スタックの期間を提供していません。aline.team のプロフィールで確認できます。\n",
-	},
-	"stackHidden": {
-		"en": "* hidden on your aline.team profile\n",
-		"ko": "* aline.team 프로필에서 숨긴 기술\n",
-		"ja": "* aline.team のプロフィールで非表示にした技術\n",
+		"en": "No tech stack yet. It comes from your commits in the registered repositories (`gitfolio add`).\n",
+		"ko": "아직 기술 스택이 없습니다. 등록한 저장소의 내 커밋에서 만들어집니다(`gitfolio add`).\n",
+		"ja": "まだ技術スタックがありません。登録したリポジトリの自分のコミットから作られます(`gitfolio add`)。\n",
 	},
 	"statsRejected": {
 		"en": "aline.team did not accept the statistics of %s; they are sent again when they change: %v\n",
@@ -1194,9 +1179,9 @@ var messages = map[string]map[string]string{
 		"ja": "同期: %s\n",
 	},
 	"localModeOnce": {
-		"en": "Since GitFolio 0.6.0, autosync off is local mode: `gitfolio stats`, `stack` and `sync` send daily\nstatistics instead of commit records (commit records as before while aline.team does not take them yet).\nTo keep sending commit records: gitfolio config autosync on\n",
-		"ko": "GitFolio 0.6.0부터 autosync off는 로컬 모드입니다. `gitfolio stats`·`stack`·`sync`가 커밋 기록 대신\n일 단위 통계를 보냅니다(aline.team이 아직 통계를 받지 않으면 이전처럼 커밋 기록).\n커밋 기록을 계속 보내려면: gitfolio config autosync on\n",
-		"ja": "GitFolio 0.6.0 から autosync off はローカルモードです。`gitfolio stats`・`stack`・`sync` がコミット記録の代わりに\n日単位の統計を送ります(aline.team がまだ統計を受け付けない間は、これまでどおりコミット記録)。\nコミット記録を送り続けるには: gitfolio config autosync on\n",
+		"en": "Since GitFolio 0.6.0, autosync off is local mode: `gitfolio stats` and `sync` send daily\nstatistics instead of commit records (commit records as before while aline.team does not take them yet).\nTo keep sending commit records: gitfolio config autosync on\n",
+		"ko": "GitFolio 0.6.0부터 autosync off는 로컬 모드입니다. `gitfolio stats`·`sync`가 커밋 기록 대신\n일 단위 통계를 보냅니다(aline.team이 아직 통계를 받지 않으면 이전처럼 커밋 기록).\n커밋 기록을 계속 보내려면: gitfolio config autosync on\n",
+		"ja": "GitFolio 0.6.0 から autosync off はローカルモードです。`gitfolio stats`・`sync` がコミット記録の代わりに\n日単位の統計を送ります(aline.team がまだ統計を受け付けない間は、これまでどおりコミット記録)。\nコミット記録を送り続けるには: gitfolio config autosync on\n",
 	},
 	"historyOff": {
 		"en": "The git command history is off. Turn it on: gitfolio config git-history on\n",

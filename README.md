@@ -90,7 +90,7 @@ gitfolio list                    # registered repositories, hooks and dependency
 gitfolio status [name]           # per repository: commits collected and sent, file changes, lines, AI use, languages, dependencies
 gitfolio stats [--refresh]       # your developer type and five scores from aline.team (saved here after the first time;
                                  # in local mode it sends the statistics first and asks again each time)
-gitfolio stack                   # how long you used each language, framework and library, from aline.team
+gitfolio stack                   # how long you used each language, framework and library (worked out here)
 gitfolio <command> --json        # for programs: one JSON document on stdout (status, sync, stats, stack, login,
                                  # email, add, deps, config, schedule, uninstall, version …; `gitfolio help`)
 gitfolio sync [--dry-run]        # send what aline.team does not have yet (--dry-run: just show it)
@@ -204,7 +204,7 @@ gitfolio list                    # 등록 저장소, 훅, 의존성 파일
 gitfolio status [이름]           # 저장소별 모은 커밋·보낸 수, 파일 변경, 줄 수, AI 사용, 언어, 의존성
 gitfolio stats [--refresh]       # aline.team의 개발자 유형과 능력치 다섯 가지 (처음 받은 뒤 이 컴퓨터에 저장.
                                  # 로컬 모드에서는 통계를 먼저 보내고 매번 새로 받음)
-gitfolio stack                   # aline.team의 언어·프레임워크·라이브러리별 사용 기간
+gitfolio stack                   # 언어·프레임워크·라이브러리별 사용 기간 (이 컴퓨터에서 계산)
 gitfolio <명령> --json           # 프로그램용: 표준 출력에 JSON 하나 (status, sync, stats, stack, login, email,
                                  # add, deps, config, schedule, uninstall, version 등. `gitfolio help` 참고)
 gitfolio sync [--dry-run]        # aline.team에 없는 것만 전송 (--dry-run: 보여 주기만)

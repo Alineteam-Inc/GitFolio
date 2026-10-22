@@ -162,14 +162,12 @@ func checkLocalMode(dir, lang string) {
 // techUsage is how long the user used one language, framework or library, as aline.team works it out
 // from the repositories: from the first to the last commit of the repositories using it.
 type techUsage struct {
-	Name         string `json:"name"`
-	StartDate    string `json:"startDate"`
-	EndDate      string `json:"endDate"`
-	CareerMonths *int   `json:"careerMonths"`
-	ProjectCount *int   `json:"projectCount"`
-	Hidden       bool   `json:"isHidden"` // hidden from the profile by the user
-	// ActivityMonths are the months it was used in ("2026-10"), ascending, from a server that gives them.
-	ActivityMonths []string `json:"activityMonths,omitempty"`
+	Name           string   `json:"name"`
+	StartDate      string   `json:"startDate"`
+	EndDate        string   `json:"endDate"`
+	CareerMonths   *int     `json:"careerMonths"`
+	ProjectCount   *int     `json:"projectCount"`
+	ActivityMonths []string `json:"activityMonths"` // the months it was used in ("2026-10"), ascending
 }
 
 type techUsages struct {
@@ -178,61 +176,27 @@ type techUsages struct {
 	Libraries  []techUsage `json:"libraries"`
 }
 
-// techUsagesNow asks aline.team for the tech stack periods. An empty kind is an empty list, not null.
-func techUsagesNow(c *client) (u techUsages, err error) {
-	if !c.ensureLogin() {
-		return u, failure("loginFirst")
-	}
-	err = c.call("GET", "/cli/tech-usages", nil, &u)
-	for _, l := range []*[]techUsage{&u.Languages, &u.Frameworks, &u.Libraries} {
-		if *l == nil {
-			*l = []techUsage{}
-		}
-	}
-	if err != nil {
-		return u, err
-	}
-	// The months each was used in, for a timeline with gaps; a server without them yet gives the periods alone.
-	var m techUsages
-	if err := c.call("GET", "/cli/tech-usages/activity-months", nil, &m); unsupported(err) {
-		return u, nil
-	} else if err != nil {
-		return u, err
-	}
-	for _, k := range [][2][]techUsage{{u.Languages, m.Languages}, {u.Frameworks, m.Frameworks}, {u.Libraries, m.Libraries}} {
-		for i := range k[0] {
-			if j := slices.IndexFunc(k[1], func(t techUsage) bool { return t.Name == k[0][i].Name }); j >= 0 {
-				k[0][i].ActivityMonths = k[1][j].ActivityMonths
-			}
-		}
-	}
-	return u, nil
-}
-
-// cmdStack shows the user's tech stack periods from aline.team, asked for each time.
+// cmdStack shows the tech stack worked out on this computer from the registered repositories, as
+// aline.team works it out (localStack): no login, nothing sent.
 func cmdStack(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
 	jsonMode(args)
 	if len(args) > 0 && !slices.Equal(args, []string{"--json"}) {
 		return failure("usage", "gitfolio stack [--json]")
 	}
-	c, err := newClient(dir)
+	repos, err := loadRepos(dir)
 	if err != nil {
 		return err
 	}
-	if _, err := sendIfLocal(dir, lang, c); err != nil {
+	commits, err := readCommits(dir)
+	if err != nil {
 		return err
 	}
-	u, err := techUsagesNow(c)
-	if unsupported(err) {
-		if jsonOut {
-			return failure("stackUnavailable")
-		}
-		say(lang, "stackUnavailable") // a server without it yet
-		return nil
-	} else if err != nil {
+	deps, err := loadDeps(dir)
+	if err != nil {
 		return err
 	}
+	u := localStack(repos, commits, deps)
 	if jsonOut {
 		return printJSON(u)
 	}
@@ -248,7 +212,6 @@ func cmdStack(dir string, args []string) error {
 		return fmt.Sprint(*v)
 	}
 	var b strings.Builder
-	hidden := false
 	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "KIND\tNAME\tFROM\tTO\tMONTHS\tPROJECTS")
 	for _, g := range []struct {
@@ -256,11 +219,7 @@ func cmdStack(dir string, args []string) error {
 		items []techUsage
 	}{{"language", u.Languages}, {"framework", u.Frameworks}, {"library", u.Libraries}} {
 		for _, t := range g.items {
-			name := t.Name
-			if t.Hidden { // a mark, not a word: the columns count letters, and Korean ones are two wide
-				name, hidden = name+" *", true
-			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", g.kind, name, month(t.StartDate), month(t.EndDate), num(t.CareerMonths), num(t.ProjectCount))
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", g.kind, t.Name, month(t.StartDate), month(t.EndDate), num(t.CareerMonths), num(t.ProjectCount))
 		}
 	}
 	if err := w.Flush(); err != nil {
@@ -268,9 +227,6 @@ func cmdStack(dir string, args []string) error {
 	}
 	header, rows, _ := strings.Cut(b.String(), "\n")
 	show(out, strings.TrimRight(tr(lang, "stackTitle"), "\n")+"\n"+dim(strings.TrimRight(header, " "))+"\n"+rows)
-	if hidden {
-		notice(tr(lang, "stackHidden"))
-	}
 	return nil
 }
 

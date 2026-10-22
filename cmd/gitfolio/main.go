@@ -65,8 +65,9 @@ commands:
                         first time (--refresh: get it again; aline.team makes it if it has none yet,
                         --json: as JSON, for programs). In local mode it sends the statistics first
                         and gets the type each time
-  stack [--json]        how long you used each language, framework and library, from aline.team
-                        (local mode: sends the statistics first; --json: as JSON, for programs)
+  stack [--json]        how long you used each language, framework and library, worked out on this
+                        computer from the registered repositories as aline.team does (no login needed;
+                        --json: as JSON, for programs)
   export [--json]       print collected commits, dependencies and statistics as JSON
   deps [on|off|review [path] [--allow <file>]...] [--json]
                         dependency detection: show status, turn it on (you choose which
@@ -84,7 +85,7 @@ commands:
                         added words are also applied to already stored data
   config autosync on|off
                         send to aline.team right after each git push (on by default);
-                        off is local mode: nothing is sent until stats, stack or sync, and
+                        off is local mode: nothing is sent until stats or sync, and
                         the daily sync is removed
   config git-history on|off
                         keep git's own record of the git commands gitfolio runs (on by default;

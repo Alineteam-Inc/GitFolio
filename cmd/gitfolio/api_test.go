@@ -85,9 +85,7 @@ type fakeAline struct {
 	commits     map[string]Commit   // provider/namespace/hash → record
 	stats       map[string]snapshot // provider/namespace → snapshot (PUT /cli/stats)
 	newerFormat bool                // answer PUT /cli/stats with A014
-	noStats     bool                // an older server: no snapshot or tech usage paths (404)
-	techUsages  map[string]any      // what GET /cli/tech-usages answers
-	months      map[string]any      // what GET /cli/tech-usages/activity-months answers (nil: no such path yet)
+	noStats     bool                // an older server: no snapshot path (404)
 	modified    map[string]string   // provider/namespace/name → modifiedAt
 	batches     int                 // accepted commit batches
 	down        bool                // answer data calls with 503
@@ -302,20 +300,6 @@ func (f *fakeAline) handler() http.Handler {
 		}
 		f.stats[in.Provider+"/"+in.Namespace] = in
 		ok(w, nil)
-	}))
-	mux.HandleFunc("GET /cli/tech-usages", data(func(w http.ResponseWriter, r *http.Request) {
-		if f.noStats {
-			fail(w, 404, "C004")
-			return
-		}
-		ok(w, f.techUsages)
-	}))
-	mux.HandleFunc("GET /cli/tech-usages/activity-months", data(func(w http.ResponseWriter, r *http.Request) {
-		if f.months == nil {
-			fail(w, 404, "C004")
-			return
-		}
-		ok(w, f.months)
 	}))
 	mux.HandleFunc("PUT /cli/dependencies", data(func(w http.ResponseWriter, r *http.Request) {
 		f.depsCalls++
