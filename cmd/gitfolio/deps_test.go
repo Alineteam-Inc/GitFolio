@@ -16,7 +16,10 @@ import (
 func TestParseManifest(t *testing.T) {
 	for _, tc := range []struct{ file, content, want string }{
 		{"package.json", `{"dependencies":{"react":"^18.2.0","local":"file:../x","gh":"user/repo","ws":"workspace:*"},
-			"devDependencies":{"typescript":"5.4.0","react":"^18.2.0"}}`, "react@^18.2.0 typescript@5.4.0"},
+			"devDependencies":{"typescript":"5.4.0","react":"^18.2.0"},"peerDependencies":{"htmx.org":"^2.0.0"}}`,
+			"htmx.org@^2.0.0 react@^18.2.0 typescript@5.4.0"},
+		{"Pipfile", "[[source]]\nurl = \"https://pypi.org/simple\"\n\n[packages]\nrequests = \"*\"\ndjango = {version = \">=4.2\"}\nmylib = {path = \"./mylib\", editable = true}\n\n[dev-packages]\npytest = \"*\"\n\n[requires]\npython_version = \"3.11\"\n",
+			"django@>=4.2 pytest@* requests@*"},
 		{"go.mod", "module x\n\ngo 1.22\n\nrequire github.com/a/b v1.0.0\n\nrequire (\n\tgithub.com/c/d v2.1.0\n\tgithub.com/e/f v0.1.0 // indirect\n)\n",
 			"github.com/a/b@v1.0.0 github.com/c/d@v2.1.0"},
 		{"requirements.txt", "# pinned\nDjango==4.2\nrequests[socks]>=2.31 ; python_version > '3.8'\n-r base.txt\n./local\ngit+https://x/y.git\nnumpy\n",

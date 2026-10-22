@@ -25,6 +25,7 @@ var manifestNames = map[string]string{
 	"go.mod":             "go",
 	"requirements.txt":   "pypi",
 	"pyproject.toml":     "pypi",
+	"Pipfile":            "pypi",
 	"pom.xml":            "maven",
 	"build.gradle":       "maven",
 	"build.gradle.kts":   "maven",
@@ -175,6 +176,15 @@ func parseManifest(name, s string) []dep {
 		}
 	case "pyproject.toml":
 		deps = parsePyproject(s)
+	case "Pipfile":
+		section := ""
+		for _, line := range strings.Split(s, "\n") {
+			if t := strings.TrimSpace(line); strings.HasPrefix(t, "[") {
+				section = strings.Trim(t, "[] ")
+			} else if d, ok := tomlDep(t); ok && (section == "packages" || section == "dev-packages") {
+				deps = append(deps, d)
+			}
+		}
 	case "pom.xml":
 		deps = parsePom(s)
 	case "build.gradle", "build.gradle.kts":
@@ -192,14 +202,15 @@ func parseManifest(name, s string) []dep {
 
 func parsePackageJSON(s string) []dep {
 	var pkg struct {
-		Dependencies    map[string]string `json:"dependencies"`
-		DevDependencies map[string]string `json:"devDependencies"`
+		Dependencies     map[string]string `json:"dependencies"`
+		DevDependencies  map[string]string `json:"devDependencies"`
+		PeerDependencies map[string]string `json:"peerDependencies"` // some frameworks (htmx, tRPC) are only peers
 	}
 	if json.Unmarshal([]byte(s), &pkg) != nil {
 		return nil
 	}
 	var deps []dep
-	for _, m := range []map[string]string{pkg.Dependencies, pkg.DevDependencies} {
+	for _, m := range []map[string]string{pkg.Dependencies, pkg.DevDependencies, pkg.PeerDependencies} {
 		for n, v := range m {
 			if !npmLocal(v) {
 				deps = append(deps, dep{n, v})
