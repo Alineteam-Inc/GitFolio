@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -32,6 +33,95 @@ func git(dir string, args ...string) (string, error) {
 		return "", fmt.Errorf("git %s: %v %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
 	}
 	return string(out), nil
+}
+
+// gitWorks reports whether git can run. On macOS /usr/bin/git is there without git too: it stands in
+// for the Command Line Tools, and only counts once they are installed. Asking xcode-select, not running
+// it, so Apple's install window does not open by itself.
+func gitWorks() bool {
+	p, err := exec.LookPath("git")
+	if err != nil {
+		return false
+	}
+	if runtime.GOOS == "darwin" && p == "/usr/bin/git" {
+		return exec.Command("xcode-select", "-p").Run() == nil
+	}
+	return true
+}
+
+// gitInstaller is the command that installs git with the system's own installer, nil when there is
+// none to use: the Command Line Tools on macOS, winget on Windows, the package manager on Linux (through
+// sudo unless root). has reports whether a command is on the PATH.
+func gitInstaller(goos string, has func(string) bool, root bool) []string {
+	switch goos {
+	case "darwin":
+		return []string{"xcode-select", "--install"}
+	case "windows":
+		if has("winget") {
+			return []string{"winget", "install", "--id", "Git.Git", "-e", "--source", "winget"}
+		}
+		return nil
+	}
+	var install []string
+	switch {
+	case has("apt-get"):
+		install = []string{"sh", "-c", "apt-get update && apt-get install -y git"}
+	case has("dnf"):
+		install = []string{"dnf", "install", "-y", "git"}
+	case has("yum"):
+		install = []string{"yum", "install", "-y", "git"}
+	case has("pacman"):
+		install = []string{"pacman", "-S", "--noconfirm", "git"}
+	case has("zypper"):
+		install = []string{"zypper", "--non-interactive", "install", "git"}
+	case has("apk"):
+		install = []string{"apk", "add", "git"}
+	default:
+		return nil
+	}
+	if root {
+		return install
+	}
+	if !has("sudo") {
+		return nil
+	}
+	return append([]string{"sudo"}, install...)
+}
+
+// installGit offers, at the terminal, to install git with gitInstaller, and reports whether git runs
+// after it. Nothing is installed without a yes.
+func installGit(lang string) bool {
+	warn(lang, "gitMissing")
+	args := gitInstaller(runtime.GOOS, func(name string) bool { _, err := exec.LookPath(name); return err == nil }, os.Geteuid() == 0)
+	if args == nil {
+		notice(tr(lang, "gitInstallManual"))
+		return false
+	}
+	shown := make([]string, len(args))
+	for i, a := range args {
+		if shown[i] = a; strings.ContainsAny(a, " &") {
+			shown[i] = shellQuote(a)
+		}
+	}
+	if !askYesNo(lang, "gitInstallAsk", true, strings.Join(shown, " ")) || stdinClosed {
+		return false
+	}
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if err := cmd.Run(); err != nil {
+		warn(lang, "gitInstallFailed", err)
+		notice(tr(lang, "gitInstallManual"))
+		return false
+	}
+	if runtime.GOOS == "windows" { // the installer puts git on the PATH of terminals opened later, not this one's
+		os.Setenv("PATH", filepath.Join(os.Getenv("ProgramFiles"), "Git", "cmd")+string(os.PathListSeparator)+os.Getenv("PATH"))
+	}
+	if !gitWorks() { // macOS installs in its own window, after this returns
+		notice(tr(lang, "gitInstallPending"))
+		return false
+	}
+	say(lang, "gitInstalled")
+	return true
 }
 
 func topLevel(dir string) (string, error) {

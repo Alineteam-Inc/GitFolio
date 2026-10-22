@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -21,7 +20,8 @@ const usage = `usage: gitfolio <command> [arguments]
 
 commands:
   init [folder...]      first-time setup: data policy, aline.team log in / sign up, then find the repositories
-                        under your code folders and choose which ones to collect
+                        under your code folders and choose which ones to collect (without git, it offers
+                        to install it first)
   init --policy [--json] | init --scan [--root <folder>]... --json
                         init's steps for a program, without questions: the data policy, then (logged
                         in) the repositories and emails found; email, add, deps, config autosync and
@@ -171,8 +171,10 @@ func run(args []string) error {
 	if args[0] != "hook" && !slices.Contains(commands, args[0]) { // before anything else runs for a typo
 		return unknownCommand(args[0])
 	}
-	if _, err := exec.LookPath("git"); err != nil && args[0] != "uninstall" { // removing goes as far as it can
-		return failure("noGit")
+	if !gitWorks() && args[0] != "uninstall" { // removing goes as far as it can
+		if args[0] != "init" || jsonOut || !interactive() || !installGit(detectLang(os.Getenv)) {
+			return failure("noGit")
+		}
 	}
 	dir, err := dataDir()
 	if err != nil {

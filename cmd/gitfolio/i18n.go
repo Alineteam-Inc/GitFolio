@@ -712,6 +712,36 @@ var messages = map[string]map[string]string{
 		"ko": "API 주소는 https만 쓸 수 있습니다 (http는 이 컴퓨터 주소만 허용): %q\n",
 		"ja": "API URL %q は https である必要があります(http はこのコンピューターのアドレスのみ可)。\n",
 	},
+	"gitMissing": {
+		"en": "git is not installed. GitFolio reads your commits with it.\n",
+		"ko": "git이 설치되어 있지 않습니다. GitFolio는 git으로 커밋을 읽습니다.\n",
+		"ja": "git がインストールされていません。GitFolio は git でコミットを読み取ります。\n",
+	},
+	"gitInstallAsk": {
+		"en": "Install git now with the system's installer? (%s)",
+		"ko": "시스템 설치 도구로 지금 git을 설치할까요? (%s)",
+		"ja": "システムのインストーラーで今 git をインストールしますか? (%s)",
+	},
+	"gitInstalled": {
+		"en": "git is installed.\n",
+		"ko": "git을 설치했습니다.\n",
+		"ja": "git をインストールしました。\n",
+	},
+	"gitInstallPending": {
+		"en": "Finish installing git (on macOS, in the window that opened), then run `gitfolio init` again.\n",
+		"ko": "git 설치를 마친 뒤(macOS는 열린 창에서) `gitfolio init`을 다시 실행하세요.\n",
+		"ja": "git のインストールを完了してから(macOS では開いたウィンドウで)、もう一度 `gitfolio init` を実行してください。\n",
+	},
+	"gitInstallFailed": {
+		"en": "Installing git failed: %v\n",
+		"ko": "git 설치에 실패했습니다: %v\n",
+		"ja": "git のインストールに失敗しました: %v\n",
+	},
+	"gitInstallManual": {
+		"en": "Install git from https://git-scm.com/downloads, then run `gitfolio init` again.\n",
+		"ko": "https://git-scm.com/downloads 에서 git을 설치한 뒤 `gitfolio init`을 다시 실행하세요.\n",
+		"ja": "https://git-scm.com/downloads から git をインストールしてから、もう一度 `gitfolio init` を実行してください。\n",
+	},
 	"noGit": {
 		"en": "git was not found. Install git first.\n",
 		"ko": "git을 찾을 수 없습니다. 먼저 git을 설치하세요.\n",

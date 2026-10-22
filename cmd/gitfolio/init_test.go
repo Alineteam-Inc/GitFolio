@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -388,5 +389,51 @@ func TestAppMessages(t *testing.T) {
 	jsonOut = false
 	if !strings.Contains(failure("loginFirst").Error(), "gitfolio login") {
 		t.Errorf("the terminal lost the command: %q", failure("loginFirst"))
+	}
+}
+
+// Without git, init offers the system's own installer: the Command Line Tools on macOS, winget on
+// Windows, the package manager on Linux through sudo unless root; nothing when there is none to use.
+func TestGitInstaller(t *testing.T) {
+	has := func(names ...string) func(string) bool {
+		return func(n string) bool { return slices.Contains(names, n) }
+	}
+	for _, c := range []struct {
+		goos string
+		has  func(string) bool
+		root bool
+		want string
+	}{
+		{"darwin", has(), false, "xcode-select --install"},
+		{"windows", has("winget"), false, "winget install --id Git.Git -e --source winget"},
+		{"windows", has(), false, ""},
+		{"linux", has("apt-get", "sudo"), false, "sudo sh -c apt-get update && apt-get install -y git"},
+		{"linux", has("apt-get"), true, "sh -c apt-get update && apt-get install -y git"},
+		{"linux", has("dnf"), false, ""}, // no sudo, not root: the user installs it
+		{"linux", has("pacman", "sudo"), false, "sudo pacman -S --noconfirm git"},
+		{"linux", has("sudo"), false, ""},
+	} {
+		if got := strings.Join(gitInstaller(c.goos, c.has, c.root), " "); got != c.want {
+			t.Errorf("%s %v: %q, want %q", c.goos, c.root, got, c.want)
+		}
+	}
+
+	// At the terminal, init asks first; no means nothing runs and git is still missing.
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("GITFOLIO_LANG", "en")
+	var buf bytes.Buffer
+	defer func(o, e io.Writer, i func() bool, r *bufio.Reader) {
+		out, errOut, interactive, stdin, jsonOut = o, e, i, r, false
+	}(out, errOut, interactive, stdin)
+	out, errOut, interactive, stdin = &buf, &buf, func() bool { return true }, bufio.NewReader(strings.NewReader("n\n"))
+	if err := run([]string{"init"}); errorCode(err) != "noGit" || !strings.Contains(buf.String(), "git is not installed") {
+		t.Errorf("init without git: %v\n%s", err, buf.String())
+	}
+	if asked := strings.Contains(buf.String(), "Install git now"); asked != (runtime.GOOS == "darwin") { // elsewhere none is on this PATH
+		t.Errorf("asked %v on %s:\n%s", asked, runtime.GOOS, buf.String())
+	}
+	buf.Reset()
+	if err := run([]string{"init", "--policy", "--json"}); errorCode(err) != "noGit" || buf.Len() != 0 {
+		t.Errorf("a program was asked: %v\n%s", err, buf.String())
 	}
 }
