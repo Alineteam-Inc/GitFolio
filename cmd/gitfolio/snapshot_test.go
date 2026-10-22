@@ -10,8 +10,8 @@ import (
 
 func TestSourceFileAndMarkers(t *testing.T) {
 	for p, want := range map[string]bool{
-		"main.go": true, "web/App.vue": true, "a/b.SCSS": true, "x.tsx": true, "setup.py": false, "tools/setup.py": true,
-		"Dockerfile.py": false, "Makefile": false, "data.json": false, "query.sql": false, ".bashrc": false, "README.md": false,
+		"main.go": true, "web/App.vue": true, "a/b.SCSS": true, "x.tsx": true, "setup.py": false, "tools/setup.py": false,
+		"DockerfileParser.java": true, "lib/Makefile.am": false, "web/Dockerfile.html": false, "Makefile": false, "data.json": false, "query.sql": false, ".bashrc": false, "README.md": false,
 	} {
 		if got := sourceFile(p); got != want {
 			t.Errorf("sourceFile(%q) = %v, want %v", p, got, want)

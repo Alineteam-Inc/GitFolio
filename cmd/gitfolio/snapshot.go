@@ -234,8 +234,9 @@ func snapshots(repos []Repo, commits []Commit, author string) []snapshot {
 	return out
 }
 
-// File types, aline.team's way: build and package files by name first, then the extension. Only code and
-// markup count in a snapshot. The name is matched with the whole path, as aline.team does for the CLI's files.
+// File types, aline.team's way, by file name: build and package files by name first (one starting with
+// Dockerfile or Makefile too, unless its extension is code's: DockerfileParser.java), then the extension.
+// Only code and markup count in a snapshot.
 var (
 	packageFiles = set("pom.xml build.gradle build.gradle.kts settings.gradle settings.gradle.kts gradle.properties package.json " +
 		"package-lock.json yarn.lock pnpm-lock.yaml bun.lockb deno.json deno.lock requirements.txt pyproject.toml Pipfile Pipfile.lock " +
@@ -244,10 +245,9 @@ var (
 		"AndroidManifest.xml build.sbt cabal.project cabal.project.freeze package.yaml stack.yaml stack.yaml.lock mix.exs mix.lock " +
 		"rebar.config rebar.lock Project.toml Manifest.toml Makefile.PL cpanfile DESCRIPTION flake.nix flake.lock nx.json turbo.json " +
 		"lerna.json Chart.yaml helmfile.yaml .pre-commit-config.yaml lefthook.yml mise.toml .tool-versions BUILD WORKSPACE")
-	sourceExtensions = set("c cpp cc cxx h hpp asm s java class kt kts scala groovy gvy js mjs cjs ts tsx jsx py pyx pxd go rs rb php " +
-		"swift m mm cs vb fs fsi fsx sh bash zsh fish ps1 psm1 psd1 hs lhs ml mli clj cljs cljc ex exs erl hrl d nim cr jl sol pl lua r dart " +
-		// markup
-		"html htm xhtml css scss sass less vue svelte astro pug haml erb ejs hbs handlebars jinja j2 njk twig liquid")
+	codeExtensions = set("c cpp cc cxx h hpp asm s java class kt kts scala groovy gvy js mjs cjs ts tsx jsx py pyx pxd go rs rb php " +
+		"swift m mm cs vb fs fsi fsx sh bash zsh fish ps1 psm1 psd1 hs lhs ml mli clj cljs cljc ex exs erl hrl d nim cr jl sol pl lua r dart")
+	markupExtensions = set("html htm xhtml css scss sass less vue svelte astro pug haml erb ejs hbs handlebars jinja j2 njk twig liquid")
 )
 
 func set(words string) map[string]bool {
@@ -260,10 +260,11 @@ func set(words string) map[string]bool {
 
 // sourceFile reports whether the file at repository path p is code or markup.
 func sourceFile(p string) bool {
-	if lp := strings.ToLower(p); packageFiles[p] || strings.HasPrefix(lp, "dockerfile") || strings.HasPrefix(lp, "makefile") {
+	name, e := path.Base(strings.ReplaceAll(p, `\`, "/")), extension(p)
+	if lower := strings.ToLower(name); packageFiles[name] || (strings.HasPrefix(lower, "dockerfile") || strings.HasPrefix(lower, "makefile")) && !codeExtensions[e] {
 		return false
 	}
-	return sourceExtensions[extension(p)]
+	return codeExtensions[e] || markupExtensions[e]
 }
 
 // extension is the lowercased extension of the file name, "" without one (".gitignore" has none).

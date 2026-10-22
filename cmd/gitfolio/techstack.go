@@ -208,7 +208,8 @@ func techClass(category string) string {
 }
 
 // knownFile reports whether aline.team knows the kind of a file (code, markup, data, prose, media, a
-// package file), by its name or extension.
+// package file), by its name or extension. (A code file whose name starts with Dockerfile is code, not a
+// package file, but known either way.)
 func knownFile(file string) bool {
 	base := file[strings.LastIndexAny(file, `/\`)+1:]
 	lower := strings.ToLower(base)
