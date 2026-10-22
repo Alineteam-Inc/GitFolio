@@ -98,6 +98,9 @@ commands:
                         before removing GitFolio: unregister every repository and put back its earlier
                         hooks, remove the daily sync and log out (--purge-local: also delete the data on
                         this computer). Nothing on aline.team is deleted
+  git [install] [--json]
+                        whether git is installed (path, version), or install it with the system's
+                        installer (at the terminal after asking, as init does)
   version [--json]      print version (--json: also whether an app ships this copy and updates it, and
                         the language of GitFolio's texts)
 
@@ -170,6 +173,9 @@ func run(args []string) error {
 	jsonMode(args[1:])
 	if args[0] != "hook" && !slices.Contains(commands, args[0]) { // before anything else runs for a typo
 		return unknownCommand(args[0])
+	}
+	if args[0] == "git" { // whether git is there, before needing it
+		return cmdGit(args[1:])
 	}
 	if !gitWorks() && args[0] != "uninstall" { // removing goes as far as it can
 		if args[0] != "init" || jsonOut || !interactive() || !installGit(detectLang(os.Getenv)) {
@@ -256,7 +262,7 @@ func run(args []string) error {
 
 // commands are the commands people type; "hook" is run by git hooks only and never suggested.
 var commands = []string{"init", "login", "logout", "whoami", "add", "remove", "scan", "sync", "list", "status",
-	"stats", "stack", "export", "config", "deps", "schedule", "email", "history", "update", "uninstall", "version", "help"}
+	"stats", "stack", "export", "config", "deps", "schedule", "email", "history", "update", "uninstall", "git", "version", "help"}
 
 // unknownCommand names the commands the user may have meant (similarCommands), or points to help.
 func unknownCommand(s string) error {

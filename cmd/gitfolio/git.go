@@ -35,18 +35,116 @@ func git(dir string, args ...string) (string, error) {
 	return string(out), nil
 }
 
-// gitWorks reports whether git can run. On macOS /usr/bin/git is there without git too: it stands in
-// for the Command Line Tools, and only counts once they are installed. Asking xcode-select, not running
-// it, so Apple's install window does not open by itself.
+// gitWorks reports whether git can run, and puts it on this run's PATH when it is installed outside
+// it (gitDirs). On macOS /usr/bin/git is there without git too: it stands in for the Command Line Tools,
+// and only counts once they are installed. Asking xcode-select, not running it, so Apple's install
+// window does not open by itself.
 func gitWorks() bool {
-	p, err := exec.LookPath("git")
-	if err != nil {
-		return false
+	if p, err := exec.LookPath("git"); err == nil &&
+		(runtime.GOOS != "darwin" || p != "/usr/bin/git" || exec.Command("xcode-select", "-p").Run() == nil) {
+		return true
 	}
-	if runtime.GOOS == "darwin" && p == "/usr/bin/git" {
-		return exec.Command("xcode-select", "-p").Run() == nil
+	name := "git"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
 	}
-	return true
+	for _, d := range gitDirs() {
+		if st, err := os.Stat(filepath.Join(d, name)); err == nil && !st.IsDir() {
+			return os.Setenv("PATH", d+string(os.PathListSeparator)+os.Getenv("PATH")) == nil
+		}
+	}
+	return false
+}
+
+// gitDirs are where git is installed but may be off the PATH: an app started from Finder gets only
+// /usr/bin:/bin:/usr/sbin:/sbin, and a terminal open while git was installed on Windows has the old PATH.
+var gitDirs = func() []string {
+	if runtime.GOOS == "windows" {
+		return []string{filepath.Join(os.Getenv("ProgramFiles"), "Git", "cmd")}
+	}
+	return []string{"/opt/homebrew/bin", "/usr/local/bin"}
+}
+
+// gitDownload is git's own download page for this system, for installing it by hand.
+func gitDownload() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return "https://git-scm.com/download/mac"
+	case "windows":
+		return "https://git-scm.com/download/win"
+	}
+	return "https://git-scm.com/download/linux"
+}
+
+// cmdGit tells whether git is there (path and version), or with install starts installing it: at the
+// terminal as init does, after asking; for a program (--json) without asking, the way it can start
+// without a terminal (gitInstallStart).
+func cmdGit(args []string) error {
+	jsonMode(args)
+	args = withoutJSON(args)
+	lang := detectLang(os.Getenv)
+	switch {
+	case len(args) == 0:
+		found := gitWorks()
+		path, version := "", ""
+		if found {
+			path, _ = exec.LookPath("git")
+			if out, err := exec.Command("git", "--version").Output(); err == nil { // "git version 2.47.0"
+				version = strings.TrimPrefix(strings.TrimSpace(string(out)), "git version ")
+			}
+		}
+		if jsonOut {
+			return printJSON(map[string]any{"found": found, "path": path, "version": version})
+		}
+		if !found {
+			say(lang, "gitMissing")
+			return nil
+		}
+		say(lang, "gitFound", version, path)
+		return nil
+	case len(args) == 1 && args[0] == "install":
+		if gitWorks() {
+			if jsonOut {
+				return printJSON(map[string]any{"started": false, "how": "installed"})
+			}
+			say(lang, "gitInstalled")
+			return nil
+		}
+		if jsonOut {
+			return gitInstallStart(lang)
+		}
+		if !interactive() || !installGit(lang) {
+			return failure("noGit")
+		}
+		return nil
+	}
+	return failure("usage", "gitfolio git [install] [--json]")
+}
+
+// gitInstallStart starts installing git for a program, asking nothing: Apple's install window on macOS
+// (it returns at once; the program checks again once the user is done), winget on Windows (it waits for
+// the install and may ask for administrator rights). Where that needs a terminal for sudo or there is
+// no installer, it gives the manual way: a message and git's download page.
+func gitInstallStart(lang string) error {
+	var args []string
+	how := "manual"
+	switch runtime.GOOS {
+	case "darwin":
+		args, how = []string{"xcode-select", "--install"}, "xcodeSelect"
+	case "windows":
+		if args = gitInstaller("windows", func(n string) bool { _, err := exec.LookPath(n); return err == nil }, false); args != nil {
+			args, how = append(args, "--accept-package-agreements", "--accept-source-agreements"), "winget"
+		}
+	}
+	if args == nil {
+		return printJSON(map[string]any{"started": false, "how": how, "message": strings.TrimSpace(tr(lang, "gitInstallManual")), "url": gitDownload()})
+	}
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdout, cmd.Stderr = errOut, errOut // stdout carries the result alone
+	if err := cmd.Run(); err != nil {
+		return failure("gitInstallFailed", err)
+	}
+	return printJSON(map[string]any{"started": true, "how": how, "url": gitDownload()})
 }
 
 // gitInstaller is the command that installs git with the system's own installer, nil when there is
@@ -112,9 +210,6 @@ func installGit(lang string) bool {
 		warn(lang, "gitInstallFailed", err)
 		notice(tr(lang, "gitInstallManual"))
 		return false
-	}
-	if runtime.GOOS == "windows" { // the installer puts git on the PATH of terminals opened later, not this one's
-		os.Setenv("PATH", filepath.Join(os.Getenv("ProgramFiles"), "Git", "cmd")+string(os.PathListSeparator)+os.Getenv("PATH"))
 	}
 	if !gitWorks() { // macOS installs in its own window, after this returns
 		notice(tr(lang, "gitInstallPending"))

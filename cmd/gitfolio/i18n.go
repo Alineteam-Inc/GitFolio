@@ -171,6 +171,11 @@ func tr(lang, key string) string {
 // the way out itself (by the error code). Same keys and arguments as in messages. "usage" stays: it
 // means the program called a command wrongly.
 var appMessages = map[string]map[string]string{
+	"gitInstallManual": {
+		"en": "Install git from its download page, or with your system's package manager.\n",
+		"ko": "다운로드 페이지에서 git을 설치하거나, 시스템의 패키지 관리자로 설치하세요.\n",
+		"ja": "ダウンロードページから git をインストールするか、システムのパッケージマネージャーでインストールしてください。\n",
+	},
 	"alreadyLoggedIn": {
 		"en": "Already logged in as %s. Log out first to switch accounts.\n",
 		"ko": "이미 %s(으)로 로그인되어 있습니다. 계정을 바꾸려면 먼저 로그아웃하세요.\n",
@@ -721,6 +726,11 @@ var messages = map[string]map[string]string{
 		"en": "Install git now with the system's installer? (%s)",
 		"ko": "시스템 설치 도구로 지금 git을 설치할까요? (%s)",
 		"ja": "システムのインストーラーで今 git をインストールしますか? (%s)",
+	},
+	"gitFound": {
+		"en": "git %s (%s)\n",
+		"ko": "git %s (%s)\n",
+		"ja": "git %s (%s)\n",
 	},
 	"gitInstalled": {
 		"en": "git is installed.\n",

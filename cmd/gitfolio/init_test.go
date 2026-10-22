@@ -422,9 +422,10 @@ func TestGitInstaller(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	t.Setenv("GITFOLIO_LANG", "en")
 	var buf bytes.Buffer
-	defer func(o, e io.Writer, i func() bool, r *bufio.Reader) {
-		out, errOut, interactive, stdin, jsonOut = o, e, i, r, false
-	}(out, errOut, interactive, stdin)
+	defer func(o, e io.Writer, i func() bool, r *bufio.Reader, d func() []string) {
+		out, errOut, interactive, stdin, gitDirs, jsonOut = o, e, i, r, d, false
+	}(out, errOut, interactive, stdin, gitDirs)
+	gitDirs = func() []string { return nil } // no git off the PATH either (CI machines have Homebrew's)
 	out, errOut, interactive, stdin = &buf, &buf, func() bool { return true }, bufio.NewReader(strings.NewReader("n\n"))
 	if err := run([]string{"init"}); errorCode(err) != "noGit" || !strings.Contains(buf.String(), "git is not installed") {
 		t.Errorf("init without git: %v\n%s", err, buf.String())
@@ -435,5 +436,44 @@ func TestGitInstaller(t *testing.T) {
 	buf.Reset()
 	if err := run([]string{"init", "--policy", "--json"}); errorCode(err) != "noGit" || buf.Len() != 0 {
 		t.Errorf("a program was asked: %v\n%s", err, buf.String())
+	}
+}
+
+// gitfolio git --json tells a program whether git is there, without needing it; git installed off the
+// PATH (as an app started from Finder sees it) is found and put on it. git install --json starts no
+// questions; where it cannot start, it gives the manual way.
+func TestGitCommand(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("GITFOLIO_LANG", "en")
+	var buf bytes.Buffer
+	defer func(o, e io.Writer, d func() []string) { out, errOut, gitDirs, jsonOut = o, e, d, false }(out, errOut, gitDirs)
+	out, errOut, gitDirs = &buf, &buf, func() []string { return nil }
+
+	v, err := jsonStdout(t, func() error { return run([]string{"git", "--json"}) })
+	if err != nil || v["found"] != false {
+		t.Errorf("git --json without git: %v %v", v, err)
+	}
+	if runtime.GOOS != "darwin" { // there it would open Apple's install window
+		v, err := jsonStdout(t, func() error { return run([]string{"git", "install", "--json"}) })
+		if err != nil || v["started"] != false || v["how"] != "manual" || !strings.HasPrefix(fmt.Sprint(v["url"]), "https://git-scm.com/download/") ||
+			strings.Contains(fmt.Sprint(v["message"]), "gitfolio") {
+			t.Errorf("git install --json without an installer: %v %v", v, err)
+		}
+	}
+
+	elsewhere := t.TempDir() // git installed where this PATH does not look
+	name := "git"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	if err := os.WriteFile(filepath.Join(elsewhere, name), []byte("#!/bin/sh\necho git version 2.99.0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gitDirs = func() []string { return []string{elsewhere} }
+	if v, err := jsonStdout(t, func() error { return run([]string{"git", "install", "--json"}) }); err != nil || v["how"] != "installed" {
+		t.Errorf("git install --json with git: %v %v", v, err)
+	}
+	if !strings.HasPrefix(os.Getenv("PATH"), elsewhere) {
+		t.Errorf("git found off the PATH was not put on it: %s", os.Getenv("PATH"))
 	}
 }
