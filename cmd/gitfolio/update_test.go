@@ -195,6 +195,36 @@ func TestBundledCopy(t *testing.T) {
 	}
 }
 
+// version --json asks for the newest release only with --latest, and never for a copy an app ships.
+func TestVersionLatest(t *testing.T) {
+	looks := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		looks++
+		http.Redirect(w, r, "/Alineteam-Inc/GitFolio/releases/tag/v0.5.0", http.StatusFound)
+	}))
+	defer srv.Close()
+	defer func(u, v, b string) { latestURL, version, bundled = u, v, b }(latestURL, version, bundled)
+	latestURL, version = srv.URL, "0.4.1"
+	ask := func(args ...string) map[string]any {
+		t.Helper()
+		v, err := jsonStdout(t, func() error { return run(append([]string{"version", "--json"}, args...)) })
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
+	if v := ask(); looks != 0 || v["latest"] != nil {
+		t.Errorf("without --latest: %d look-ups, %v", looks, v)
+	}
+	if v := ask("--latest"); looks != 1 || v["latest"] != "0.5.0" || v["upToDate"] != false {
+		t.Errorf("--latest: %d look-ups, %v", looks, v)
+	}
+	bundled = "yes"
+	if v := ask("--latest"); looks != 1 || v["latest"] != nil {
+		t.Errorf("--latest in an app's copy: %d look-ups, %v", looks, v)
+	}
+}
+
 // The newest release is found through a renamed repository too: its old address redirects to the new
 // one first, and only then to the tag.
 func TestLatestReleaseRenamed(t *testing.T) {

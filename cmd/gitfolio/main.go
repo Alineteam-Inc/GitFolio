@@ -164,7 +164,17 @@ func run(args []string) error {
 	if args[0] == "version" {
 		if slices.Contains(args[1:], "--json") {
 			// lang: the screen language GitFolio's texts are in, for an app to show its own in the same
-			return printJSON(map[string]any{"version": version, "bundled": bundled != "", "lang": detectLang(os.Getenv)})
+			res := map[string]any{"version": version, "bundled": bundled != "", "lang": detectLang(os.Getenv)}
+			// --latest also asks for the newest release, unless an app ships this copy (it updates it)
+			if slices.Contains(args[1:], "--latest") && bundled == "" {
+				if latest, err := latestRelease(); err == nil { // offline: left out
+					res["latest"] = strings.TrimPrefix(latest, "v")
+					if version != "dev" {
+						res["upToDate"] = !newer(latest, version)
+					}
+				}
+			}
+			return printJSON(res)
 		}
 		fmt.Print(header())
 		return nil

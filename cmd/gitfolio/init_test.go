@@ -362,7 +362,8 @@ func TestAppMessages(t *testing.T) {
 		t.Fatal(err)
 	}
 	failures := regexp.MustCompile(`failure\("(\w+)"`)
-	keys := []string{"relogin", "policy", "signupNotice", "notifyAsk", "progressScan", "progressSend"} // put into JSON
+	keys := []string{"relogin", "policy", "signupNotice", "notifyAsk", "progressScan", "progressSend", "gitInstallManual",
+		"gitUpdateApple", "gitUpdateMac", "gitUpdateWindows", "gitUpdateLinux"} // put into JSON
 	for _, f := range src {
 		if strings.HasSuffix(f.Name(), ".go") && !strings.HasSuffix(f.Name(), "_test.go") {
 			b, err := os.ReadFile(f.Name())
@@ -483,5 +484,18 @@ func TestGitCommand(t *testing.T) {
 	}
 	if !strings.HasPrefix(os.Getenv("PATH"), elsewhere) {
 		t.Errorf("git found off the PATH was not put on it: %s", os.Getenv("PATH"))
+	}
+}
+
+// git --latest compares the upstream release a git is built on with git's newest release tag.
+func TestGitLatest(t *testing.T) {
+	lsRemote := "a1\trefs/tags/v2.54.0\nb2\trefs/tags/v2.55.0-rc2\nc3\trefs/tags/v2.9.5\nd4\trefs/tags/v2.53.1\ne5\trefs/tags/gitgui-0.10.0\n"
+	if got := newestRelease(lsRemote); got != "v2.54.0" {
+		t.Errorf("newestRelease = %q, want v2.54.0 (no release candidates, 2.54 > 2.9)", got)
+	}
+	for in, want := range map[string]string{"2.54.0 (Apple Git-157)": "v2.54.0", "2.47.0.windows.2": "v2.47.0", "2.43.0": "v2.43.0", "unknown": ""} {
+		if got := gitRelease(in); got != want {
+			t.Errorf("gitRelease(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

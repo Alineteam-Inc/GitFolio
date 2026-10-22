@@ -2,15 +2,19 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // logFormat separates commits with \x1e and fields with \x1f; numstat lines follow the last \x1f.
@@ -76,12 +80,14 @@ func gitDownload() string {
 	return "https://git-scm.com/download/linux"
 }
 
-// cmdGit tells whether git is there (path and version), or with install starts installing it: at the
-// terminal as init does, after asking; for a program (--json) without asking, the way it can start
-// without a terminal (gitInstallStart).
+// cmdGit tells whether git is there (path and version, with --latest also how it compares to git's
+// newest release), or with install starts installing it: at the terminal as init does, after asking;
+// for a program (--json) without asking, the way it can start without a terminal (gitInstallStart).
 func cmdGit(args []string) error {
 	jsonMode(args)
 	args = withoutJSON(args)
+	latest := slices.Contains(args, "--latest")
+	args = slices.DeleteFunc(args, func(a string) bool { return a == "--latest" })
 	lang := detectLang(os.Getenv)
 	switch {
 	case len(args) == 0:
@@ -94,7 +100,19 @@ func cmdGit(args []string) error {
 			}
 		}
 		if jsonOut {
-			return printJSON(map[string]any{"found": found, "path": path, "version": version})
+			res := map[string]any{"found": found, "path": path, "version": version}
+			if latest && found {
+				if newest, err := gitUpstream(); err == nil { // offline: left out
+					res["latest"] = strings.TrimPrefix(newest, "v")
+					if mine := gitRelease(version); mine != "" {
+						res["upToDate"] = !newer(newest, mine)
+						if newer(newest, mine) {
+							res["updateHint"] = gitUpdateHint(lang, path)
+						}
+					}
+				}
+			}
+			return printJSON(res)
 		}
 		if !found {
 			say(lang, "gitMissing")
@@ -119,6 +137,63 @@ func cmdGit(args []string) error {
 		return nil
 	}
 	return failure("usage", "gitfolio git [install] [--json]")
+}
+
+// gitUpstream is git's newest release ("v2.55.0"), from git's own repository. A vendor's git (Apple's,
+// a Linux distribution's) can be older and still carry the security fixes: gitUpdateHint says so.
+func gitUpstream() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "git", "ls-remote", "--tags", "--refs", "https://github.com/git/git", "v*")
+	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	if tag := newestRelease(string(out)); tag != "" {
+		return tag, nil
+	}
+	return "", errors.New("no git release found")
+}
+
+// newestRelease is the newest vX.Y.Z tag in git ls-remote output; release candidates do not count.
+func newestRelease(lsRemote string) string {
+	best := ""
+	for _, line := range strings.Split(lsRemote, "\n") {
+		_, ref, _ := strings.Cut(line, "\t")
+		if tag := strings.TrimPrefix(ref, "refs/tags/"); releaseTag.MatchString(tag) && (best == "" || newer(tag, best)) {
+			best = tag
+		}
+	}
+	return best
+}
+
+var releaseTag = regexp.MustCompile(`^v\d+\.\d+\.\d+$`)
+
+// gitRelease is the upstream release a git version is built on: "2.54.0 (Apple Git-157)" and
+// "2.47.0.windows.2" are v2.54.0 and v2.47.0; "" when it is not one.
+func gitRelease(version string) string {
+	v, _, _ := strings.Cut(version, " ")
+	parts := strings.Split(v, ".")
+	if len(parts) < 3 {
+		return ""
+	}
+	return "v" + strings.Join(parts[:3], ".")
+}
+
+// gitUpdateHint says how git is updated where it is, without commands: Apple's with macOS's updates,
+// others the way they were installed.
+func gitUpdateHint(lang, path string) string {
+	key := "gitUpdateLinux"
+	switch {
+	case runtime.GOOS == "darwin" && path == "/usr/bin/git":
+		key = "gitUpdateApple"
+	case runtime.GOOS == "darwin":
+		key = "gitUpdateMac"
+	case runtime.GOOS == "windows":
+		key = "gitUpdateWindows"
+	}
+	return strings.TrimSpace(tr(lang, key))
 }
 
 // gitInstallStart starts installing git for a program, asking nothing: Apple's install window on macOS

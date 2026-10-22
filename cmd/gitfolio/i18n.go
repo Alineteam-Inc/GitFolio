@@ -732,6 +732,26 @@ var messages = map[string]map[string]string{
 		"ko": "git %s (%s)\n",
 		"ja": "git %s (%s)\n",
 	},
+	"gitUpdateApple": {
+		"en": "Apple's git comes with the Command Line Tools, which macOS Software Update keeps up to date.\n",
+		"ko": "Apple의 git은 Command Line Tools에 들어 있으며, macOS 소프트웨어 업데이트로 최신 상태가 유지됩니다.\n",
+		"ja": "Apple の git は Command Line Tools に含まれ、macOS のソフトウェアアップデートで最新の状態に保たれます。\n",
+	},
+	"gitUpdateMac": {
+		"en": "Update git the way you installed it, such as with Homebrew.\n",
+		"ko": "git을 설치한 방법(예: Homebrew)으로 업데이트하세요.\n",
+		"ja": "git をインストールした方法(Homebrew など)で更新してください。\n",
+	},
+	"gitUpdateWindows": {
+		"en": "Update Git for Windows with its installer or the Windows Package Manager.\n",
+		"ko": "Git for Windows 설치 프로그램이나 Windows 패키지 관리자로 업데이트하세요.\n",
+		"ja": "Git for Windows のインストーラーまたは Windows パッケージ マネージャーで更新してください。\n",
+	},
+	"gitUpdateLinux": {
+		"en": "Update git with your system's package manager. A distribution may keep an older version with the security fixes applied.\n",
+		"ko": "시스템의 패키지 관리자로 git을 업데이트하세요. 배포판은 보안 수정을 적용한 이전 버전을 유지하기도 합니다.\n",
+		"ja": "システムのパッケージマネージャーで git を更新してください。ディストリビューションは、セキュリティ修正を適用した古いバージョンを使い続けることがあります。\n",
+	},
 	"gitInstalled": {
 		"en": "git is installed.\n",
 		"ko": "git을 설치했습니다.\n",
