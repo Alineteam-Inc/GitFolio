@@ -98,7 +98,8 @@ commands:
                         before removing GitFolio: unregister every repository and put back its earlier
                         hooks, remove the daily sync and log out (--purge-local: also delete the data on
                         this computer). Nothing on aline.team is deleted
-  version [--json]      print version (--json: also whether an app ships this copy and updates it)
+  version [--json]      print version (--json: also whether an app ships this copy and updates it, and
+                        the language of GitFolio's texts)
 
 --json, where a command takes it, prints one JSON document on stdout for programs, a failure too
 ({"error": {"code", "message"}}, exit status 1); messages for people go to stderr, and so does the
@@ -159,7 +160,8 @@ func run(args []string) error {
 	}
 	if args[0] == "version" {
 		if slices.Contains(args[1:], "--json") {
-			return printJSON(map[string]any{"version": version, "bundled": bundled != ""})
+			// lang: the screen language GitFolio's texts are in, for an app to show its own in the same
+			return printJSON(map[string]any{"version": version, "bundled": bundled != "", "lang": detectLang(os.Getenv)})
 		}
 		fmt.Print(header())
 		return nil

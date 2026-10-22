@@ -180,9 +180,11 @@ func TestBundledCopy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if v, err := jsonStdout(t, func() error { return run([]string{"version", "--json"}) }); err != nil || v["version"] != "0.4.1" || v["bundled"] != false {
+	t.Setenv("GITFOLIO_LANG", "ja")
+	if v, err := jsonStdout(t, func() error { return run([]string{"version", "--json"}) }); err != nil || v["version"] != "0.4.1" || v["bundled"] != false || v["lang"] != "ja" {
 		t.Errorf("version --json: %v %v", v, err)
 	}
+	t.Setenv("GITFOLIO_LANG", "en")
 	bundled = "yes"
 	noticeUpdate(dir)
 	if err := cmdUpdate(dir); err != nil || looks != 0 || tty.Len() != 0 || !strings.Contains(buf.String(), "came with an app") {
