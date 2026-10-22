@@ -710,6 +710,21 @@ var messages = map[string]map[string]string{
 		"ko": "GitFolio를 %s(으)로 업데이트했습니다. 명령을 다시 실행하세요.\n",
 		"ja": "GitFolio を %s に更新しました。もう一度コマンドを実行してください。\n",
 	},
+	"uninstalled": {
+		"en": "GitFolio is removed from this computer: %d repositories are unregistered with their hooks put back the way they were, the daily sync is gone and this device is logged out. Nothing on aline.team was deleted.\n",
+		"ko": "이 컴퓨터에서 GitFolio 설정을 지웠습니다. 저장소 %d개의 등록을 해제하고 훅을 원래대로 되돌렸으며, 매일 동기화를 없애고 이 기기를 로그아웃했습니다. aline.team의 데이터는 지우지 않았습니다.\n",
+		"ja": "このコンピューターから GitFolio の設定を削除しました。リポジトリ %d 件の登録を解除してフックを元に戻し、毎日の同期を削除して、このデバイスをログアウトしました。aline.team のデータは削除していません。\n",
+	},
+	"uninstalledData": {
+		"en": "GitFolio's data on this computer (%s) was deleted too.\n",
+		"ko": "이 컴퓨터의 GitFolio 데이터(%s)도 지웠습니다.\n",
+		"ja": "このコンピューターの GitFolio データ(%s)も削除しました。\n",
+	},
+	"uninstalledKept": {
+		"en": "GitFolio's data on this computer is kept in %s; `gitfolio uninstall --purge-local` deletes it.\n",
+		"ko": "이 컴퓨터의 GitFolio 데이터는 %s에 남겨 두었습니다. `gitfolio uninstall --purge-local`로 지울 수 있습니다.\n",
+		"ja": "このコンピューターの GitFolio データは %s に残しています。`gitfolio uninstall --purge-local` で削除できます。\n",
+	},
 	"updateFromApp": {
 		"en": "This copy came with an app, which updates it. Update the app instead.\n",
 		"ko": "앱에 들어 있는 사본이라 앱이 업데이트합니다. 앱을 업데이트하세요.\n",

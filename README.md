@@ -100,6 +100,8 @@ gitfolio schedule 09:00          # optional daily sync (off: schedule off)
 gitfolio deps [on|off|scan]      # dependency detection: per-file approval, read on request
 gitfolio history                 # git commands GitFolio ran
 gitfolio update                  # install the newest release now
+gitfolio uninstall               # before removing GitFolio: unregister all, put back earlier hooks, log out
+                                 # (--purge-local: also delete the data here; nothing on aline.team is deleted)
 gitfolio help                    # everything else
 ```
 
@@ -209,6 +211,8 @@ gitfolio schedule 09:00          # 예약 동기화 (선택, 해제: schedule of
 gitfolio deps [on|off|scan]      # 의존성 분석: 파일별 승인, 요청할 때만 읽기
 gitfolio history                 # GitFolio가 실행한 git 명령
 gitfolio update                  # 최신 버전을 바로 설치
+gitfolio uninstall               # GitFolio를 지우기 전에: 등록 해제, 원래 훅 복원, 로그아웃
+                                 # (--purge-local: 이 컴퓨터의 데이터도 삭제. aline.team의 데이터는 그대로)
 gitfolio help                    # 그 밖의 명령
 ```
 

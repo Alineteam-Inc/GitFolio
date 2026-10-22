@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"text/tabwriter"
+	"time"
 )
 
 // version is set at release time via -ldflags "-X main.version=...".
@@ -77,6 +78,10 @@ commands:
                         optional daily sync at a local time, for pushes the hooks missed
                         (launchd on macOS, systemd or cron on Linux); no argument: show it
   update                install the newest release now (otherwise GitFolio offers it once a day)
+  uninstall [--purge-local] [--json]
+                        before removing GitFolio: unregister every repository and put back its earlier
+                        hooks, remove the daily sync and log out (--purge-local: also delete the data on
+                        this computer). Nothing on aline.team is deleted
   version [--json]      print version (--json: also whether an app ships this copy and updates it)`
 
 func main() {
@@ -129,7 +134,7 @@ func run(args []string) error {
 	if args[0] != "hook" && !slices.Contains(commands, args[0]) { // before anything else runs for a typo
 		return unknownCommand(args[0])
 	}
-	if _, err := exec.LookPath("git"); err != nil {
+	if _, err := exec.LookPath("git"); err != nil && args[0] != "uninstall" { // removing goes as far as it can
 		return failure("noGit")
 	}
 	dir, err := dataDir()
@@ -137,10 +142,10 @@ func run(args []string) error {
 		return err
 	}
 	startHistory(dir, args)
-	if !slices.Contains([]string{"hook", "update"}, args[0]) && checkUpdate(dir) {
+	if !slices.Contains([]string{"hook", "update", "uninstall"}, args[0]) && checkUpdate(dir) {
 		return nil // updated: the user runs the command again with the new binary
 	}
-	if !slices.Contains([]string{"hook", "init", "login", "logout", "email"}, args[0]) {
+	if !slices.Contains([]string{"hook", "init", "login", "logout", "email", "uninstall"}, args[0]) {
 		checkEmails(dir, detectLang(os.Getenv))
 		checkLocalMode(dir, detectLang(os.Getenv))
 	}
@@ -174,6 +179,8 @@ func run(args []string) error {
 		return cmdHistory(dir, args[1:]) // only reads
 	case "update":
 		return cmdUpdate(dir)
+	case "uninstall":
+		return cmdUninstall(dir, args[1:]) // takes the lock itself: --purge-local deletes it with the data
 	case "stats":
 		return cmdStats(dir, args[1:]) // outside the lock: it may wait on aline.team
 	case "stack":
@@ -210,7 +217,7 @@ func run(args []string) error {
 
 // commands are the commands people type; "hook" is run by git hooks only and never suggested.
 var commands = []string{"init", "login", "logout", "whoami", "add", "remove", "scan", "sync", "list", "status",
-	"stats", "stack", "export", "config", "deps", "schedule", "email", "history", "update", "version", "help"}
+	"stats", "stack", "export", "config", "deps", "schedule", "email", "history", "update", "uninstall", "version", "help"}
 
 // unknownCommand names the commands the user may have meant (similarCommands), or points to help.
 func unknownCommand(s string) error {
@@ -415,6 +422,98 @@ func cmdRemove(dir string, args []string) error {
 	say(detectLang(os.Getenv), "removed", r.Name)
 	if *purge {
 		say(detectLang(os.Getenv), "purgeQueued")
+	}
+	return nil
+}
+
+// cmdUninstall undoes what GitFolio set up on this computer, before it is removed (an app's uninstaller
+// runs it): every repository is unregistered and its hooks give way to the ones before, the daily sync
+// goes, and this device's login is revoked when aline.team answers in time. --purge-local also deletes
+// GitFolio's data here. Nothing on aline.team is deleted, nothing is asked, and running it again does
+// no harm.
+func cmdUninstall(dir string, args []string) error {
+	jsonMode(args)
+	purge := false
+	for _, a := range args {
+		switch a {
+		case "--purge-local":
+			purge = true
+		case "--json":
+		default:
+			return failure("usage", "gitfolio uninstall [--purge-local] [--json]")
+		}
+	}
+	lang := detectLang(os.Getenv)
+	type repo struct {
+		Name  string `json:"name"`
+		Path  string `json:"path"`
+		Error string `json:"error,omitempty"` // its hooks could not be put back
+	}
+	res := struct {
+		Repositories []repo `json:"repositories"`
+		Revoked      bool   `json:"revoked"` // aline.team revoked this device's login
+		DataDeleted  bool   `json:"dataDeleted"`
+	}{Repositories: []repo{}}
+	err := withLock(dir, func() error {
+		repos, err := loadRepos(dir)
+		if err != nil {
+			return err
+		}
+		for _, r := range repos {
+			e := ""
+			if _, err := os.Stat(r.Path); err == nil { // a folder that is gone took its hooks with it
+				if err := uninstallHooks(r.Path); err != nil {
+					warn(lang, "hooksNotRestored", fmt.Errorf("%s: %w", r.Name, err))
+					e = err.Error()
+				}
+			}
+			res.Repositories = append(res.Repositories, repo{r.Name, r.Path, e})
+		}
+		if err := saveRepos(dir, []Repo{}); err != nil {
+			return err
+		}
+		if cfg, err := loadConfig(dir); err != nil {
+			return err
+		} else if cfg.Schedule != "" {
+			if err := unschedule(dir); err != nil {
+				return err
+			}
+			cfg.Schedule = ""
+			if err := saveConfig(dir, cfg); err != nil {
+				return err
+			}
+		}
+		apiTimeout = 5 * time.Second // an uninstaller does not wait long on the network
+		c, err := newClient(dir)
+		if err != nil {
+			return err
+		}
+		if c.loggedIn() { // send, not call: an expired login is not renewed only to be revoked
+			if err := c.send("POST", "/cli/logout", nil, nil, true); err != nil {
+				warn(lang, "logoutServerFailed", err)
+			} else {
+				res.Revoked = true
+			}
+		}
+		return saveCredentials(dir, Credentials{})
+	})
+	if err != nil {
+		return err
+	}
+	if purge {
+		if err := os.RemoveAll(dir); err != nil {
+			return err
+		}
+		res.DataDeleted = true
+	}
+	if jsonOut {
+		return printJSON(res)
+	}
+	say(lang, "uninstalled", len(res.Repositories))
+	if purge {
+		say(lang, "uninstalledData", tildePath(dir))
+	} else {
+		notice(fmt.Sprintf(tr(lang, "uninstalledKept"), tildePath(dir)))
 	}
 	return nil
 }
