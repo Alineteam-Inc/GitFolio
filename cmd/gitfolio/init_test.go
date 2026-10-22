@@ -333,3 +333,60 @@ func TestSetupJSON(t *testing.T) {
 		t.Errorf("config autosync off: %v", v)
 	}
 }
+
+// With --json the text a program shows (error messages, the policy, the sign-up notice, progress) names no
+// gitfolio command, flag or "CLI": every failure whose text does has an app wording with the same arguments.
+func TestAppMessages(t *testing.T) {
+	command := regexp.MustCompile("gitfolio [a-z]|`gitfolio`|(^|[^\\w-])--[a-z]|\\bCLI\\b")
+	verbs := regexp.MustCompile(`%(\[\d+\])?[-+# 0-9.]*[a-zA-Z]`)
+	names := func(s string) []string { v := verbs.FindAllString(s, -1); slices.Sort(v); return v }
+	for key, byLang := range appMessages {
+		base, ok := messages[key]
+		if !ok {
+			t.Errorf("app message %q has no message", key)
+		}
+		for _, lang := range []string{"en", "ko", "ja"} {
+			switch s := byLang[lang]; {
+			case s == "":
+				t.Errorf("app message %q has no %s text", key, lang)
+			case command.MatchString(s):
+				t.Errorf("app message %q (%s) names a command: %q", key, lang, s)
+			case !slices.Equal(names(s), names(base["en"])):
+				t.Errorf("app message %q (%s) has %v, the message has %v", key, lang, names(s), names(base["en"]))
+			}
+		}
+	}
+	src, err := os.ReadDir(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	failures := regexp.MustCompile(`failure\("(\w+)"`)
+	keys := []string{"relogin", "policy", "signupNotice", "notifyAsk", "progressScan", "progressSend"} // put into JSON
+	for _, f := range src {
+		if strings.HasSuffix(f.Name(), ".go") && !strings.HasSuffix(f.Name(), "_test.go") {
+			b, err := os.ReadFile(f.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, m := range failures.FindAllStringSubmatch(string(b), -1) {
+				keys = append(keys, m[1])
+			}
+		}
+	}
+	defer func() { jsonOut = false }()
+	jsonOut = true
+	for _, key := range keys {
+		for _, lang := range []string{"en", "ko", "ja"} {
+			if s := tr(lang, key); key != "usage" && command.MatchString(s) {
+				t.Errorf("with --json, %q (%s) names a command: %q", key, lang, s)
+			}
+		}
+	}
+	if !strings.Contains(failure("loginFirst").Error(), "first.") || jsonOut && strings.Contains(tr("en", "relogin"), "gitfolio") {
+		t.Errorf("--json does not take the app wording: %q", failure("loginFirst"))
+	}
+	jsonOut = false
+	if !strings.Contains(failure("loginFirst").Error(), "gitfolio login") {
+		t.Errorf("the terminal lost the command: %q", failure("loginFirst"))
+	}
+}

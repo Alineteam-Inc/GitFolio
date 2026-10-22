@@ -153,12 +153,114 @@ func section(lang, titleKey string) {
 	fmt.Fprintf(out, "%s%s\n", margin, heading("===== GitFolio · "+strings.TrimSpace(tr(lang, titleKey))+" ====="))
 }
 
-// tr returns the message for lang, falling back to English.
+// tr returns the message for lang, falling back to English. With --json it is the app's wording when
+// there is one (appMessages).
 func tr(lang, key string) string {
-	if s, ok := messages[key][lang]; ok {
+	m := messages[key]
+	if a, ok := appMessages[key]; ok && jsonOut {
+		m = a
+	}
+	if s, ok := m[lang]; ok {
 		return s
 	}
-	return messages[key]["en"]
+	return m["en"]
+}
+
+// appMessages word, for programs reading --json, the messages that can reach them and point to a
+// gitfolio command or flag: the app shows them to people who use it instead of a terminal, and gives
+// the way out itself (by the error code). Same keys and arguments as in messages. "usage" stays: it
+// means the program called a command wrongly.
+var appMessages = map[string]map[string]string{
+	"alreadyLoggedIn": {
+		"en": "Already logged in as %s. Log out first to switch accounts.\n",
+		"ko": "이미 %s(으)로 로그인되어 있습니다. 계정을 바꾸려면 먼저 로그아웃하세요.\n",
+		"ja": "すでに %s でログインしています。アカウントを切り替えるには先にログアウトしてください。\n",
+	},
+	"busy": {
+		"en": "Another GitFolio task is in progress; try again shortly.\n",
+		"ko": "다른 GitFolio 작업이 진행 중입니다. 잠시 후 다시 시도하세요.\n",
+		"ja": "別の GitFolio の処理が実行中です。しばらくしてから再試行してください。\n",
+	},
+	"depsIsOff": {
+		"en": "Dependency detection is off. Turn it on first.\n",
+		"ko": "의존성 분석이 꺼져 있습니다. 먼저 켜세요.\n",
+		"ja": "依存関係の分析はオフです。先に有効にしてください。\n",
+	},
+	"emailRmPrimary": {
+		"en": "%s is the primary email. Make another one primary first.\n",
+		"ko": "대표 이메일은 지울 수 없습니다: %s\n먼저 다른 이메일을 대표로 지정하세요.\n",
+		"ja": "代表メールアドレスは削除できません: %s\n先に別のアドレスを代表に指定してください。\n",
+	},
+	"emailTooMany": {
+		"en": "aline.team takes no more verified work emails. Remove one first.\n",
+		"ko": "aline.team이 받는 인증된 작업 이메일 수를 넘었습니다. 먼저 하나를 삭제하세요.\n",
+		"ja": "aline.team が受け付ける認証済みの作業用メールアドレスの上限に達しています。先に 1 件削除してください。\n",
+	},
+	"hooksElsewhere": {
+		"en": "Hooks live outside .git (%s, e.g. a shared core.hooksPath or husky 5–8), so GitFolio did not change them.\n",
+		"ko": "훅 폴더가 .git 밖에 있어(%s, 예: 공유 core.hooksPath·husky 5–8) GitFolio가 훅을 바꾸지 않았습니다.\n",
+		"ja": "フックが .git の外にあるため(%s、例: 共有の core.hooksPath・husky 5–8)、GitFolio は変更していません。\n",
+	},
+	"loginFirst": {
+		"en": "Log in or sign up to aline.team first.\n",
+		"ko": "먼저 aline.team에 로그인하거나 가입하세요.\n",
+		"ja": "先に aline.team にログインまたは新規登録してください。\n",
+	},
+	"loginNeedsTerminal": {
+		"en": "Logging in or signing up needs the account's email.\n",
+		"ko": "로그인·가입하려면 계정 이메일이 필요합니다.\n",
+		"ja": "ログイン・新規登録にはアカウントのメールアドレスが必要です。\n",
+	},
+	"noUserEmail": {
+		"en": "git user.email is not set, so your commits cannot be identified. Set your email in git first.\n",
+		"ko": "git user.email이 설정되어 있지 않아 본인 커밋을 식별할 수 없습니다. 먼저 git에 이메일을 설정하세요.\n",
+		"ja": "git の user.email が設定されていないため、あなたのコミットを識別できません。先に git にメールアドレスを設定してください。\n",
+	},
+	"notRegisteredAdd": {
+		"en": "%s is not registered. Add it first.\n",
+		"ko": "등록되지 않은 저장소입니다: %s\n먼저 추가하세요.\n",
+		"ja": "%s は登録されていません。先に追加してください。\n",
+	},
+	"relogin": {
+		"en": "(log in again)",
+		"ko": "(다시 로그인하세요)",
+		"ja": "(もう一度ログインしてください)",
+	},
+	"scheduleLocal": {
+		"en": "Local mode sends nothing by itself, so it has no daily sync. Turn automatic sync on first.\n",
+		"ko": "로컬 모드는 스스로 보내지 않으므로 예약 동기화가 없습니다. 먼저 자동 동기화를 켜세요.\n",
+		"ja": "ローカルモードは自分から送信しないため、予約同期はありません。先に自動同期をオンにしてください。\n",
+	},
+	"scheduleNoScheduler": {
+		"en": "There is no scheduler to use: systemd user timers failed (%v) and crontab is not installed.\nInstall cron, or sync yourself.\n",
+		"ko": "쓸 수 있는 예약 도구가 없습니다: systemd 사용자 타이머 실패(%v), crontab 없음.\ncron을 설치하거나 직접 동기화하세요.\n",
+		"ja": "使える予約ツールがありません: systemd ユーザータイマーが失敗(%v)し、crontab もありません。\ncron をインストールするか、手動で同期してください。\n",
+	},
+	"scheduleUnsupported": {
+		"en": "Scheduling is not supported on this system yet; sync yourself.\n",
+		"ko": "이 시스템에서는 아직 예약 동기화를 지원하지 않습니다. 직접 동기화하세요.\n",
+		"ja": "このシステムでは予約同期にまだ対応していません。手動で同期してください。\n",
+	},
+	"signupConsent": {
+		"en": "%s has no aline.team account yet: signing up needs your agreement to the terms.\n",
+		"ko": "%s(으)로 된 aline.team 계정이 아직 없습니다. 가입하려면 약관 동의가 필요합니다.\n",
+		"ja": "%s の aline.team アカウントはまだありません。登録には規約への同意が必要です。\n",
+	},
+	"stackUnavailable": {
+		"en": "aline.team does not give tech stack periods here yet. They are on your aline.team profile.\n",
+		"ko": "aline.team이 아직 이곳에 기술 스택 기간을 주지 않습니다. aline.team 프로필에서 볼 수 있습니다.\n",
+		"ja": "aline.team はまだここに技術スタックの期間を提供していません。aline.team のプロフィールで確認できます。\n",
+	},
+	"statsSlow": {
+		"en": "aline.team is still making your developer type. It keeps it when done; try again in a minute.\n",
+		"ko": "aline.team이 아직 개발자 유형을 만드는 중입니다. 다 만들면 aline.team에 저장되니 잠시 뒤 다시 시도하세요.\n",
+		"ja": "aline.team はまだ開発者タイプを作成中です。完成すると aline.team に保存されるので、少し待ってからもう一度お試しください。\n",
+	},
+	"unknownCommand": {
+		"en": "Unknown command %q.\n",
+		"ko": "알 수 없는 명령입니다: %q\n",
+		"ja": "不明なコマンド %q です。\n",
+	},
 }
 
 // messages holds the text people read. Policy and consent texts must mean the same in every language
@@ -177,8 +279,8 @@ var messages = map[string]map[string]string{
  - Daily statistics of each repository (counts of commits,
    changed files per language, and later changes to files you
    created) are made on this computer and sent as well. In
-   local mode only these are sent, when you run gitfolio stats
-   or sync.
+   local mode only these are sent, when you look up your
+   developer type or tech stack, or sync.
  - Sensitive parts of commit messages (tokens, URLs, emails,
    ticket numbers, blocked words) are masked on this computer.
    Data is sent to aline.team (Alineteam Inc., United States)
@@ -196,7 +298,7 @@ var messages = map[string]map[string]string{
    의존성 파악에만 사용합니다. 찾은 의존성의 이름만(버전·내용 제외) 보냅니다.
  - 저장소별 일 단위 통계(커밋 수, 언어별 변경 파일 수, 내가 만든
    파일의 이후 변경 수)를 이 컴퓨터에서 만들어 함께 보냅니다.
-   로컬 모드에서는 gitfolio stats나 sync를 실행할 때 이 통계만 보냅니다.
+   로컬 모드에서는 개발자 유형·기술 스택을 볼 때나 동기화할 때 이 통계만 보냅니다.
  - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
    이 컴퓨터에서 가립니다. 데이터는 git push 직후와 동기화할 때
    aline.team(Alineteam Inc., 미국)으로 전송되며
@@ -214,8 +316,8 @@ var messages = map[string]map[string]string{
    依存関係の名前のみ(バージョン・内容を除く)を送信します。
  - リポジトリごとの日単位の統計(コミット数、言語別の変更ファイル数、
    自分が作成したファイルのその後の変更数)をこのコンピューターで作成し、
-   あわせて送信します。ローカルモードでは gitfolio stats または sync の
-   実行時にこの統計のみを送信します。
+   あわせて送信します。ローカルモードでは、開発者タイプ・技術スタックを
+   見るときや同期するときに、この統計のみを送信します。
  - コミットメッセージの機密部分(トークン・URL・メールアドレス・
    チケット番号・ブロックワード)はこのコンピューターでマスキングします。
    データは git push の直後と同期時に aline.team(Alineteam Inc.、米国)へ
