@@ -54,8 +54,15 @@ func manifestEcosystem(file string) string {
 	return manifestNames[base]
 }
 
-// skipDirs hold other people's code or samples; manifest files inside are not even offered.
-var skipDirs = []string{"node_modules", "vendor", "third_party", "examples", "testdata", "fixtures"}
+// skipDirs hold other people's code or samples, as aline.team skips them: manifest files inside are not
+// even offered, and files inside show no tech by their presence.
+var skipDirs = []string{"node_modules", "vendor", "bower_components", "third_party", "testdata", "fixtures", "examples", "example"}
+
+// inSkipDir reports whether a folder of repository path p (in any case) is one of skipDirs.
+func inSkipDir(p string) bool {
+	dirs := strings.Split(strings.ToLower(strings.ReplaceAll(p, `\`, "/")), "/")
+	return slices.ContainsFunc(dirs[:len(dirs)-1], func(d string) bool { return slices.Contains(skipDirs, d) })
+}
 
 const maxManifests = 200
 
@@ -88,10 +95,7 @@ func manifestCandidates(repo string) []string {
 	all := strings.Split(out, "\x00")
 	var files []string
 	for _, p := range all {
-		if manifestEcosystem(p) == "" || path.Base(p) == "Podfile" && crossPlatformIOS(p, all) {
-			continue
-		}
-		if slices.ContainsFunc(strings.Split(path.Dir(p), "/"), func(d string) bool { return slices.Contains(skipDirs, d) }) {
+		if manifestEcosystem(p) == "" || inSkipDir(p) || path.Base(p) == "Podfile" && crossPlatformIOS(p, all) {
 			continue
 		}
 		if len(files) == maxManifests {

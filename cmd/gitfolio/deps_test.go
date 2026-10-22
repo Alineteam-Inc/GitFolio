@@ -76,13 +76,14 @@ func TestDepsInMonorepo(t *testing.T) {
 		}
 	}
 	files := map[string]string{
-		"package.json":           `{"dependencies":{"react":"18.0.0"}}`,
-		"services/api/go.mod":    "module api\n\nrequire github.com/gin-gonic/gin v1.9.0\n",
-		"services/api/main.go":   "package main\n",
-		"tools/requirements.txt": "secret-internal-tool==1.0\n",
-		"web/Cargo.toml":         "[dependencies]\nundecided = \"1\"\n",
-		"web/src/App.jsx":        "export default 1\n",
-		"node_modules/x/go.mod":  "module x\n",
+		"package.json":             `{"dependencies":{"react":"18.0.0"}}`,
+		"services/api/go.mod":      "module api\n\nrequire github.com/gin-gonic/gin v1.9.0\n",
+		"services/api/main.go":     "package main\n",
+		"tools/requirements.txt":   "secret-internal-tool==1.0\n",
+		"web/Cargo.toml":           "[dependencies]\nundecided = \"1\"\n",
+		"web/src/App.jsx":          "export default 1\n",
+		"node_modules/x/go.mod":    "module x\n",
+		"Example/app/package.json": "{}",
 	}
 	for name, body := range files {
 		p := filepath.Join(repo, name)

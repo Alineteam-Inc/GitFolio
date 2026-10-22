@@ -5,8 +5,19 @@ import (
 	"maps"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 )
+
+// Files in other people's code or samples show nothing by their presence; a file named like such a folder does.
+func TestPresenceSkipsVendor(t *testing.T) {
+	for p, want := range map[string]string{"vendor/Dockerfile": "", `Bower_Components\x\Dockerfile`: "", "a/Example/main.tf": "",
+		"src/vendor.tf": "TERRAFORM", "infra/Dockerfile.prod": "DOCKER"} {
+		if got := strings.Join(filePresenceTechs(p), " "); got != want {
+			t.Errorf("filePresenceTechs(%q) = %q, want %q", p, got, want)
+		}
+	}
+}
 
 // The techs dependency names show here are exactly the ones aline.team finds for the same names: every
 // case aline.team's own resolver gave (testdata/stack-golden.json, made from its rules and their edge
