@@ -177,8 +177,8 @@ func TestStack(t *testing.T) {
 	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
 	out, errOut = &buf, &buf
 	dir := t.TempDir() // no login: none is needed
-	commit := func(repo, date string, files ...string) Commit {
-		c := Commit{Repo: repo, Hash: date, Date: date}
+	commit := func(repo, date, message string, files ...string) Commit {
+		c := Commit{Repo: repo, Hash: date, Date: date, Message: message}
 		for _, f := range files {
 			c.Files = append(c.Files, FileStat{Name: f, Add: 1})
 		}
@@ -193,10 +193,12 @@ func TestStack(t *testing.T) {
 	}
 	must(saveRepos(dir, []Repo{api, web}))
 	must(writeCommits(dir, []Commit{
-		commit("api", "2024-01-15T10:00:00Z", "src/App.java", "Dockerfile"),
-		commit("api", "2024-03-20T09:00:00Z", "src/Svc.java"),
-		commit("web", "2024-02-01T00:00:00Z", "app.ts", "Dockerfile.prod"),
-		commit("web", "2024-06-01T00:00:00Z", "app.ts", "logo.png"),
+		commit("api", "2024-01-15T10:00:00Z", "feat: start", "src/App.java", "Dockerfile"),
+		commit("api", "2024-03-20T09:00:00+09:00", "fix: service", "src/Svc.java"),   // March 20 in UTC too
+		commit("api", "2024-09-01T00:00:00Z", "Merge branch 'main'", "src/App.java"), // a merge: not in the span
+		commit("api", "2024-10-01T00:00:00Z", "docs: license", "LICENSE"),            // a kind of file unknown: neither
+		commit("web", "2024-02-01T00:00:00Z", "feat: app", "app.ts", "Dockerfile.prod"),
+		commit("web", "2024-06-01T23:30:00-01:00", "feat: logo", "app.ts", "logo.png", "android/app/Main.vue"), // June 2 in UTC
 	}))
 	must(saveJSON(filepath.Join(dir, "deps.json"), []Dependency{
 		{Repo: "api", Ecosystem: "maven", Name: "org.springframework.boot:spring-boot-starter-data-jpa"},
@@ -217,17 +219,16 @@ func TestStack(t *testing.T) {
 			names[list] = append(names[list], m["name"].(string))
 		}
 	}
-	if fmt.Sprint(names) != "map[frameworks:[Spring Boot] languages:[Java TypeScript] libraries:[Docker JPA React Redux Spring Data JPA]]" {
+	if fmt.Sprint(names) != "map[frameworks:[Spring Boot Vue.js] languages:[Java TypeScript] libraries:[Docker JPA React Redux Spring Data JPA]]" {
 		t.Errorf("stack: %v", names)
 	}
-	if d := byName["Docker"]; d["projectCount"] != 2.0 || d["startDate"] != "2024-01-15T10:00:00" || d["endDate"] != "2024-06-01T00:00:00" ||
+	if d := byName["Docker"]; d["projectCount"] != 2.0 || d["startDate"] != "2024-01-15T00:00:00" || d["endDate"] != "2024-06-02T00:00:00" ||
 		d["careerMonths"] != 4.0 || fmt.Sprint(d["activityMonths"]) != "[2024-01 2024-02 2024-03 2024-06]" {
-		t.Errorf("Docker, in both repositories: %v", d) // Jan 15–Jun 1 merged: 4 whole months
+		t.Errorf("Docker, in both repositories: %v", d) // Jan 15 to Jun 2 merged: 4 whole months
 	}
 	if j := byName["Java"]; j["projectCount"] != 1.0 || j["careerMonths"] != 2.0 || fmt.Sprint(j["activityMonths"]) != "[2024-01 2024-03]" {
-		t.Errorf("Java: %v", j) // Jan 15 10:00 to Mar 20 09:00: 2 whole months
+		t.Errorf("Java: %v", j) // Jan 15 to Mar 20; the merge and the license commit left out
 	}
-
 	jsonOut, out = false, &buf // one command per process otherwise
 	if err := cmdStack(dir, nil); err != nil {
 		t.Fatal(err)

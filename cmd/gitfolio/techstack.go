@@ -99,16 +99,14 @@ func jvmGroupTech(group string) string {
 }
 
 // filePresenceTechs are the techs a file's presence in a repository shows (a Dockerfile shows Docker), by
-// its path in the repository. Files under an android/ or ios/ folder show none: Flutter and React Native
-// make those folders.
+// its path in the repository. Under an android/ or ios/ folder its name shows none (Flutter and React
+// Native make those folders), its extension still does.
 func filePresenceTechs(file string) []string {
 	segments := strings.Split(strings.ToLower(strings.ReplaceAll(file, `\`, "/")), "/")
-	if slices.ContainsFunc(segments[:len(segments)-1], func(s string) bool { return s == "android" || s == "ios" }) {
-		return nil
-	}
 	base := segments[len(segments)-1]
 	var techs []string
 	switch {
+	case slices.ContainsFunc(segments[:len(segments)-1], func(s string) bool { return s == "android" || s == "ios" }):
 	case presenceTechs[base] != nil:
 		techs = slices.Clone(presenceTechs[base])
 	case strings.HasPrefix(base, "dockerfile"):
@@ -131,16 +129,26 @@ func techClass(category string) string {
 	return "LIBRARY"
 }
 
-// stackZone is the time zone commit times are read in for the tech stack: the day a month starts and
-// the months a commit falls in.
-var stackZone = time.UTC
+// knownFile reports whether aline.team knows the kind of a file (code, markup, data, prose, media, a
+// package file), by its name or extension.
+func knownFile(file string) bool {
+	base := file[strings.LastIndexAny(file, `/\`)+1:]
+	lower := strings.ToLower(base)
+	if knownFileNames[base] || strings.HasPrefix(lower, "dockerfile") || strings.HasPrefix(lower, "makefile") {
+		return true
+	}
+	i := strings.LastIndexByte(base, '.')
+	return i > 0 && knownFileExts[strings.ToLower(base[i+1:])]
+}
 
 // localStack is the tech stack of the registered repositories from this computer's data, as aline.team
-// works it out per repository: each tech the repository shows (its languages, the techs its files'
-// presence and its approved dependencies show) counts the repository once, with the span of the user's
-// commits in it and the months they fall in. Per tech: projectCount the repositories, startDate and
-// endDate the first and last commit, careerMonths the spans merged where they overlap, activityMonths
-// the months. Each list goes by projectCount, then name.
+// works it out per repository: each tech the repository shows (its languages and the techs its files'
+// presence show, from every file of the user's commits, and its approved dependencies) counts the
+// repository once, with the span of the user's commits in it and the months they fall in (UTC days;
+// merges and other system commits, commits with no message aline.team can tell, and files of a kind it
+// does not know left out). Per tech: projectCount the repositories, startDate and endDate the first and
+// last day, careerMonths the spans merged where they overlap or touch, activityMonths the months. Each
+// list goes by projectCount, then name.
 func localStack(repos []Repo, commits []Commit, deps []Dependency) techUsages {
 	type repoData struct {
 		techs      map[string]bool
@@ -162,8 +170,10 @@ func localStack(repos []Repo, commits []Commit, deps []Dependency) techUsages {
 		if d == nil {
 			continue
 		}
-		if t, err := time.Parse(time.RFC3339, c.Date); err == nil {
-			t = t.In(stackZone)
+		typ := commitType(c.Message)
+		if t, err := time.Parse(time.RFC3339, c.Date); err == nil && typ != "SYSTEM" && typ != "UNCATEGORIZED" &&
+			slices.ContainsFunc(c.Files, func(f FileStat) bool { return knownFile(f.Name) }) {
+			t = t.UTC().Truncate(24 * time.Hour)
 			if d.start.IsZero() || t.Before(d.start) {
 				d.start = t
 			}
