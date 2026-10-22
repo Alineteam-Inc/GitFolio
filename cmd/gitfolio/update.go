@@ -140,10 +140,17 @@ func cmdUpdate(dir string) error {
 	return nil
 }
 
-// latestRelease returns the newest release tag, e.g. "v0.2.0".
+// latestRelease returns the newest release tag, e.g. "v0.2.0": the tag page releases/latest redirects
+// to. Redirects before it are followed: a renamed repository redirects its old address first.
 func latestRelease() (string, error) {
-	c := &http.Client{Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error {
-		return http.ErrUseLastResponse
+	c := &http.Client{Timeout: 3 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if strings.Contains(req.URL.Path, "/releases/tag/") {
+			return http.ErrUseLastResponse // its address names the tag; the page itself is not needed
+		}
+		if len(via) >= 10 {
+			return errors.New("too many redirects")
+		}
+		return nil
 	}}
 	res, err := c.Head(latestURL)
 	if err != nil {

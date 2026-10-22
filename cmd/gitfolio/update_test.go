@@ -153,3 +153,22 @@ func TestInstallEnv(t *testing.T) {
 		}
 	}
 }
+
+// The newest release is found through a renamed repository too: its old address redirects to the new
+// one first, and only then to the tag.
+func TestLatestReleaseRenamed(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/old/releases/latest", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/new/releases/latest", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("/new/releases/latest", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/new/releases/tag/v0.6.0", http.StatusFound)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	defer func(u string) { latestURL = u }(latestURL)
+	latestURL = srv.URL + "/old/releases/latest"
+	if tag, err := latestRelease(); err != nil || tag != "v0.6.0" {
+		t.Errorf("latestRelease = %q, %v; want v0.6.0", tag, err)
+	}
+}
