@@ -22,6 +22,10 @@ const usage = `usage: gitfolio <command> [arguments]
 commands:
   init [folder...]      first-time setup: data policy, aline.team log in / sign up, then find the repositories
                         under your code folders and choose which ones to collect
+  init --policy [--json] | init --scan [--root <folder>]... --json
+                        init's steps for a program, without questions: the data policy, then (logged
+                        in) the repositories and emails found; email, add, deps, config autosync and
+                        schedule set up what the user picks
   login                 log in / sign up to aline.team with an email code (an email without an
                         account is signed up)
   login --email <email> [--code <code> [--signup [--notify]]] [--json]
@@ -30,7 +34,7 @@ commands:
                         --notify: also receive aline.team service notifications by email)
   logout [--json]       sign out: revoke and remove this device's token
   whoami [--json]       show the aline.team account this device is signed in to
-  add [path]            register a repository, collect its commits and install git hooks
+  add [path] [--json]   register a repository, collect its commits and install git hooks
                         (post-commit, pre-push) so later pushes are collected automatically
   remove [path] [--purge]
                         unregister a repository and restore its previous hooks
@@ -57,16 +61,17 @@ commands:
   stack [--json]        how long you used each language, framework and library, from aline.team
                         (local mode: sends the statistics first; --json: as JSON, for programs)
   export                print collected commits, dependencies and statistics as JSON
-  deps [on|off|review [path]]
+  deps [on|off|review [path] [--allow <file>]...] [--json]
                         dependency detection: show status, turn it on (you choose which
                         package manager files may be read) or off (collected dependencies
-                        are deleted), or change the file choices of a repository
+                        are deleted), or change the file choices of a repository (--allow,
+                        without questions: the files that may be read; the others are declined)
   deps scan [path] [--all]
                         read the approved package manager files again to update the
                         dependencies
   deps auto on|off      scan, sync and the daily sync also read the approved package
                         manager files (off by default; pushes never read them)
-  config                show settings
+  config [--json]       show settings (--json after a change below: the settings)
   config mask add|rm <word>...
                         add or remove blocked words (customer or internal project names);
                         added words are also applied to already stored data
@@ -78,11 +83,12 @@ commands:
                         keep git's own record of the git commands gitfolio runs (on by default;
                         off deletes it)
   history [--all]       the git commands gitfolio ran, newest last (--all: every run kept)
-  email [add <email>... | verify <email> | rm <email> | primary <email>]
+  email [add <email>... | verify <email> [--code <code>] | rm <email> | primary <email>] [--json]
                         your work emails: commits by any of them count as yours, and aline.team
                         gets all of them under the primary one (the first, marked ★); verified
-                        ones (✔, email code) merge the repositories linked on aline.team with them
-  schedule [HH:MM | off]
+                        ones (✔, email code) merge the repositories linked on aline.team with them;
+                        without a terminal, verify sends the code and verify --code finishes
+  schedule [HH:MM | off] [--json]
                         optional daily sync at a local time, for pushes the hooks missed
                         (launchd on macOS, systemd or cron on Linux); no argument: show it
   update                install the newest release now (otherwise GitFolio offers it once a day)
@@ -90,7 +96,10 @@ commands:
                         before removing GitFolio: unregister every repository and put back its earlier
                         hooks, remove the daily sync and log out (--purge-local: also delete the data on
                         this computer). Nothing on aline.team is deleted
-  version [--json]      print version (--json: also whether an app ships this copy and updates it)`
+  version [--json]      print version (--json: also whether an app ships this copy and updates it)
+
+--json, where a command takes it, prints one JSON document on stdout for programs, a failure too
+({"error": {"code", "message"}}, exit status 1); messages for people go to stderr.`
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -111,6 +120,11 @@ func jsonMode(args []string) {
 	if slices.Contains(args, "--json") {
 		jsonOut, out = true, errOut
 	}
+}
+
+// withoutJSON is args without --json, for commands that read the rest by position.
+func withoutJSON(args []string) []string {
+	return slices.DeleteFunc(slices.Clone(args), func(a string) bool { return a == "--json" })
 }
 
 // errorCode is what programs reading --json branch on: the message key of a translated error, a name
@@ -207,7 +221,7 @@ func run(args []string) error {
 	return withLock(dir, func() error {
 		switch args[0] {
 		case "add":
-			return cmdAdd(dir, pathArg(args[1:]))
+			return cmdAdd(dir, args[1:])
 		case "remove":
 			return cmdRemove(dir, args[1:])
 		case "scan":
@@ -329,16 +343,21 @@ func flagsFirst(args []string) []string {
 	return append(flags, rest...)
 }
 
-func cmdAdd(dir, path string) error {
-	top, err := topLevel(path)
+func cmdAdd(dir string, args []string) error {
+	jsonMode(args)
+	top, err := topLevel(pathArg(withoutJSON(args)))
 	if err != nil {
 		return err
 	}
 	n, err := registerRepo(dir, newRepo(top), true)
-	if err == nil {
-		say(detectLang(os.Getenv), "registered", filepath.Base(top), n)
+	if err != nil {
+		return err
 	}
-	return err
+	if jsonOut {
+		return printJSON(map[string]any{"name": filepath.Base(top), "path": top, "commits": n})
+	}
+	say(detectLang(os.Getenv), "registered", filepath.Base(top), n)
+	return nil
 }
 
 // registerRepo registers repo (a git top-level), collects it and installs hooks, and returns how many
@@ -715,7 +734,21 @@ func printJSON(v any) error {
 	return enc.Encode(v)
 }
 
+// cmdConfig shows the settings as JSON, or changes one; with --json a change is followed by the settings.
 func cmdConfig(dir string, args []string) error {
+	jsonMode(args)
+	args = withoutJSON(args)
+	if err := changeConfig(dir, args); err != nil || !jsonOut || len(args) == 0 {
+		return err
+	}
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
+	return printJSON(cfg)
+}
+
+func changeConfig(dir string, args []string) error {
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err

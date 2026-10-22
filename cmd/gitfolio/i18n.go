@@ -304,11 +304,6 @@ var messages = map[string]map[string]string{
 		"ko": "aline.team은 인증된 작업 이메일을 20개까지 받습니다. 먼저 하나를 삭제하세요: gitfolio email rm <이메일>\n",
 		"ja": "aline.team が受け付ける認証済みの作業用メールアドレスは 20 件までです。先に 1 件削除してください: gitfolio email rm <メールアドレス>\n",
 	},
-	"emailVerifyNeedsTerminal": {
-		"en": "Verifying an email needs a terminal: run `gitfolio email verify <email>` there.\n",
-		"ko": "이메일 인증은 터미널에서 해야 합니다. 터미널에서 `gitfolio email verify <이메일>`을 실행하세요.\n",
-		"ja": "メールアドレスの認証にはターミナルが必要です。ターミナルで `gitfolio email verify <メールアドレス>` を実行してください。\n",
-	},
 	"emailUnverifyFailed": {
 		"en": "Removed here, but aline.team still has %s as verified (%v).\n",
 		"ko": "이 컴퓨터에서는 삭제했지만 aline.team에는 %s이(가) 인증된 이메일로 남아 있습니다(%v).\n",
@@ -518,6 +513,16 @@ var messages = map[string]map[string]string{
 		"en": "%s has no aline.team account yet: signing up needs your agreement (--signup).\n",
 		"ko": "%s(으)로 된 aline.team 계정이 아직 없습니다. 가입하려면 동의가 필요합니다(--signup).\n",
 		"ja": "%s の aline.team アカウントはまだありません。登録には同意が必要です(--signup)。\n",
+	},
+	"emailCodeSent": {
+		"en": "A code was sent to %s. Finish with `gitfolio email verify %s --code <code>`.\n",
+		"ko": "%s(으)로 확인 코드를 보냈습니다. `gitfolio email verify %s --code <코드>`로 마치세요.\n",
+		"ja": "%s に確認コードを送りました。`gitfolio email verify %s --code <コード>` で完了してください。\n",
+	},
+	"manifestUnknown": {
+		"en": "%s is not a package manager file of %s.\n",
+		"ko": "%s은(는) %s의 패키지 관리 파일이 아닙니다.\n",
+		"ja": "%s は %s のパッケージ管理ファイルではありません。\n",
 	},
 	"codeNotSent": {
 		"en": "No code is waiting for %s. Ask for a new one.\n",

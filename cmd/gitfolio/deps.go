@@ -577,7 +577,52 @@ func reviewManifests(rs []Repo) []int {
 	}
 }
 
+// cmdDeps shows or changes dependency detection; with --json it shows the state after, as depsJSON.
 func cmdDeps(dir string, args []string) error {
+	jsonMode(args)
+	args = withoutJSON(args)
+	if err := changeDeps(dir, args); err != nil || !jsonOut {
+		return err
+	}
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
+	repos, err := loadRepos(dir)
+	if err != nil {
+		return err
+	}
+	return depsJSON(cfg, repos)
+}
+
+// depsJSON is dependency detection for a program: on or off, deps auto, and each repository's package
+// manager files with the user's decision: allowed, declined, or new (not decided yet).
+func depsJSON(cfg Config, repos []Repo) error {
+	type file struct {
+		Path  string `json:"path"`
+		State string `json:"state"`
+	}
+	type repo struct {
+		Name  string `json:"name"`
+		Path  string `json:"path"`
+		Files []file `json:"files"`
+	}
+	list := []repo{}
+	for _, r := range repos {
+		files := []file{}
+		for _, f := range manifestCandidates(r.Path) {
+			state := "new"
+			if ok, decided := r.Manifests[f]; decided {
+				state = map[bool]string{true: "allowed", false: "declined"}[ok]
+			}
+			files = append(files, file{f, state})
+		}
+		list = append(list, repo{r.Name, r.Path, files})
+	}
+	return printJSON(map[string]any{"on": cfg.Deps, "auto": cfg.DepsAuto, "repositories": list})
+}
+
+func changeDeps(dir string, args []string) error {
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err
@@ -593,6 +638,9 @@ func cmdDeps(dir string, args []string) error {
 	}
 	switch sub {
 	case "":
+		if jsonOut {
+			return nil // cmdDeps shows it
+		}
 		msg := fmt.Sprintf(tr(lang, "depsStatus"), tr(lang, map[bool]string{true: "on", false: "off"}[cfg.Deps]))
 		msg += fmt.Sprintf(tr(lang, "depsAutoStatus"), tr(lang, map[bool]string{true: "on", false: "off"}[cfg.DepsAuto]))
 		for _, r := range repos {
@@ -649,7 +697,15 @@ func cmdDeps(dir string, args []string) error {
 		if !cfg.Deps {
 			return failure("depsIsOff")
 		}
-		top, err := topLevel(pathArg(args[1:]))
+		var allow, rest []string // --allow <file>, any number of times: a program's choice
+		for k := 1; k < len(args); k++ {
+			if args[k] == "--allow" && k+1 < len(args) {
+				allow, k = append(allow, args[k+1]), k+1
+			} else {
+				rest = append(rest, args[k])
+			}
+		}
+		top, err := topLevel(pathArg(rest))
 		if err != nil {
 			return err
 		}
@@ -657,8 +713,28 @@ func cmdDeps(dir string, args []string) error {
 		if i < 0 {
 			return failure("notRegisteredAdd", tildePath(top))
 		}
-		if err := reviewAndRescan(dir, repos[i:i+1]); err != nil {
-			return err
+		if !jsonOut && len(allow) == 0 {
+			if err := reviewAndRescan(dir, repos[i:i+1]); err != nil {
+				return err
+			}
+			return saveRepos(dir, repos)
+		}
+		// Without questions: the files given with --allow may be read, every other one is declined.
+		files := manifestCandidates(top)
+		m := map[string]bool{}
+		for _, f := range files {
+			m[f] = slices.Contains(allow, f)
+		}
+		for _, f := range allow {
+			if !slices.Contains(files, f) {
+				return failure("manifestUnknown", f, repos[i].Name)
+			}
+		}
+		if !maps.Equal(m, repos[i].Manifests) {
+			repos[i].Manifests = m
+			if err := rescanDeps(dir, &repos[i]); err != nil {
+				return err
+			}
 		}
 		return saveRepos(dir, repos)
 	case "auto":
@@ -707,21 +783,29 @@ func cmdDeps(dir string, args []string) error {
 		}
 		return nil
 	}
-	return failure("usage", "gitfolio deps [on|off|review [path]|scan [path] [--all]|auto on|off]")
+	return failure("usage", "gitfolio deps [on|off|review [path] [--allow <file>]...|scan [path] [--all]|auto on|off] [--json]")
 }
 
 // reviewAndRescan asks about the manifest files of rs in one list and collects again the repositories
 // whose decisions changed, so dependencies and module IDs match the new approvals.
 func reviewAndRescan(dir string, rs []Repo) error {
 	for _, i := range reviewManifests(rs) {
-		n, err := scanRepo(dir, &rs[i], true) // module IDs of the new approvals
-		if err != nil {
+		if err := rescanDeps(dir, &rs[i]); err != nil {
 			return err
 		}
-		if _, _, err := refreshDeps(dir, &rs[i]); err != nil { // the files were just approved for this
-			return err
-		}
-		say(detectLang(os.Getenv), "depsUpdated", rs[i].Name, n)
 	}
+	return nil
+}
+
+// rescanDeps collects r again after the decisions on its files changed, and reads the approved ones.
+func rescanDeps(dir string, r *Repo) error {
+	n, err := scanRepo(dir, r, true) // module IDs of the new approvals
+	if err != nil {
+		return err
+	}
+	if _, _, err := refreshDeps(dir, r); err != nil { // the files were just approved for this
+		return err
+	}
+	say(detectLang(os.Getenv), "depsUpdated", r.Name, n)
 	return nil
 }

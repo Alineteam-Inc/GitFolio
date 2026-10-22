@@ -106,8 +106,8 @@ func cmdLogin(dir string, args []string) error {
 	return nil
 }
 
-// codeFile keeps the codes sent by email that a later run finishes (login --code), one per sign-in or
-// work email, until the code is right or runs out.
+// codeFile keeps the codes sent by email that a later run finishes (login --code, email verify --code),
+// one per sign-in or work email, until the code is right or runs out.
 const codeFile = "codes.json"
 
 // keptCodeStart is a codeStart as codeFile keeps it.

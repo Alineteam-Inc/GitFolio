@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"io"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -215,5 +218,118 @@ func TestProgress(t *testing.T) {
 	want := "\r\x1b[2K  ℹ Syncing...  \x1b[36m██████\x1b[0m\x1b[2m░░░░░░░░░░░░░░\x1b[0m  30%\r\x1b[2K"
 	if string(got) != want {
 		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
+
+// A program walks through what init asks, without questions: the data policy, the search (only after
+// logging in), the work emails and their codes, the repositories, the package manager files, the
+// schedule and the sync mode, each answered with JSON.
+func TestSetupJSON(t *testing.T) {
+	t.Setenv("GITFOLIO_LANG", "en")
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	f := &fakeAline{token: testToken}
+	ts := httptest.NewServer(f.handler())
+	defer ts.Close()
+	t.Setenv("GITFOLIO_API_URL", ts.URL)
+	var buf bytes.Buffer
+	defer func(o, e io.Writer, i func() bool) { out, errOut, jsonOut, interactive = o, e, false, i }(out, errOut, interactive)
+	out, errOut, interactive = &buf, &buf, func() bool { return false }
+	root := t.TempDir()
+	app, lib := filepath.Join(root, "app"), filepath.Join(root, "lib")
+	gitIn := func(repo string, args ...string) {
+		t.Helper()
+		if b, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, b)
+		}
+	}
+	for _, r := range []string{app, lib} {
+		if err := os.MkdirAll(r, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		gitIn(r, "init", "-q", "-b", "main")
+	}
+	gitIn(app, "config", "user.email", "dev@example.com")
+	gitIn(app, "config", "user.name", "dev")
+	if err := os.WriteFile(filepath.Join(app, "package.json"), []byte(`{"dependencies":{"left-pad":"1.0.0"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(app, "add", "package.json")
+	gitIn(app, "commit", "-q", "-m", "feat: start")
+	// lib sets no email of its own: the user's commit there counts by the email app uses.
+	gitIn(lib, "-c", "user.email=other@example.com", "-c", "user.name=x", "commit", "-q", "--allow-empty", "-m", "theirs")
+	gitIn(lib, "-c", "user.email=dev@example.com", "-c", "user.name=x", "commit", "-q", "--allow-empty", "-m", "mine")
+	dir := t.TempDir()
+	run := func(cmd func(string, []string) error, args ...string) (map[string]any, error) {
+		t.Helper()
+		return jsonStdout(t, func() error { return cmd(dir, append(args, "--json")) })
+	}
+	must := func(v map[string]any, err error) map[string]any {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
+
+	if v := must(run(cmdInit, "--policy")); !strings.Contains(fmt.Sprint(v["policy"]), "Source code is never collected") {
+		t.Errorf("policy: %v", v)
+	}
+	if _, err := run(cmdInit, "--scan", "--root", root); errorCode(err) != "loginFirst" {
+		t.Errorf("scan logged out: %v", err)
+	}
+	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}); err != nil {
+		t.Fatal(err)
+	}
+	v := must(run(cmdInit, "--scan", "--root", root))
+	repos, _ := v["repositories"].([]any)
+	emails, _ := v["emails"].([]any)
+	own := map[string]any{}
+	for _, r := range repos {
+		own[r.(map[string]any)["name"].(string)] = r.(map[string]any)["ownCommits"]
+	}
+	if own["app"] != 1.0 || own["lib"] != 1.0 || len(emails) != 1 || emails[0].(map[string]any)["email"] != "dev@example.com" {
+		t.Errorf("scan: %v", v)
+	}
+	if cfg, _ := loadConfig(dir); !slices.Equal(cfg.Roots, []string{root}) {
+		t.Errorf("roots kept: %v", cfg.Roots)
+	}
+	if _, err := run(cmdInit, "--scan", "--root", filepath.Join(root, "none")); errorCode(err) != "rootMissing" {
+		t.Errorf("missing root: %v", err)
+	}
+
+	must(run(cmdEmail, "add", "dev@example.com"))
+	if v := must(run(cmdEmail, "verify", "me@work.com")); v["verified"] != false || v["codeLength"] != 6.0 {
+		t.Errorf("code sent: %v", v)
+	}
+	v = must(run(cmdEmail, "verify", "me@work.com", "--code", "123456"))
+	if list, _ := v["emails"].([]any); len(list) != 2 || list[1].(map[string]any)["verified"] != true || list[0].(map[string]any)["primary"] != true {
+		t.Errorf("verified: %v", v)
+	}
+
+	if v := must(run(cmdAdd, app)); v["name"] != "app" || v["commits"] != 1.0 {
+		t.Errorf("add: %v", v)
+	}
+	v = must(run(cmdDeps, "on"))
+	files := v["repositories"].([]any)[0].(map[string]any)["files"].([]any)
+	if v["on"] != true || len(files) != 1 || files[0].(map[string]any)["state"] != "new" {
+		t.Errorf("deps on: %v", v)
+	}
+	v = must(run(cmdDeps, "review", app, "--allow", "package.json"))
+	if files := v["repositories"].([]any)[0].(map[string]any)["files"].([]any); files[0].(map[string]any)["state"] != "allowed" {
+		t.Errorf("deps review: %v", v)
+	}
+	if deps, _ := loadDeps(dir); len(deps) != 1 {
+		t.Errorf("dependencies read: %v", deps)
+	}
+	if _, err := run(cmdDeps, "review", app, "--allow", "nope.json"); errorCode(err) != "manifestUnknown" {
+		t.Errorf("unknown file: %v", err)
+	}
+
+	if v := must(run(cmdSchedule)); v["schedule"] != "" {
+		t.Errorf("schedule: %v", v)
+	}
+	if v := must(run(cmdConfig, "autosync", "off")); v["autoSyncOff"] != true || v["localModeKnown"] != true {
+		t.Errorf("config autosync off: %v", v)
 	}
 }

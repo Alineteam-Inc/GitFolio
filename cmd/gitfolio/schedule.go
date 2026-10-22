@@ -27,10 +27,29 @@ var winTaskName = `GitFolio\Sync`
 
 // cmdSchedule shows, sets (HH:MM, local time) or removes the daily sync.
 func cmdSchedule(dir string, args []string) error {
+	jsonMode(args)
+	args = withoutJSON(args)
 	lang := detectLang(os.Getenv)
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err
+	}
+	if jsonOut {
+		if len(args) == 1 {
+			if err := changeSchedule(dir, lang, cfg, args[0]); err != nil {
+				return err
+			}
+			if cfg, err = loadConfig(dir); err != nil {
+				return err
+			}
+		} else if len(args) > 1 {
+			return failure("usage", "gitfolio schedule [HH:MM | off] [--json]")
+		}
+		st, err := loadSync(dir)
+		if err != nil {
+			return err
+		}
+		return printJSON(map[string]string{"schedule": cfg.Schedule, "lastSync": st.LastSync, "lastSyncError": st.LastError})
 	}
 	if len(args) == 0 {
 		st, err := loadSync(dir)
@@ -49,15 +68,20 @@ func cmdSchedule(dir string, args []string) error {
 		return nil
 	}
 	if len(args) > 1 {
-		return failure("usage", "gitfolio schedule [HH:MM | off]")
+		return failure("usage", "gitfolio schedule [HH:MM | off] [--json]")
 	}
-	if args[0] == "off" {
+	return changeSchedule(dir, lang, cfg, args[0])
+}
+
+// changeSchedule sets the daily sync to when ("HH:MM" or "off").
+func changeSchedule(dir, lang string, cfg Config, when string) error {
+	if when == "off" {
 		return setSchedule(dir, lang, "")
 	}
 	if cfg.AutoSyncOff { // local mode sends nothing by itself
 		return failure("scheduleLocal")
 	}
-	return setSchedule(dir, lang, args[0])
+	return setSchedule(dir, lang, when)
 }
 
 // setSchedule registers the daily sync at when ("HH:MM", local time), or removes it when when is empty,

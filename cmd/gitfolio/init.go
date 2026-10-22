@@ -55,7 +55,20 @@ func saveCredentials(dir string, c Credentials) error {
 // aline.team. Every question defaults to the current setting, so running init again changes only
 // what the user changes.
 func cmdInit(dir string, args []string) error {
+	jsonMode(args)
 	lang := detectLang(os.Getenv)
+	switch {
+	case slices.Equal(withoutJSON(args), []string{"--policy"}):
+		if jsonOut { // for a program to show first, as init does
+			return printJSON(map[string]string{"policy": tr(lang, "policy")})
+		}
+		fmt.Fprint(out, indent(tr(lang, "policy")))
+		return nil
+	case slices.Contains(args, "--scan"):
+		return initScan(dir, args)
+	case jsonOut:
+		return failure("usage", initUsage)
+	}
 	fmt.Fprint(out, header()+"\n"+indent(tr(lang, "policy"))+"\n")
 	if interactive() {
 		prompt(tr(lang, "pressEnter"))
@@ -196,6 +209,92 @@ func cmdInit(dir string, args []string) error {
 	blank()
 	sayKV(lang, "initDone", len(repos), primaryEmail(cfg), tr(lang, map[bool]string{true: "syncAuto", false: "syncLocal"}[!cfg.AutoSyncOff]), onOff(cfg.Deps), daily)
 	return nil
+}
+
+const initUsage = "gitfolio init [folder...] | init --policy [--json] | init --scan [--root <folder>]... --json"
+
+// initScan is init's search for a program, asking nothing; the program shows the results and sets up
+// what the user picks with email, add, config autosync, deps and schedule. It gives the folders searched
+// (--root, else the ones init saved, the usual code folders or the home folder), every repository found
+// with the user's commits in it, and the emails git uses in them. Only after logging in, as init.
+func initScan(dir string, args []string) error {
+	var roots []string
+	for i := 0; i < len(args); i++ {
+		switch {
+		case args[i] == "--scan" || args[i] == "--json":
+		case args[i] == "--root" && i+1 < len(args):
+			i++
+			p, err := filepath.Abs(expandHome(args[i]))
+			if st, e := os.Stat(p); err != nil || e != nil || !st.IsDir() {
+				return failure("rootMissing", args[i])
+			}
+			roots = append(roots, p)
+		default:
+			return failure("usage", initUsage)
+		}
+	}
+	if !jsonOut {
+		return failure("usage", initUsage)
+	}
+	c, err := newClient(dir)
+	if err != nil {
+		return err
+	}
+	if !c.loggedIn() {
+		return failure("loginFirst")
+	}
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
+	if len(roots) > 0 { // kept for the next time, as init does
+		if err := withLock(dir, func() error {
+			c, err := loadConfig(dir)
+			if err != nil {
+				return err
+			}
+			c.Roots = roots
+			return saveConfig(dir, c)
+		}); err != nil {
+			return err
+		}
+	} else if roots = cfg.Roots; len(roots) == 0 {
+		home, _ := os.UserHomeDir()
+		if roots = suggestRoots(home); len(roots) == 0 {
+			roots = []string{home}
+		}
+	}
+	found := findRepos(roots, 5)
+	emails, uses := repoEmails(found)
+	work := cfg.Emails // whose commits count: the work emails, or before there are any, all the emails found
+	if len(work) == 0 {
+		work = emails
+	}
+	registered, err := loadRepos(dir)
+	if err != nil {
+		return err
+	}
+	type repo struct {
+		Name       string `json:"name"`
+		Path       string `json:"path"`
+		OwnCommits int    `json:"ownCommits"`
+		LastCommit string `json:"lastCommit,omitempty"` // of the user's own commits
+		Registered bool   `json:"registered"`
+	}
+	repos := []repo{}
+	for _, p := range found {
+		n, last := ownCommits(p, work)
+		repos = append(repos, repo{filepath.Base(p), p, n, last, slices.ContainsFunc(registered, func(r Repo) bool { return r.Path == p })})
+	}
+	list := []map[string]any{}
+	for _, e := range append(slices.Clone(cfg.Emails), emails...) {
+		if slices.ContainsFunc(list, func(m map[string]any) bool { return m["email"] == e }) {
+			continue
+		}
+		list = append(list, map[string]any{"email": e, "repositories": uses[e], "work": slices.Contains(cfg.Emails, e),
+			"verified": verified(c.creds, e), "noreply": noreply(e)})
+	}
+	return printJSON(map[string]any{"roots": roots, "repositories": repos, "emails": list})
 }
 
 // repoEmails returns the emails git uses for commits in repos, with how many of them use each: the
