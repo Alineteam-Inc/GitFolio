@@ -78,8 +78,12 @@ type Dependency struct {
 }
 
 // dep is one dependency a manifest declares; eco, when set, is its ecosystem instead of the manifest's
-// (environment.yml declares conda and pip packages).
-type dep struct{ name, version, eco string }
+// (environment.yml declares conda and pip packages), and local marks one from a local path, a git
+// repository or another address.
+type dep struct {
+	name, version, eco string
+	local              bool
+}
 
 func loadDeps(dir string) (deps []Dependency, err error) {
 	err = loadJSON(filepath.Join(dir, "deps.json"), &deps)
@@ -195,6 +199,10 @@ func parseManifest(name, s string) []dep {
 		deps = parseGoMod(s)
 	case "requirements.txt":
 		for _, line := range strings.Split(s, "\n") {
+			if m := pipEditable.FindStringSubmatch(line); m != nil {
+				deps = append(deps, dep{name: m[1], local: true}) // -e git+https://…#egg=name
+				continue
+			}
 			if i := strings.IndexByte(line, '#'); i >= 0 {
 				line = line[:i]
 			}
@@ -233,9 +241,7 @@ func parseManifest(name, s string) []dep {
 		deps = parsePubspec(s)
 	case "Package.swift":
 		for _, m := range swiftPackage.FindAllStringSubmatch(s, -1) {
-			if githubRepo.MatchString(m[1]) { // only GitHub ones name a tech: other hosts' addresses stay here
-				deps = append(deps, dep{name: m[1], version: m[2]})
-			}
+			deps = append(deps, dep{name: m[1], version: m[2], local: true}) // an address
 		}
 	case "Podfile":
 		deps = matchDeps(podDecl, s)
@@ -252,6 +258,12 @@ func parseManifest(name, s string) []dep {
 			deps = parseMsProj(s)
 		}
 	}
+	// aline.team reads a local or git dependency by its name too. It is sent only when that name shows a
+	// tech there, a public one's then, so the rest stay here; never a pod, as any pod shows iOS.
+	eco := manifestEcosystem(name)
+	deps = slices.DeleteFunc(deps, func(d dep) bool {
+		return d.local && (eco == "cocoapods" || len(depTechs(cmp.Or(d.eco, eco), []string{d.name})) == 0)
+	})
 	slices.SortFunc(deps, func(a, b dep) int { return strings.Compare(a.name, b.name) })
 	return slices.CompactFunc(deps, func(a, b dep) bool { return a.name == b.name })
 }
@@ -268,7 +280,9 @@ func parsePackageJSON(s string) []dep {
 	var deps []dep
 	for _, m := range []map[string]string{pkg.Dependencies, pkg.DevDependencies, pkg.PeerDependencies} {
 		for n, v := range m {
-			if !npmLocal(v) {
+			if npmLocal(v) {
+				deps = append(deps, dep{name: n, local: true}) // its version is a path or an address
+			} else {
 				deps = append(deps, dep{name: n, version: v})
 			}
 		}
@@ -316,9 +330,16 @@ func pep508(s string) (dep, bool) {
 		s = s[:i]
 	}
 	s = strings.TrimSpace(s)
-	if s == "" || strings.HasPrefix(s, "-") || strings.HasPrefix(s, ".") || strings.HasPrefix(s, "/") ||
-		strings.Contains(s, "://") || strings.Contains(s, " @ ") {
-		return dep{}, false // options, local paths and URLs
+	if s == "" || strings.HasPrefix(s, "-") || strings.HasPrefix(s, ".") || strings.HasPrefix(s, "/") {
+		return dep{}, false // options and local paths
+	}
+	if name, _, ok := strings.Cut(s, "@"); ok { // name @ URL
+		name, _, _ = strings.Cut(name, "[")
+		name = strings.TrimSpace(name)
+		return dep{name: name, local: true}, pyName.MatchString(name)
+	}
+	if strings.Contains(s, "://") {
+		return dep{}, false // a URL
 	}
 	name, version := s, ""
 	if i := strings.IndexAny(s, "=<>!~[ "); i >= 0 {
@@ -329,6 +350,8 @@ func pep508(s string) (dep, bool) {
 	}
 	return dep{name: name, version: version}, name != ""
 }
+
+var pyName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
 var quotedRe = regexp.MustCompile(`"([^"]*)"|'([^']*)'`)
 
@@ -359,7 +382,7 @@ func tomlDep(line string) (dep, bool) {
 	v = strings.TrimSpace(v)
 	if strings.HasPrefix(v, "{") {
 		if tableKey(v, "path") != "" || tableKey(v, "git") != "" {
-			return dep{}, false
+			return dep{name: name, local: true}, name != ""
 		}
 		return dep{name: name, version: tableKey(v, "version")}, name != ""
 	}
@@ -410,12 +433,12 @@ func parseCargo(s string) []dep {
 	}
 	var deps []dep
 	var table *dep // [dependencies.serde] describes one dependency in the lines below
-	skip, section := false, ""
+	section := ""
 	flush := func() {
-		if table != nil && !skip {
+		if table != nil {
 			deps = append(deps, *table)
 		}
-		table, skip = nil, false
+		table = nil
 	}
 	for _, line := range strings.Split(s, "\n") {
 		t := strings.TrimSpace(line)
@@ -435,7 +458,7 @@ func parseCargo(s string) []dep {
 						table.version = q[0]
 					}
 				case "path", "git":
-					skip = true
+					table.local = true
 				}
 			}
 			continue
@@ -576,13 +599,11 @@ var (
 )
 
 // matchDeps are the name, version and options a Gemfile, Podfile or mix.exs pattern finds; ones taken
-// from a local path or a git repository are left out, as for npm.
+// from a local path or a git repository are local.
 func matchDeps(re *regexp.Regexp, s string) []dep {
 	var deps []dep
 	for _, m := range re.FindAllStringSubmatch(s, -1) {
-		if !localDep.MatchString(m[3]) {
-			deps = append(deps, dep{name: m[1], version: m[2]})
-		}
+		deps = append(deps, dep{name: m[1], version: m[2], local: localDep.MatchString(m[3])})
 	}
 	return deps
 }
@@ -653,15 +674,15 @@ func parseComposer(s string) []dep {
 }
 
 // parsePubspec reads a pubspec.yaml's dependencies and dev_dependencies (Flutter's SDK ones too); ones
-// from a local path or git are left out.
+// from a local path or git are local.
 func parsePubspec(s string) []dep {
 	var deps []dep
-	section, cur, local := "", dep{}, false
+	section, cur := "", dep{}
 	flush := func() {
-		if cur.name != "" && !local {
+		if cur.name != "" {
 			deps = append(deps, cur)
 		}
-		cur, local = dep{}, false
+		cur = dep{}
 	}
 	for _, line := range strings.Split(s, "\n") {
 		t := strings.TrimSpace(line)
@@ -677,15 +698,15 @@ func parsePubspec(s string) []dep {
 			name, v, _ := strings.Cut(t, ":")
 			cur = dep{name: name, version: strings.Trim(strings.TrimSpace(v), `"'`)}
 		case strings.HasPrefix(t, "path:") || strings.HasPrefix(t, "git:"):
-			local = true
+			cur.local = true
 		}
 	}
 	flush()
 	return deps
 }
 
-// parseDeno reads a deno.json's import map (and its scopes): every key, and the values that name a
-// module aline.team knows the id form of (deno.land/x/…, @scope/name); other addresses stay here.
+// parseDeno reads a deno.json's import map (and its scopes): every key, and of each value (an address)
+// only the module id in it that aline.team reads (deno.land/x/…, @scope/name).
 func parseDeno(s string) []dep {
 	var d struct {
 		Imports map[string]string            `json:"imports"`
@@ -698,8 +719,8 @@ func parseDeno(s string) []dep {
 	for _, m := range append([]map[string]string{d.Imports}, slices.Collect(maps.Values(d.Scopes))...) {
 		for k, v := range m {
 			deps = append(deps, dep{name: k})
-			if denoModule.MatchString(strings.ToLower(v)) {
-				deps = append(deps, dep{name: v})
+			if id := denoModule.FindString(strings.ToLower(v)); id != "" {
+				deps = append(deps, dep{name: id, local: true})
 			}
 		}
 	}

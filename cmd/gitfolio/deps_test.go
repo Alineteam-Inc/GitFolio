@@ -18,13 +18,14 @@ func TestParseManifest(t *testing.T) {
 	for _, tc := range []struct{ file, content, want string }{
 		{"package.json", `{"dependencies":{"react":"^18.2.0","local":"file:../x","gh":"user/repo","ws":"workspace:*"},
 			"devDependencies":{"typescript":"5.4.0","react":"^18.2.0"},"peerDependencies":{"htmx.org":"^2.0.0"}}`,
-			"htmx.org@^2.0.0 react@^18.2.0 typescript@5.4.0"},
+			"htmx.org@^2.0.0 react@^18.2.0 typescript@5.4.0 ws@"}, // a local one only by a name that shows a tech
 		{"Pipfile", "[[source]]\nurl = \"https://pypi.org/simple\"\n\n[packages]\nrequests = \"*\"\ndjango = {version = \">=4.2\"}\nmylib = {path = \"./mylib\", editable = true}\n\n[dev-packages]\npytest = \"*\"\n\n[requires]\npython_version = \"3.11\"\n",
 			"django@>=4.2 pytest@* requests@*"},
 		{"go.mod", "module x\n\ngo 1.22\n\nrequire github.com/a/b v1.0.0\n\nrequire (\n\tgithub.com/c/d v2.1.0\n\tgithub.com/e/f v0.1.0 // indirect\n)\n",
 			"github.com/a/b@v1.0.0 github.com/c/d@v2.1.0"},
-		{"requirements.txt", "# pinned\nDjango==4.2\nrequests[socks]>=2.31 ; python_version > '3.8'\n-r base.txt\n./local\ngit+https://x/y.git\nnumpy\n",
-			"Django@4.2 numpy@ requests@>=2.31"},
+		{"requirements.txt", "# pinned\nDjango==4.2\nrequests[socks]>=2.31 ; python_version > '3.8'\n-r base.txt\n./local\ngit+https://x/y.git\nnumpy\n" +
+			"-e git+https://github.com/pallets/flask.git#egg=flask\nfastapi @ git+https://github.com/fastapi/fastapi\nmylib @ file:///src/mylib\n",
+			"Django@4.2 fastapi@ flask@ numpy@ requests@>=2.31"},
 		{"pyproject.toml", "[project]\nname = \"x\"\ndependencies = [\n  \"fastapi>=0.110\",\n  \"uvicorn[standard]\",\n]\n\n[tool.poetry.dependencies]\npython = \"^3.11\"\npydantic = \"^2.0\"\nmylib = { path = \"../mylib\" }\n",
 			"fastapi@>=0.110 pydantic@^2.0 uvicorn@"},
 		{"pom.xml", `<project xmlns="http://maven.apache.org/POM/4.0.0"><dependencies>
@@ -35,8 +36,8 @@ func TestParseManifest(t *testing.T) {
 			"io.ktor:ktor-server-core@2.3.0 org.junit:junit-bom@5.10.0"},
 		{"libs.versions.toml", "[versions]\nokhttp = \"4.12.0\"\n\n[libraries]\nokhttp = { module = \"com.squareup.okhttp3:okhttp\", version.ref = \"okhttp\" }\ngson = \"com.google.code.gson:gson:2.10\"\ncoil = { group = \"io.coil-kt\", name = \"coil\", version = \"2.5.0\" }\n",
 			"com.google.code.gson:gson@2.10 com.squareup.okhttp3:okhttp@4.12.0 io.coil-kt:coil@2.5.0"},
-		{"Cargo.toml", "[package]\nname = \"x\"\nversion = \"0.1.0\"\n\n[dependencies]\nserde = { version = \"1.0\", features = [\"derive\"] }\ntokio = \"1\"\nlocal = { path = \"../local\" }\n\n[dependencies.reqwest]\nversion = \"0.12\"\n\n[dev-dependencies]\ninsta = \"1.34\"\n",
-			"insta@1.34 reqwest@0.12 serde@1.0 tokio@1"},
+		{"Cargo.toml", "[package]\nname = \"x\"\nversion = \"0.1.0\"\n\n[dependencies]\nserde = { version = \"1.0\", features = [\"derive\"] }\ntokio = \"1\"\nlocal = { path = \"../local\" }\naxum = { git = \"https://github.com/tokio-rs/axum\" }\n\n[dependencies.mine]\npath = \"../mine\"\n\n[dependencies.reqwest]\nversion = \"0.12\"\n\n[dev-dependencies]\ninsta = \"1.34\"\n",
+			"axum@ insta@1.34 reqwest@0.12 serde@1.0 tokio@1"},
 	} {
 		var got []string
 		for _, d := range parseManifest(tc.file, tc.content) {
@@ -253,15 +254,15 @@ func TestMoreManifests(t *testing.T) {
 	for _, tc := range []struct{ file, content, names, techs string }{
 		{"composer.json", `{"require":{"php":"^8.2","ext-json":"*","laravel/framework":"^11.0"},"require-dev":{"phpunit/phpunit":"^10"}}`,
 			"composer:laravel/framework@^11.0 composer:phpunit/phpunit@^10", "LARAVEL"},
-		{"Gemfile", "source 'https://rubygems.org'\ngem 'rails', '~> 7.1'\ngem 'mine', path: '../mine'\n  gem \"puma\"\n",
-			"rubygems:puma@ rubygems:rails@~> 7.1", "RUBY_ON_RAILS"},
+		{"Gemfile", "source 'https://rubygems.org'\ngem 'rails', '~> 7.1'\ngem 'mine', path: '../mine'\n  gem \"puma\"\ngem 'sinatra', github: 'sinatra/sinatra'\n",
+			"rubygems:puma@ rubygems:rails@~> 7.1 rubygems:sinatra@", "RUBY_ON_RAILS SINATRA"},
 		{"pubspec.yaml", "name: app\ndependencies:\n  flutter:\n    sdk: flutter\n  http: ^1.1.0\n  mine:\n    path: ../mine\ndev_dependencies:\n  flutter_test:\n    sdk: flutter\nflutter:\n  uses-material-design: true\n",
 			"pub:flutter@ pub:flutter_test@ pub:http@^1.1.0", "FLUTTER"},
 		{"Package.swift", `dependencies: [
     .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
     .package(url: "https://git.example.internal/team/kit.git", branch: "main"),
 ]`, "swift:https://github.com/vapor/vapor.git@4.89.0", "VAPOR"},
-		{"Podfile", "platform :ios, '15.0'\ntarget 'App' do\n  pod 'Alamofire', '~> 5.8'\n  pod 'Local', :path => '../Local'\nend\n",
+		{"Podfile", "platform :ios, '15.0'\ntarget 'App' do\n  pod 'Alamofire', '~> 5.8'\n  pod 'Local', :path => '../Local'\n  pod 'SnapKit', :git => 'https://github.com/SnapKit/SnapKit.git'\nend\n",
 			"cocoapods:Alamofire@~> 5.8", "IOS_NATIVE"},
 		{"mix.exs", "defp deps do\n  [\n    {:phoenix, \"~> 1.7\"},\n    {:jason, \">= 0.0.0\"},\n    {:mine, path: \"../mine\"}\n  ]\nend\n",
 			"hex:jason@>= 0.0.0 hex:phoenix@~> 1.7", "PHOENIX"},
@@ -269,7 +270,7 @@ func TestMoreManifests(t *testing.T) {
 			`<Reference Include="System.Web, Version=4.0.0.0, Culture=neutral" /></ItemGroup></Project>`,
 			"nuget:Serilog@3.1.1 nuget:System.Web@ nuget:sdk:Microsoft.NET.Sdk.Web@", "ASP_NET_CORE"},
 		{"deno.json", `{"imports":{"$fresh/":"https://deno.land/x/fresh@1.6.0/","@std/assert":"jsr:@std/assert@^1","secret/":"https://git.example.internal/x/"}}`,
-			"deno:$fresh/@ deno:@std/assert@ deno:https://deno.land/x/fresh@1.6.0/@ deno:jsr:@std/assert@^1@ deno:secret/@", "FRESH"},
+			"deno:$fresh/@ deno:@std/assert@ deno:deno.land/x/fresh@ deno:secret/@", "FRESH"}, // of a value only a module id that shows a tech
 		{"build.sbt", `libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor-typed" % "2.8.5",
   "org.scalatest" %% "scalatest" % "3.2.17" % Test
