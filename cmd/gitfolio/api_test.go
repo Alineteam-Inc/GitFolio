@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -409,11 +411,11 @@ func TestSignInMeLogout(t *testing.T) {
 		t.Fatalf("GET /cli/me = %+v, %v", me, err)
 	}
 
-	if err := cmdWhoami(dir); err != nil {
+	if err := cmdWhoami(dir, nil); err != nil {
 		t.Fatalf("whoami: %v", err)
 	}
 
-	if err := cmdLogout(dir); err != nil {
+	if err := cmdLogout(dir, nil); err != nil {
 		t.Fatal(err)
 	}
 	if f.token != "" {
@@ -568,6 +570,76 @@ func TestUnsupported(t *testing.T) {
 	} {
 		if got := unsupported(c.err); got != c.want {
 			t.Errorf("unsupported(%v) = %v, want %v", c.err, got, c.want)
+		}
+	}
+}
+
+// A program logs in with two runs that ask nothing: --email sends the code and tells whether the
+// account exists (with the notice to show before signing up), --code finishes. Signing up needs
+// --signup; a wrong code can be tried again; the code waits in the data folder in between.
+func TestLoginInTwoRuns(t *testing.T) {
+	f := &fakeAline{}
+	ts := httptest.NewServer(f.handler())
+	defer ts.Close()
+	t.Setenv("GITFOLIO_API_URL", ts.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	var buf bytes.Buffer
+	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
+	out, errOut = &buf, &buf
+	dir := t.TempDir()
+	login := func(args ...string) (map[string]any, error) {
+		t.Helper()
+		return jsonStdout(t, func() error { return cmdLogin(dir, append(args, "--json")) })
+	}
+
+	v, err := login("--email", "dev@example.com")
+	if err != nil || v["accountExists"] != false || v["codeLength"] != 6.0 || !f.startDeviceShown ||
+		!strings.Contains(fmt.Sprint(v["signupNotice"]), "Terms of Service") || v["notifyQuestion"] == "" {
+		t.Fatalf("code sent: %v %v", v, err)
+	}
+	for _, c := range []struct {
+		args []string
+		code string
+	}{
+		{[]string{"--code", "123456"}, "signupConsent"}, // no account yet, no agreement
+		{[]string{"--code", "12", "--signup"}, "codeFormat"},
+		{[]string{"--code", "654321", "--signup"}, "codeWrong"},
+	} {
+		if _, err := login(append([]string{"--email", "dev@example.com"}, c.args...)...); errorCode(err) != c.code {
+			t.Errorf("%v: %v, want %s", c.args, err, c.code)
+		}
+	}
+	v, err = login("--email", "Dev@example.com", "--code", "123456", "--signup", "--notify") // the code waited
+	if err != nil || v["created"] != true || v["email"] != "dev@example.com" || f.notified == nil || !*f.notified {
+		t.Fatalf("signed up: %v %v (notified %v)", v, err, f.notified)
+	}
+	if creds, _ := loadCredentials(dir); creds.Token != testToken {
+		t.Error("the token was not kept")
+	}
+	if _, ok, _ := keptCode(dir, "login", "dev@example.com"); ok {
+		t.Error("the used code still waits")
+	}
+	if _, err := login("--email", "dev@example.com"); errorCode(err) != "alreadyLoggedIn" {
+		t.Errorf("logged in already: %v", err)
+	}
+	if v, err := jsonStdout(t, func() error { return cmdWhoami(dir, []string{"--json"}) }); err != nil || v["loggedIn"] != true || v["email"] != "dev@example.com" {
+		t.Errorf("whoami --json: %v %v", v, err)
+	}
+	if v, err := jsonStdout(t, func() error { return cmdLogout(dir, []string{"--json"}) }); err != nil || v["revoked"] != true {
+		t.Errorf("logout --json: %v %v", v, err)
+	}
+	if v, err := jsonStdout(t, func() error { return cmdWhoami(dir, []string{"--json"}) }); err != nil || v["loggedIn"] != false {
+		t.Errorf("whoami --json, logged out: %v %v", v, err)
+	}
+	if _, err := login("--email", "other@example.com", "--code", "123456"); errorCode(err) != "codeNotSent" {
+		t.Errorf("no code sent: %v", err)
+	}
+	if _, err := login("--code", "123456"); errorCode(err) != "usage" {
+		t.Errorf("--code without --email: %v", err)
+	}
+	for code, want := range map[string]string{codeWrongCode: "codeWrong", codeExpired: "codeExpired", codeRateLimited: "rateLimited", "U004": "failed"} {
+		if got := errorCode(&apiError{Status: 400, Code: code}); got != want {
+			t.Errorf("errorCode(%s) = %s, want %s", code, got, want)
 		}
 	}
 }

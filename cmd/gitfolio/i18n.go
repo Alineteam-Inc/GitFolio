@@ -504,6 +504,26 @@ var messages = map[string]map[string]string{
 		"ko": "확인 코드는 숫자 %d자리입니다. 다시 입력하세요.\n",
 		"ja": "確認コードは %d 桁の数字です。もう一度入力してください。\n",
 	},
+	"codeSent": {
+		"en": "A code was sent to %s. Finish with `gitfolio login --email %s --code <code>`.\n",
+		"ko": "%s(으)로 확인 코드를 보냈습니다. `gitfolio login --email %s --code <코드>`로 마치세요.\n",
+		"ja": "%s に確認コードを送りました。`gitfolio login --email %s --code <コード>` で完了してください。\n",
+	},
+	"signupFlags": {
+		"en": "To sign up, add --signup (and --notify to receive aline.team service notifications by email).\n",
+		"ko": "가입하려면 --signup을 붙이세요(--notify를 더하면 aline.team 서비스 알림을 이메일로 받습니다).\n",
+		"ja": "登録するには --signup を付けてください(--notify も付けると aline.team のサービス通知をメールで受け取ります)。\n",
+	},
+	"signupConsent": {
+		"en": "%s has no aline.team account yet: signing up needs your agreement (--signup).\n",
+		"ko": "%s(으)로 된 aline.team 계정이 아직 없습니다. 가입하려면 동의가 필요합니다(--signup).\n",
+		"ja": "%s の aline.team アカウントはまだありません。登録には同意が必要です(--signup)。\n",
+	},
+	"codeNotSent": {
+		"en": "No code is waiting for %s. Ask for a new one.\n",
+		"ko": "%s(으)로 보낸 확인 코드가 없습니다. 새 코드를 받으세요.\n",
+		"ja": "%s に送った確認コードがありません。新しいコードを受け取ってください。\n",
+	},
 	"codeWrong": {
 		"en": "The code is not correct. Please try again.\n",
 		"ko": "확인 코드가 맞지 않습니다. 다시 입력하세요.\n",

@@ -60,7 +60,7 @@ func cmdInit(dir string, args []string) error {
 	if interactive() {
 		prompt(tr(lang, "pressEnter"))
 	}
-	if err := cmdLogin(dir); err != nil {
+	if err := cmdLogin(dir, nil); err != nil {
 		return err
 	}
 	c, err := newClient(dir)

@@ -24,8 +24,12 @@ commands:
                         under your code folders and choose which ones to collect
   login                 log in / sign up to aline.team with an email code (an email without an
                         account is signed up)
-  logout                sign out: revoke and remove this device's token
-  whoami                show the aline.team account this device is signed in to
+  login --email <email> [--code <code> [--signup [--notify]]] [--json]
+                        the same without questions, in two runs: --email sends the code, --code
+                        finishes (--signup: agree to sign up an email without an account,
+                        --notify: also receive aline.team service notifications by email)
+  logout [--json]       sign out: revoke and remove this device's token
+  whoami [--json]       show the aline.team account this device is signed in to
   add [path]            register a repository, collect its commits and install git hooks
                         (post-commit, pre-push) so later pushes are collected automatically
   remove [path] [--purge]
@@ -105,18 +109,25 @@ func jsonMode(args []string) {
 	}
 }
 
-// errorCode is what programs reading --json branch on: the message key of a translated error,
-// loginFirst for a login aline.team no longer takes, failed for anything else.
+// errorCode is what programs reading --json branch on: the message key of a translated error, a name
+// for the aline.team answers a program acts on (serverCodes), failed for anything else.
 func errorCode(err error) string {
 	var f *failErr
 	var ae *apiError
-	switch {
-	case errors.As(err, &f):
+	if errors.As(err, &f) {
 		return f.key
-	case errors.As(err, &ae) && (ae.Code == codeTokenInvalid || ae.Code == codeNotLoggedIn):
-		return "loginFirst"
+	}
+	if errors.As(err, &ae) && serverCodes[ae.Code] != "" {
+		return serverCodes[ae.Code]
 	}
 	return "failed"
+}
+
+var serverCodes = map[string]string{
+	codeTokenInvalid: "loginFirst", codeNotLoggedIn: "loginFirst", // the login is gone: log in again
+	codeWrongCode:   "codeWrong",   // try the code again
+	codeExpired:     "codeExpired", // ask for a new code
+	codeRateLimited: "rateLimited", // try again later
 }
 
 func run(args []string) error {
@@ -170,11 +181,11 @@ func run(args []string) error {
 	case "init":
 		return cmdInit(dir, args[1:]) // interactive; takes the lock only while writing
 	case "login":
-		return cmdLogin(dir)
+		return cmdLogin(dir, args[1:])
 	case "logout":
-		return cmdLogout(dir)
+		return cmdLogout(dir, args[1:])
 	case "whoami":
-		return cmdWhoami(dir)
+		return cmdWhoami(dir, args[1:])
 	case "history":
 		return cmdHistory(dir, args[1:]) // only reads
 	case "update":

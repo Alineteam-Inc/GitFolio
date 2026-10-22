@@ -75,6 +75,7 @@ const (
 	codeTokenInvalid  = "A001" // token invalid, expired or revoked
 	codeNotLoggedIn   = "A000" // no valid login: the token is unknown to this server
 	codeWrongCode     = "A008" // email code does not match
+	codeExpired       = "A009" // email code expired or tried too often: a new one is needed
 	codeEmailVerified = "A011" // the work email is already verified for this account
 	codeTooManyEmails = "A012" // the account has as many verified work emails as it may have
 	codeUnverified    = "A013" // a repository's commits wait until error.email is verified (from 0.2.0)
@@ -319,6 +320,12 @@ type codeStart struct {
 	req    map[string]any // challengeId, and the device for a sign-in
 	exists bool           // sign-in: the email has an account
 	length int            // digits in the code
+}
+
+// codeEnded reports whether aline.team will take no more tries of a code: expired, or tried too often.
+func codeEnded(err error) bool {
+	var ae *apiError
+	return errors.As(err, &ae) && ae.Code == codeExpired
 }
 
 func wrongCode(err error) bool {
