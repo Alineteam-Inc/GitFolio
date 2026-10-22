@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -130,6 +131,13 @@ func width(s string) int {
 var progressShown bool
 
 func progress(lang, key string, done, total int) {
+	if jsonOut { // for the program, one JSON line per step on stderr: stdout carries the result alone
+		if total > 0 {
+			b, _ := json.Marshal(map[string]any{"progress": map[string]any{"step": key, "text": strings.TrimSpace(tr(lang, key)), "done": done, "total": total}})
+			fmt.Fprintln(errOut, string(b))
+		}
+		return
+	}
 	if !useColor || total <= 0 {
 		return
 	}

@@ -165,3 +165,70 @@ func TestJSONBeforeCommand(t *testing.T) {
 		t.Errorf("sync --json logged out: %v, JSON %v", err, jsonOut)
 	}
 }
+
+// scan, status <name>, history, remove and export answer --json too; a long scan tells its progress as
+// JSON lines on stderr.
+func TestRepoCommandsJSON(t *testing.T) {
+	t.Setenv("GITFOLIO_LANG", "en")
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	var buf, errBuf bytes.Buffer
+	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
+	out, errOut = &buf, &errBuf
+	repo := filepath.Join(t.TempDir(), "app")
+	if err := os.MkdirAll(repo, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"init", "-q", "-b", "main"}, {"remote", "add", "origin", "https://github.com/me/app.git"},
+		{"-c", "user.email=dev@example.com", "-c", "user.name=x", "commit", "-q", "--allow-empty", "-m", "feat: start"},
+		{"update-ref", "refs/remotes/origin/main", "HEAD"}} {
+		if b, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, b)
+		}
+	}
+	dir := t.TempDir()
+	if err := saveConfig(dir, Config{Emails: []string{"dev@example.com"}}); err != nil {
+		t.Fatal(err)
+	}
+	top, err := topLevel(repo) // as remove finds it: /var is /private/var on macOS
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := saveRepos(dir, []Repo{newRepo(top)}); err != nil {
+		t.Fatal(err)
+	}
+	run := func(cmd func(string, []string) error, args ...string) map[string]any {
+		t.Helper()
+		v, err := jsonStdout(t, func() error { return cmd(dir, append(args, "--json")) })
+		if err != nil {
+			t.Fatalf("%v: %v", args, err)
+		}
+		return v
+	}
+
+	v := run(cmdScan, "--all")
+	if list, _ := v["repositories"].([]any); len(list) != 1 || list[0].(map[string]any)["commits"] != 1.0 {
+		t.Errorf("scan --all: %v", v)
+	}
+	if !strings.Contains(errBuf.String(), `{"progress":{"done":0,"step":"progressScan"`) {
+		t.Errorf("no progress line on stderr:\n%s", errBuf.String())
+	}
+	if v := run(cmdStatus, "app"); v["commits"] != 1.0 || v["namespace"] != "me/app" || v["dependencies"] != nil || v["hooks"] != "off" {
+		t.Errorf("status app: %v", v)
+	}
+	history := historyHeader + "2026-10-22T10:00:00+09:00 gitfolio scan --all\n10:00:00.123456 git.c:463 trace: built-in: git version\n"
+	if err := os.WriteFile(filepath.Join(dir, historyFile), []byte(history), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	v = run(cmdHistory)
+	if runs, _ := v["runs"].([]any); len(runs) != 1 || runs[0].(map[string]any)["command"] != "gitfolio scan --all" ||
+		runs[0].(map[string]any)["git"].([]any)[0].(map[string]any)["command"] != "git version" {
+		t.Errorf("history: %v", v)
+	}
+	if err := cmdExport(dir, []string{"extra"}); errorCode(err) != "usage" {
+		t.Errorf("export with an argument: %v", err)
+	}
+	if v := run(cmdRemove, repo, "--purge"); v["commitsDeleted"] != 1.0 || v["serverDeletionQueued"] != true || v["hooksRestored"] != true {
+		t.Errorf("remove --purge: %v", v)
+	}
+}

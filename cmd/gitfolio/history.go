@@ -74,8 +74,14 @@ func trimHistory(p string, max int64) {
 }
 
 type historyRun struct {
-	header string   // "2026-10-01 22:37:53 +09:00  gitfolio scan --all"
-	git    []string // "22:37:53.123  git cat-file -p HEAD:package.json"
+	At      string    `json:"at"`      // when the run started, as written: "2026-10-01T22:37:53+09:00"
+	Command string    `json:"command"` // "gitfolio scan --all"
+	Git     []gitCall `json:"git"`
+}
+
+type gitCall struct {
+	At      string `json:"at"`      // "22:37:53.123"
+	Command string `json:"command"` // "git cat-file -p HEAD:package.json"
 }
 
 // parseHistory reads the history file into runs, oldest first. Only the lines naming a git command are
@@ -85,10 +91,7 @@ func parseHistory(b []byte) []historyRun {
 	for _, line := range strings.Split(string(b), "\n") {
 		if h, ok := strings.CutPrefix(line, historyHeader); ok {
 			when, cmd, _ := strings.Cut(h, " ")
-			if t, err := time.Parse(time.RFC3339, when); err == nil {
-				when = t.Format("2006-01-02 15:04:05 -07:00")
-			}
-			runs = append(runs, historyRun{header: when + "  " + cmd})
+			runs = append(runs, historyRun{At: when, Command: cmd, Git: []gitCall{}})
 			continue
 		}
 		_, git, ok := strings.Cut(line, "trace: built-in: ")
@@ -103,19 +106,27 @@ func parseHistory(b []byte) []historyRun {
 			at = at[:12]
 		}
 		r := &runs[len(runs)-1]
-		r.git = append(r.git, at+"  "+git)
+		r.Git = append(r.Git, gitCall{at, git})
 	}
 	return runs
 }
 
 // cmdHistory shows the git commands gitfolio ran: the last 20 runs, or all of them with --all.
 func cmdHistory(dir string, args []string) error {
+	jsonMode(args)
+	args = withoutJSON(args)
+	if len(args) > 1 || (len(args) == 1 && args[0] != "--all") {
+		return failure("usage", "gitfolio history [--all] [--json]")
+	}
 	lang := detectLang(os.Getenv)
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err
 	}
 	if cfg.GitHistoryOff {
+		if jsonOut {
+			return printJSON(map[string]any{"on": false, "runs": []historyRun{}, "total": 0})
+		}
 		say(lang, "historyOff")
 		return nil
 	}
@@ -125,18 +136,25 @@ func cmdHistory(dir string, args []string) error {
 		return err
 	}
 	runs := parseHistory(b)
+	shown := runs
+	if len(args) == 0 {
+		shown = runs[max(0, len(runs)-20):]
+	}
+	if jsonOut {
+		return printJSON(map[string]any{"on": true, "runs": append([]historyRun{}, shown...), "total": len(runs)})
+	}
 	if len(runs) == 0 {
 		say(lang, "historyEmpty")
 		return nil
 	}
-	shown := runs
-	if len(args) == 0 || args[0] != "--all" {
-		shown = runs[max(0, len(runs)-20):]
-	}
 	for _, r := range shown {
-		fmt.Println(r.header)
-		for _, g := range r.git {
-			fmt.Println("  " + g)
+		when := r.At
+		if t, err := time.Parse(time.RFC3339, when); err == nil {
+			when = t.Format("2006-01-02 15:04:05 -07:00")
+		}
+		fmt.Println(when + "  " + r.Command)
+		for _, g := range r.Git {
+			fmt.Println("  " + g.At + "  " + g.Command)
 		}
 	}
 	fmt.Println()

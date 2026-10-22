@@ -36,10 +36,10 @@ commands:
   whoami [--json]       show the aline.team account this device is signed in to
   add [path] [--json]   register a repository, collect its commits and install git hooks
                         (post-commit, pre-push) so later pushes are collected automatically
-  remove [path] [--purge]
+  remove [path] [--purge] [--json]
                         unregister a repository and restore its previous hooks
                         (--purge: also delete its collected commits, here and on aline.team)
-  scan [path] [--all] [--rebuild]
+  scan [path] [--all] [--rebuild] [--json]
                         collect new commits (--all: every registered repository,
                         --rebuild: drop stored commits and collect again)
   sync [--dry-run] [--json]
@@ -49,10 +49,11 @@ commands:
                         Pushes are sent right after git push unless autosync is off;
                         in local mode (autosync off) only the statistics are sent
   list                  show registered repositories
-  status [name|path]    what GitFolio collected per repository: commits, how many aline.team has,
+  status [name|path] [--json]
+                        what GitFolio collected per repository: commits, how many aline.team has,
                         file changes, lines, AI use, languages, dependencies (this computer's data only)
-  status --json         the account, sync mode, last sync, commits not sent yet and each repository,
-                        as JSON for programs (this computer's data only)
+  status --json         without a name: the account, sync mode, last sync, commits not sent yet and
+                        each repository, as JSON for programs (this computer's data only)
   stats [--refresh] [--json]
                         your developer type and its five scores from aline.team, saved here after the
                         first time (--refresh: get it again; aline.team makes it if it has none yet,
@@ -60,7 +61,7 @@ commands:
                         and gets the type each time
   stack [--json]        how long you used each language, framework and library, from aline.team
                         (local mode: sends the statistics first; --json: as JSON, for programs)
-  export                print collected commits, dependencies and statistics as JSON
+  export [--json]       print collected commits, dependencies and statistics as JSON
   deps [on|off|review [path] [--allow <file>]...] [--json]
                         dependency detection: show status, turn it on (you choose which
                         package manager files may be read) or off (collected dependencies
@@ -82,7 +83,8 @@ commands:
   config git-history on|off
                         keep git's own record of the git commands gitfolio runs (on by default;
                         off deletes it)
-  history [--all]       the git commands gitfolio ran, newest last (--all: every run kept)
+  history [--all] [--json]
+                        the git commands gitfolio ran, newest last (--all: every run kept)
   email [add <email>... | verify <email> [--code <code>] | rm <email> | primary <email>] [--json]
                         your work emails: commits by any of them count as yours, and aline.team
                         gets all of them under the primary one (the first, marked ★); verified
@@ -99,7 +101,8 @@ commands:
   version [--json]      print version (--json: also whether an app ships this copy and updates it)
 
 --json, where a command takes it, prints one JSON document on stdout for programs, a failure too
-({"error": {"code", "message"}}, exit status 1); messages for people go to stderr.`
+({"error": {"code", "message"}}, exit status 1); messages for people go to stderr, and so does the
+progress of a long run, one JSON line per step: {"progress": {"step", "text", "done", "total"}}.`
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -233,7 +236,7 @@ func run(args []string) error {
 		case "status":
 			return cmdStatus(dir, args[1:])
 		case "export":
-			return cmdExport(dir)
+			return cmdExport(dir, args[1:])
 		case "config":
 			return cmdConfig(dir, args[1:])
 		case "deps":
@@ -405,8 +408,10 @@ func registerRepo(dir string, repo Repo, ask bool) (int, error) {
 }
 
 func cmdRemove(dir string, args []string) error {
+	jsonMode(args)
 	fs := flag.NewFlagSet("remove", flag.ContinueOnError)
 	purge := fs.Bool("purge", false, "also delete this repository's collected commits")
+	fs.Bool("json", false, "print the result as JSON")
 	if err := fs.Parse(flagsFirst(args)); err != nil {
 		return err
 	}
@@ -426,15 +431,20 @@ func cmdRemove(dir string, args []string) error {
 		return failure("notRegistered", tildePath(top))
 	}
 	r := repos[i]
+	hooksErr := ""
 	if err := uninstallHooks(top); err != nil {
 		warn(detectLang(os.Getenv), "hooksNotRestored", err)
+		hooksErr = err.Error()
 	}
+	deleted := 0
 	if *purge {
 		commits, err := readCommits(dir)
 		if err != nil {
 			return err
 		}
-		if err := writeCommits(dir, slices.DeleteFunc(commits, func(c Commit) bool { return c.Repo == r.ID })); err != nil {
+		kept := slices.DeleteFunc(slices.Clone(commits), func(c Commit) bool { return c.Repo == r.ID })
+		deleted = len(commits) - len(kept)
+		if err := writeCommits(dir, kept); err != nil {
 			return err
 		}
 		if err := queueDeletion(dir, deletion{r.Provider, r.Namespace}); err != nil {
@@ -455,6 +465,10 @@ func cmdRemove(dir string, args []string) error {
 				return err
 			}
 		}
+	}
+	if jsonOut { // what aline.team holds goes with the next sync (serverDeletionQueued)
+		return printJSON(map[string]any{"name": r.Name, "path": r.Path, "hooksRestored": hooksErr == "", "hooksError": hooksErr,
+			"commitsDeleted": deleted, "serverDeletionQueued": *purge})
 	}
 	say(detectLang(os.Getenv), "removed", r.Name)
 	if *purge {
@@ -556,9 +570,11 @@ func cmdUninstall(dir string, args []string) error {
 }
 
 func cmdScan(dir string, args []string) error {
+	jsonMode(args)
 	fs := flag.NewFlagSet("scan", flag.ContinueOnError)
 	all := fs.Bool("all", false, "scan every registered repository")
 	rebuild := fs.Bool("rebuild", false, "drop stored commits and collect again")
+	fs.Bool("json", false, "print the result as JSON")
 	if err := fs.Parse(flagsFirst(args)); err != nil {
 		return err
 	}
@@ -578,37 +594,56 @@ func cmdScan(dir string, args []string) error {
 	}
 	lang := detectLang(os.Getenv)
 	var failed, matched bool
+	type result struct {
+		Name    string `json:"name"`
+		Path    string `json:"path"`
+		Commits int    `json:"commits"`          // collected now
+		Pending int    `json:"pendingManifests"` // package manager files not decided on yet (deps on)
+		Error   string `json:"error,omitempty"`
+	}
+	results := []result{}
 	for i := range repos {
 		r := &repos[i]
 		if !*all && r.Path != top {
 			continue
+		}
+		if *all {
+			progress(lang, "progressScan", i, len(repos))
 		}
 		matched = true
 		n, err := scanRepo(dir, r, *rebuild)
 		if err != nil {
 			warn(lang, "repoFailed", r.Name, err)
 			failed = true
+			results = append(results, result{Name: r.Name, Path: r.Path, Error: err.Error()})
 			continue
 		}
+		results = append(results, result{Name: r.Name, Path: r.Path, Commits: n})
 		msg := fmt.Sprintf(tr(lang, "scanned"), r.Name, n)
 		if cfg.Deps && cfg.DepsAuto {
 			if _, _, err := refreshDeps(dir, r); err != nil {
 				warn(lang, "repoFailed", r.Name, err)
 				failed = true
+				results[len(results)-1].Error = err.Error()
 			}
 		}
 		if cfg.Deps {
 			if n := pendingManifests(*r); n > 0 {
 				msg += fmt.Sprintf(tr(lang, "depsPending"), n, r.Path)
+				results[len(results)-1].Pending = n
 			}
 		}
 		show(out, msg)
 	}
+	progressDone()
 	if !*all && !matched {
 		return failure("notRegisteredAdd", tildePath(top))
 	}
 	if err := saveRepos(dir, repos); err != nil {
 		return err
+	}
+	if jsonOut { // a repository that failed says so in its error; the others were collected
+		return printJSON(map[string]any{"repositories": results})
 	}
 	if failed {
 		return failure("scanFailed")
@@ -718,7 +753,10 @@ func buildExport(dir string) (exportData, error) {
 	return out, nil
 }
 
-func cmdExport(dir string) error {
+func cmdExport(dir string, args []string) error {
+	if len(withoutJSON(args)) > 0 { // JSON either way; --json makes a failure JSON too (run)
+		return failure("usage", "gitfolio export [--json]")
+	}
 	out, err := buildExport(dir)
 	if err != nil {
 		return err

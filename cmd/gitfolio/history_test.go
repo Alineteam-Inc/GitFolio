@@ -34,8 +34,7 @@ func TestGitHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	runs := parseHistory(b)
-	if len(runs) != 1 || !strings.HasSuffix(runs[0].header, "  gitfolio scan --all") ||
-		len(runs[0].git) != 1 || !strings.HasSuffix(runs[0].git[0], "  git version") {
+	if len(runs) != 1 || runs[0].Command != "gitfolio scan --all" || len(runs[0].Git) != 1 || runs[0].Git[0].Command != "git version" {
 		t.Fatalf("history = %+v\nfile:\n%s", runs, b)
 	}
 

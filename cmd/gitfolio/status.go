@@ -166,8 +166,8 @@ func (s repoStatus) sentCount(r Repo, st syncState) string {
 // per repository with no argument, in full for one repository (its name or path).
 func cmdStatus(dir string, args []string) error {
 	jsonMode(args)
-	if jsonOut && !slices.Equal(args, []string{"--json"}) {
-		return failure("usage", "gitfolio status --json")
+	if args = withoutJSON(args); len(args) > 1 {
+		return failure("usage", "gitfolio status [name|path] [--json]")
 	}
 	lang := detectLang(os.Getenv)
 	repos, err := loadRepos(dir)
@@ -190,7 +190,7 @@ func cmdStatus(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
-	if jsonOut {
+	if jsonOut && len(args) == 0 {
 		return statusJSON(dir, repos, commits, st, cfg)
 	}
 	if len(args) > 0 {
@@ -199,6 +199,9 @@ func cmdStatus(dir string, args []string) error {
 			return failure("notRegistered", args[0])
 		}
 		s := statusOf(r, commits, deps, st)
+		if jsonOut {
+			return printJSON(repoJSON(r, s, st, cfg.Deps))
+		}
 		agents := "-"
 		if len(s.agents) > 0 {
 			var parts []string
@@ -286,6 +289,25 @@ func statusJSON(dir string, repos []Repo, commits []Commit, st syncState, cfg Co
 	}
 	return printJSON(map[string]any{"account": account, "setUp": c.loggedIn() && len(repos) > 0, "syncMode": mode,
 		"lastSync": st.LastSync, "lastSyncError": st.LastError, "unsent": unsent, "repositories": list})
+}
+
+// repoJSON is status <name> --json: what the text shows of one repository. dependencies is null while
+// dependency detection is off; languages are changed lines per language, agents commits per AI agent.
+func repoJSON(r Repo, s repoStatus, st syncState, depsOn bool) map[string]any {
+	day := func(t time.Time) string {
+		if t.IsZero() {
+			return ""
+		}
+		return t.Local().Format(time.DateOnly)
+	}
+	var deps map[string][]string
+	if depsOn {
+		deps = s.deps
+	}
+	return map[string]any{"name": r.Name, "path": r.Path, "service": r.Provider, "namespace": r.Namespace,
+		"commits": s.commits, "sent": s.sent, "waiting": st.Waiting[r.Provider+"/"+r.Namespace] != "", "fileChanges": s.changes,
+		"linesAdded": s.add, "linesDeleted": s.del, "filesCreated": s.created, "aiCommits": s.ai, "agents": s.agents,
+		"languages": s.lines, "dependencies": deps, "lastCommit": day(s.last), "hooks": hookStatus(r.Path)}
 }
 
 // lineCounts is a "+added -deleted" pair of changed-line counts.
