@@ -16,14 +16,22 @@ import (
 )
 
 // The daily sync collects and sends at a set time (DESIGN 7.5); init asks about it, off by default.
-const (
-	launchdLabel = "team.aline.gitfolio"
-	systemdUnit  = "gitfolio-sync"
-	cronMarker   = "# gitfolio-schedule"
+// The OS schedulers are per user, not per home folder, so a build from source registers its own job,
+// apart from the installed release's, as it keeps its own data (dataDir).
+var (
+	launchdLabel = "team.aline.gitfolio" + fromSource(".dev")
+	systemdUnit  = "gitfolio-sync" + fromSource("-dev")
+	cronMarker   = "# gitfolio-schedule" + fromSource("-dev")
+	winTaskName  = `GitFolio\Sync` + fromSource("Dev") // a variable also so the Windows test uses its own
 )
 
-// winTaskName is the Windows Task Scheduler task; a variable so the Windows test uses its own.
-var winTaskName = `GitFolio\Sync`
+// fromSource is s in a build from source, "" in a release.
+func fromSource(s string) string {
+	if version == "dev" {
+		return s
+	}
+	return ""
+}
 
 // cmdSchedule shows, sets (HH:MM, local time) or removes the daily sync.
 func cmdSchedule(dir string, args []string) error {
