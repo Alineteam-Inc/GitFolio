@@ -21,7 +21,7 @@ var bundled string
 
 // updatesItself reports whether this copy looks for, offers and installs newer releases: not a build
 // from source, and not one an app ships.
-func updatesItself() bool { return version != "dev" && bundled == "" }
+func updatesItself() bool { return !sourceBuild() && bundled == "" }
 
 // latestURL redirects to the newest release's tag page (no API rate limit).
 var latestURL = "https://github.com/Alineteam-Inc/GitFolio/releases/latest"
@@ -126,7 +126,7 @@ func installUpdate(latest string) error {
 // cmdUpdate checks for a newer release now, whenever the daily check last ran, and installs it.
 func cmdUpdate(dir string) error {
 	lang := detectLang(os.Getenv)
-	if version == "dev" {
+	if sourceBuild() {
 		say(lang, "updateFromSource")
 		return nil
 	}

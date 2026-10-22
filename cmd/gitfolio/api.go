@@ -19,14 +19,14 @@ import (
 const defaultAPIBase = "https://aline.team/api"
 
 // apiBase returns the API root. Release builds always use production. Builds from source (version
-// "dev") may point elsewhere for testing: GITFOLIO_API_URL if set, else the one saved with
+// sourceBuild) may point elsewhere for testing: GITFOLIO_API_URL if set, else the one saved with
 // `gitfolio config api-url` (hooks started by GUI git clients do not see shell variables).
 func apiBase(configured string) (string, error) {
 	raw := os.Getenv("GITFOLIO_API_URL")
 	if raw == "" {
 		raw = configured
 	}
-	if raw == "" || version != "dev" {
+	if raw == "" || !sourceBuild() {
 		return defaultAPIBase, nil
 	}
 	if err := checkAPIURL(raw); err != nil {

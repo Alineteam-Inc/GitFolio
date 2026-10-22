@@ -243,3 +243,23 @@ func TestLatestReleaseRenamed(t *testing.T) {
 		t.Errorf("latestRelease = %q, %v; want v0.6.0", tag, err)
 	}
 }
+
+// A build from source carries the release it leads to: "0.6.0-dev" is release 0.6.0 and behaves as a
+// build from source (its own data folder, no updates), as "dev" does.
+func TestSourceBuildVersion(t *testing.T) {
+	defer func(v string) { version = v }(version)
+	for v, want := range map[string]struct {
+		release string
+		dev     bool
+	}{"0.6.0-dev": {"0.6.0", true}, "dev": {"", true}, "0.6.0": {"0.6.0", false}} {
+		version = v
+		got, err := jsonStdout(t, func() error { return run([]string{"version", "--json"}) })
+		if err != nil || got["release"] != want.release || got["dev"] != want.dev || sourceBuild() != want.dev || updatesItself() == want.dev {
+			t.Errorf("version %q: %v %v", v, got, err)
+		}
+		dir, err := dataDir()
+		if err != nil || strings.HasSuffix(dir, "gitfolio-dev") != want.dev {
+			t.Errorf("version %q: data folder %s %v", v, dir, err)
+		}
+	}
+}

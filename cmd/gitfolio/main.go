@@ -13,8 +13,14 @@ import (
 	"time"
 )
 
-// version is set at release time via -ldflags "-X main.version=...".
-var version = "dev"
+// version is set at release time via -ldflags "-X main.version=...". A build from source carries the
+// release it leads to, with "-dev" (sourceBuild).
+var version = "0.6.0-dev"
+
+// sourceBuild reports whether this is a build from source: version "dev" or a release number with
+// "-dev". It keeps its own data folder (dataDir), may talk to another server (apiBase), registers its own
+// daily sync (fromSource) and never updates itself.
+func sourceBuild() bool { return version == "dev" || strings.HasSuffix(version, "-dev") }
 
 const usage = `usage: gitfolio <command> [arguments]
 
@@ -101,8 +107,8 @@ commands:
   git [install] [--json]
                         whether git is installed (path, version), or install it with the system's
                         installer (at the terminal after asking, as init does)
-  version [--json]      print version (--json: also whether an app ships this copy and updates it, and
-                        the language of GitFolio's texts)
+  version [--json]      print version (--json: also the release number, whether it is a build from source
+                        or a copy an app ships and updates, and the language of GitFolio's texts)
 
 --json, where a command takes it, prints one JSON document on stdout for programs, a failure too
 ({"error": {"code", "message"}}, exit status 1); messages for people go to stderr, and so does the
@@ -164,12 +170,18 @@ func run(args []string) error {
 	if args[0] == "version" {
 		if slices.Contains(args[1:], "--json") {
 			// lang: the screen language GitFolio's texts are in, for an app to show its own in the same
-			res := map[string]any{"version": version, "bundled": bundled != "", "lang": detectLang(os.Getenv)}
+			// release: the release number, also of a build from source ("0.6.0-dev" is 0.6.0); dev: one
+			release := strings.TrimSuffix(version, "-dev")
+			if version == "dev" {
+				release = ""
+			}
+			res := map[string]any{"version": version, "release": release, "dev": sourceBuild(), "bundled": bundled != "",
+				"lang": detectLang(os.Getenv)}
 			// --latest also asks for the newest release, unless an app ships this copy (it updates it)
 			if slices.Contains(args[1:], "--latest") && bundled == "" {
 				if latest, err := latestRelease(); err == nil { // offline: left out
 					res["latest"] = strings.TrimPrefix(latest, "v")
-					if version != "dev" {
+					if !sourceBuild() {
 						res["upToDate"] = !newer(latest, version)
 					}
 				}
@@ -847,7 +859,7 @@ func changeConfig(dir string, args []string) error {
 		return nil
 	}
 	// Development only: not in the help, and release builds refuse it (apiBase ignores it there too).
-	if args[0] == "api-url" && version == "dev" { // aline.team server, e.g. the development server; "default" = production
+	if args[0] == "api-url" && sourceBuild() { // aline.team server, e.g. the development server; "default" = production
 		cfg.APIURL = ""
 		if len(args) > 1 && args[1] != "default" {
 			if err := checkAPIURL(args[1]); err != nil {

@@ -27,7 +27,7 @@ var (
 
 // fromSource is s in a build from source, "" in a release.
 func fromSource(s string) string {
-	if version == "dev" {
+	if sourceBuild() {
 		return s
 	}
 	return ""

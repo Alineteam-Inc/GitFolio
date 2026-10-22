@@ -126,7 +126,7 @@ func TestScheduleRefusedInLocalMode(t *testing.T) {
 // A build from source registers its own daily sync: the OS schedulers are per user, not per home
 // folder, so with the release's names a test run could replace the job of the installed release.
 func TestScheduleNamesFromSource(t *testing.T) {
-	if version != "dev" || launchdLabel != "team.aline.gitfolio.dev" || systemdUnit != "gitfolio-sync-dev" ||
+	if !sourceBuild() || launchdLabel != "team.aline.gitfolio.dev" || systemdUnit != "gitfolio-sync-dev" ||
 		cronMarker != "# gitfolio-schedule-dev" || winTaskName != `GitFolio\SyncDev` {
 		t.Errorf("source build: %s %s %q %s", launchdLabel, systemdUnit, cronMarker, winTaskName)
 	}
