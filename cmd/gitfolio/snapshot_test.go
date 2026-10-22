@@ -10,8 +10,8 @@ import (
 
 func TestSourceFileAndMarkers(t *testing.T) {
 	for p, want := range map[string]bool{
-		"main.go": true, "web/App.vue": true, "a/b.SCSS": true, "x.tsx": true, "setup.py": false, "tools/setup.py": true,
-		"Dockerfile.py": false, "Makefile": false, "data.json": false, "query.sql": false, ".bashrc": false, "README.md": false,
+		"main.go": true, "web/App.vue": true, "a/b.SCSS": true, "x.tsx": true, "setup.py": false, "tools/setup.py": false,
+		"DockerfileParser.java": true, "lib/Makefile.am": false, "docs/makefile.png": false, "Dockerfile.j2": false, "web/Dockerfile.html": false, "Makefile": false, "data.json": false, "query.sql": false, ".bashrc": false, "README.md": false,
 	} {
 		if got := sourceFile(p); got != want {
 			t.Errorf("sourceFile(%q) = %v, want %v", p, got, want)
@@ -19,11 +19,19 @@ func TestSourceFileAndMarkers(t *testing.T) {
 	}
 	m := map[string]bool{}
 	for _, p := range []string{"Dockerfile", "deploy/Dockerfile.prod", "infra/main.tf", "charts/app/Chart.yaml", "web/App.vue",
-		"android/app/src/main/AndroidManifest.xml", "ios/Dockerfile", "src/main.go", "CMakeLists.txt"} {
+		"android/app/src/main/AndroidManifest.xml", "ios/Dockerfile", "src/main.go", "CMakeLists.txt",
+		"vendor/x/helmfile.yaml", "Examples/y/bun.lockb", "node_modules/z/Widget.svelte"} {
 		addMarkers(m, p)
 	}
-	if got, want := slices.Sorted(maps.Keys(m)), []string{"*.tf", "*.vue", "chart.yaml", "cmakelists.txt", "dockerfile"}; !slices.Equal(got, want) {
+	if got, want := slices.Sorted(maps.Keys(m)), []string{"*.svelte", "*.tf", "*.vue", "chart.yaml", "cmakelists.txt", "dockerfile"}; !slices.Equal(got, want) {
 		t.Errorf("markers = %v, want %v", got, want)
+	}
+	m = map[string]bool{} // code, prose and media named like a Dockerfile are not one
+	for _, p := range []string{"docs/dockerfile.md", "src/DockerfileParser.java", "img/dockerfile.png"} {
+		addMarkers(m, p)
+	}
+	if len(m) > 0 {
+		t.Errorf("markers = %v, want none", m)
 	}
 }
 

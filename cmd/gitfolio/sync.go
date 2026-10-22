@@ -615,24 +615,39 @@ func (c *client) upsert(author string, commits []Commit, modified []modifiedFile
 
 // cmdSync collects new commits in every registered repository and sends what aline.team does not have.
 func cmdSync(dir string, args []string) error {
+	jsonMode(args)
 	fs := flag.NewFlagSet("sync", flag.ContinueOnError)
 	dryRun := fs.Bool("dry-run", false, "print what would be sent, send nothing")
-	if err := parseFlags(fs, args, "gitfolio sync [--dry-run]"); err != nil {
+	fs.Bool("json", false, "print the result as JSON")
+	if err := parseFlags(fs, args, "gitfolio sync [--dry-run] [--json]"); err != nil {
 		return err
 	}
 	lang := detectLang(os.Getenv)
+	n, failed, err := syncNow(dir, lang, *dryRun)
+	if err != nil || *dryRun {
+		return err
+	}
+	return reportSync(dir, lang, n, failed)
+}
+
+// syncNow collects new commits in every repository and sends what aline.team does not have yet (with
+// dryRun prints it instead); failed lists the repositories that could not be read. Callers hold the
+// data lock.
+func syncNow(dir, lang string, dryRun bool) (n syncCounts, failed []map[string]string, err error) {
 	repos, err := loadRepos(dir)
 	if err != nil {
-		return err
+		return n, nil, err
 	}
 	cfg, err := loadConfig(dir)
 	if err != nil {
-		return err
+		return n, nil, err
 	}
+	failed = []map[string]string{}
 	for i := range repos {
 		progress(lang, "progressScan", i, len(repos))
 		if _, err := scanRepo(dir, &repos[i], false); err != nil {
 			warn(lang, "repoFailed", repos[i].Name, err)
+			failed = append(failed, map[string]string{"name": repos[i].Name, "error": err.Error()})
 			continue
 		}
 		if cfg.Deps && cfg.DepsAuto { // deps auto on: the daily sync runs this too
@@ -643,19 +658,30 @@ func cmdSync(dir string, args []string) error {
 	}
 	progressDone() // before --dry-run prints its requests
 	if err := saveRepos(dir, repos); err != nil {
-		return err
+		return n, failed, err
 	}
-	n, err := syncData(dir, *dryRun)
+	n, err = syncData(dir, dryRun)
 	var ae *apiError
 	if err != nil && (!errors.As(err, &ae) || ae.Status >= 500 || ae.Code == codeRateLimited) {
-		return failure("syncLater", err) // offline, server trouble or too many requests
+		return n, failed, failure("syncLater", err) // offline, server trouble or too many requests
 	}
-	if err != nil || *dryRun {
-		return err
-	}
+	return n, failed, err
+}
+
+// reportSync tells what one sync sent and what waits: as JSON with --json, else for people.
+func reportSync(dir, lang string, n syncCounts, failed []map[string]string) error {
 	st, err := loadSync(dir)
 	if err != nil {
 		return err
+	}
+	if jsonOut {
+		waiting := []map[string]string{} // repositories aline.team takes once the email is verified
+		for _, key := range slices.Sorted(maps.Keys(st.Waiting)) {
+			_, namespace, _ := strings.Cut(key, "/")
+			waiting = append(waiting, map[string]string{"namespace": namespace, "email": st.Waiting[key]})
+		}
+		return printJSON(map[string]any{"commits": n.commits, "deleted": n.deletes, "moved": n.moves, "stats": n.stats,
+			"deps": n.deps, "depsCleared": n.depsCleared, "noRemote": n.noRemote, "waiting": waiting, "failed": failed})
 	}
 	switch {
 	case n.commits+n.deletes > 0:

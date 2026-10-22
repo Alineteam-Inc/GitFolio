@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"net/http/httptest"
 	"os"
@@ -168,43 +170,200 @@ func TestDevTypeArt(t *testing.T) {
 	}
 }
 
-// stack shows aline.team's tech stack periods in one table, asked for each time.
+// stack works the tech stack out on this computer, with no login and nothing sent, as aline.team does per
+// repository: languages by file, techs a file's presence or the approved dependencies show, each counted
+// once per repository with the span and months of the user's commits there.
 func TestStack(t *testing.T) {
-	f := &fakeAline{token: testToken, techUsages: map[string]any{
-		"languages":  []map[string]any{{"name": "Go", "startDate": "2025-03-02T10:00:00", "endDate": "2026-10-05T09:00:00", "careerMonths": 20, "projectCount": 3}},
-		"frameworks": []map[string]any{{"name": "Spring Boot", "framework": "SPRING_BOOT", "startDate": "2024-01-10T10:00:00", "endDate": "2025-12-01T10:00:00", "careerMonths": 23, "projectCount": 1, "isHidden": true}},
-		"libraries":  []map[string]any{},
-	}}
-	ts := httptest.NewServer(f.handler())
-	defer ts.Close()
-	t.Setenv("GITFOLIO_API_URL", ts.URL)
 	t.Setenv("GITFOLIO_LANG", "en")
 	var buf bytes.Buffer
-	defer func(o, e io.Writer) { out, errOut = o, e }(out, errOut)
+	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
 	out, errOut = &buf, &buf
-	dir := t.TempDir()
-	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}); err != nil {
+	dir := t.TempDir() // no login: none is needed
+	commit := func(repo, date, message string, files ...string) Commit {
+		c := Commit{Repo: repo, Hash: date, Date: date, Message: message}
+		for _, f := range files {
+			c.Files = append(c.Files, FileStat{Name: f, Add: 1})
+		}
+		return c
+	}
+	api, web := Repo{ID: "api", Name: "api"}, Repo{ID: "web", Name: "web"}
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(saveRepos(dir, []Repo{api, web}))
+	must(writeCommits(dir, []Commit{
+		commit("api", "2024-01-15T10:00:00Z", "feat: start", "src/App.java", "Dockerfile"),
+		commit("api", "2024-03-20T09:00:00+09:00", "fix: service", "src/Svc.java"),   // March 20 in UTC too
+		commit("api", "2024-09-01T00:00:00Z", "Merge branch 'main'", "src/App.java"), // a merge: not in the span
+		commit("api", "2024-10-01T00:00:00Z", "docs: license", "LICENSE"),            // a kind of file unknown: neither
+		commit("web", "2024-02-01T00:00:00Z", "feat: app", "app.ts", "Dockerfile.prod"),
+		commit("web", "2024-06-01T23:30:00-01:00", "feat: logo", "app.ts", "logo.png", "android/app/Main.vue"), // June 2 in UTC
+	}))
+	must(saveJSON(filepath.Join(dir, "deps.json"), []Dependency{
+		{Repo: "api", Ecosystem: "maven", Name: "org.springframework.boot:spring-boot-starter-data-jpa"},
+		{Repo: "api", Ecosystem: "maven", Name: "org.springframework:spring-core"}, // under Spring Boot: not its own
+		{Repo: "web", Ecosystem: "npm", Name: "react"},
+		{Repo: "web", Ecosystem: "npm", Name: "@reduxjs/toolkit"},
+	}))
+	v, err := jsonStdout(t, func() error { return cmdStack(dir, []string{"--json"}) })
+	if err != nil {
 		t.Fatal(err)
 	}
+	byName := map[string]map[string]any{}
+	names := map[string][]string{}
+	for _, list := range []string{"languages", "frameworks", "libraries"} {
+		for _, it := range v[list].([]any) {
+			m := it.(map[string]any)
+			byName[m["name"].(string)] = m
+			names[list] = append(names[list], m["name"].(string))
+		}
+	}
+	if fmt.Sprint(names) != "map[frameworks:[Spring Boot Vue.js] languages:[Java TypeScript] libraries:[Docker JPA React Redux Spring Data JPA]]" {
+		t.Errorf("stack: %v", names)
+	}
+	if d := byName["Docker"]; d["projectCount"] != 2.0 || d["startDate"] != "2024-01-15T00:00:00" || d["endDate"] != "2024-06-02T00:00:00" ||
+		d["careerMonths"] != 4.0 || fmt.Sprint(d["activityMonths"]) != "[2024-01 2024-02 2024-03 2024-06]" {
+		t.Errorf("Docker, in both repositories: %v", d) // Jan 15 to Jun 2 merged: 4 whole months
+	}
+	if j := byName["Java"]; j["projectCount"] != 1.0 || j["careerMonths"] != 2.0 || fmt.Sprint(j["activityMonths"]) != "[2024-01 2024-03]" {
+		t.Errorf("Java: %v", j) // Jan 15 to Mar 20; the merge and the license commit left out
+	}
+	jsonOut, out = false, &buf // one command per process otherwise
 	if err := cmdStack(dir, nil); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"KIND", "language", "Go", "2025-03", "2026-10", "framework", "Spring Boot *", "2024-01", "* hidden on your aline.team profile"} {
+	for _, want := range []string{"KIND", "language", "Java", "2024-01", "2024-03", "framework", "Spring Boot", "library", "Redux"} {
 		if !strings.Contains(buf.String(), want) {
 			t.Errorf("stack shows no %q:\n%s", want, buf.String())
 		}
 	}
-	f.techUsages = map[string]any{"languages": []any{}, "frameworks": []any{}, "libraries": []any{}}
 	buf.Reset()
-	if err := cmdStack(dir, nil); err != nil || !strings.Contains(buf.String(), "no tech stack") {
+	if err := cmdStack(t.TempDir(), nil); err != nil || !strings.Contains(buf.String(), "No tech stack yet") {
 		t.Errorf("empty stack: %v\n%s", err, buf.String())
 	}
-	if cmdStack(dir, []string{"--all"}) == nil {
-		t.Error("an argument was taken")
+	for _, args := range [][]string{{"--all"}, {"--json", "--all"}} {
+		if cmdStack(dir, args) == nil {
+			t.Errorf("stack %v was taken", args)
+		}
 	}
-	f.noStats = true // a server without it yet
-	buf.Reset()
-	if err := cmdStack(dir, nil); err != nil || !strings.Contains(buf.String(), "does not give the CLI") {
-		t.Errorf("server without tech stack periods: %v\n%s", err, buf.String())
+}
+
+// Whole months as java.time counts them, over spans merged where they overlap or touch.
+func TestMergedMonths(t *testing.T) {
+	at := func(s string) time.Time { v, _ := time.Parse(time.RFC3339, s); return v }
+	for _, c := range []struct {
+		spans [][2]string
+		want  int
+	}{
+		{[][2]string{{"2024-01-15T10:00:00Z", "2024-03-15T09:00:00Z"}}, 1}, // the time of day not reached yet
+		{[][2]string{{"2024-01-15T10:00:00Z", "2024-03-15T10:00:00Z"}}, 2},
+		{[][2]string{{"2024-01-31T00:00:00Z", "2024-02-29T00:00:00Z"}}, 0},
+		{[][2]string{{"2024-01-01T00:00:00Z", "2024-01-01T00:00:00Z"}}, 0},
+		{[][2]string{{"2024-01-01T00:00:00Z", "2024-03-01T00:00:00Z"}, {"2024-02-01T00:00:00Z", "2024-05-01T00:00:00Z"},
+			{"2024-07-01T00:00:00Z", "2024-08-01T00:00:00Z"}}, 5},
+		{[][2]string{{"2024-02-01T00:00:00Z", "2024-03-01T00:00:00Z"}, {"2024-01-01T00:00:00Z", "2024-02-01T00:00:00Z"}}, 2}, // touching
+	} {
+		var spans [][2]time.Time
+		for _, s := range c.spans {
+			spans = append(spans, [2]time.Time{at(s[0]), at(s[1])})
+		}
+		if got := mergedMonths(spans); got != c.want {
+			t.Errorf("%v: %d, want %d", c.spans, got, c.want)
+		}
+	}
+}
+
+// stats and stack --json print one JSON document on stdout for programs, and what people read goes
+// to stderr. A failure is printed by main, with the code errorCode gives.
+func TestStatsJSON(t *testing.T) {
+	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "ARCHITECT", "agilityStat": 72, "devTypeReason": "because"}}
+	ts := httptest.NewServer(f.handler())
+	defer ts.Close()
+	t.Setenv("GITFOLIO_API_URL", ts.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	var buf, errBuf bytes.Buffer
+	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
+	out, errOut = &buf, &errBuf
+	dir := t.TempDir()
+	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}); err != nil {
+		t.Fatal(err)
+	}
+	if err := saveConfig(dir, Config{}); err != nil { // automatic sync: the type is saved, not asked for each time
+		t.Fatal(err)
+	}
+	stdout := func(cmd func(string, []string) error, args ...string) (map[string]any, error) {
+		t.Helper()
+		return jsonStdout(t, func() error { return cmd(dir, args) })
+	}
+
+	v, err := stdout(cmdStats, "--json")
+	typ, _ := v["type"].(map[string]any)
+	if err != nil || typ["devTypeTitle"] != "ARCHITECT" || typ["agilityStat"] != 72.0 || v["saved"] != false ||
+		v["year"] != float64(time.Now().Year()) || typ["devTypeReason"] != nil || out != errOut { // people's text: on stderr
+		t.Errorf("stats --json: %v %v", v, err)
+	}
+	if v, err := stdout(cmdStats, "--json"); err != nil || v["saved"] != true {
+		t.Errorf("stats --json, saved: %v %v", v, err)
+	}
+	f.devType = nil // nothing to analyse yet: no type, and no failure either
+	dir = t.TempDir()
+	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}); err != nil {
+		t.Fatal(err)
+	}
+	if v, err := stdout(cmdStats, "--refresh", "--json"); err != nil || v == nil || v["type"] != nil {
+		t.Errorf("stats --json, nothing yet: %v %v", v, err)
+	}
+
+	for err, want := range map[error]string{
+		failure("loginFirst"): "loginFirst",
+		fmt.Errorf("%w again", &apiError{Status: 401, Code: codeTokenInvalid}): "loginFirst",
+		&apiError{Status: 500, Code: "S001"}:                                   "failed",
+		errors.New("git: no such repository"):                                  "failed",
+	} {
+		if got := errorCode(err); got != want {
+			t.Errorf("errorCode(%v) = %q, want %q", err, got, want)
+		}
+	}
+}
+
+// In local mode stats and stack send the statistics first; with --json only their own result goes to
+// stdout, not the sync's as a second document.
+func TestLocalModeJSON(t *testing.T) {
+	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "BUILDER"}}
+	ts := httptest.NewServer(f.handler())
+	defer ts.Close()
+	t.Setenv("GITFOLIO_API_URL", ts.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	var buf bytes.Buffer
+	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
+	out, errOut = &buf, &buf
+	repo := t.TempDir()
+	for _, args := range [][]string{{"init", "-q", "-b", "main"}, {"remote", "add", "origin", "https://github.com/me/app.git"},
+		{"-c", "user.email=dev@example.com", "-c", "user.name=x", "commit", "-q", "--allow-empty", "-m", "feat: start"},
+		{"update-ref", "refs/remotes/origin/main", "HEAD"}} {
+		if b, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, b)
+		}
+	}
+	dir := t.TempDir()
+	for _, err := range []error{saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}),
+		saveConfig(dir, Config{Emails: []string{"dev@example.com"}, AutoSyncOff: true}), saveRepos(dir, []Repo{newRepo(repo)})} {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, cmd := range []func(string, []string) error{cmdStats, cmdStack} {
+		v, err := jsonStdout(t, func() error { return cmd(dir, []string{"--json"}) }) // one document, or it fails
+		if err != nil || v == nil {
+			t.Errorf("local mode --json: %v %v", v, err)
+		}
+	}
+	if _, ok := f.stats["GITHUB/me/app"]; !ok {
+		t.Error("the statistics were not sent first")
 	}
 }

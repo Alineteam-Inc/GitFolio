@@ -170,6 +170,10 @@ func (s repoStatus) sentCount(r Repo, st syncState) string {
 // cmdStatus shows what GitFolio has collected, from this computer's data only (no request to aline.team):
 // per repository with no argument, in full for one repository (its name or path).
 func cmdStatus(dir string, args []string) error {
+	jsonMode(args)
+	if args = withoutJSON(args); len(args) > 1 {
+		return failure("usage", "gitfolio status [name|path] [--json]")
+	}
 	lang := detectLang(os.Getenv)
 	repos, err := loadRepos(dir)
 	if err != nil {
@@ -191,12 +195,18 @@ func cmdStatus(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
+	if jsonOut && len(args) == 0 {
+		return statusJSON(dir, repos, commits, st, cfg)
+	}
 	if len(args) > 0 {
 		r, ok := findRepo(repos, args[0])
 		if !ok {
 			return failure("notRegistered", args[0])
 		}
 		s := statusOf(r, commits, deps, st)
+		if jsonOut {
+			return printJSON(repoJSON(r, s, st, cfg.Deps))
+		}
 		agents := "-"
 		if len(s.agents) > 0 {
 			var parts []string
@@ -242,6 +252,67 @@ func cmdStatus(dir string, args []string) error {
 	waitingNotice(lang, st.Waiting)
 	notice(tr(lang, "statusMore"))
 	return nil
+}
+
+// statusJSON is gitfolio status --json: what GitFolio holds on this computer, for a program, without
+// asking aline.team. setUp is true once logged in with a repository registered (what init does).
+func statusJSON(dir string, repos []Repo, commits []Commit, st syncState, cfg Config) error {
+	c, err := newClient(dir)
+	if err != nil {
+		return err
+	}
+	type repo struct {
+		Name       string `json:"name"`
+		Path       string `json:"path"`
+		Namespace  string `json:"namespace"` // owner/name on the git service; "" without one: never sent
+		Commits    int    `json:"commits"`
+		Sent       int    `json:"sent"`    // how many of them aline.team has
+		Waiting    bool   `json:"waiting"` // aline.team takes them once an email is verified (gitfolio email)
+		Hooks      string `json:"hooks"`   // on, off, or manual: a hooks folder GitFolio does not write to
+		LastCommit string `json:"lastCommit,omitempty"`
+	}
+	list, unsent := []repo{}, 0
+	for _, r := range repos {
+		s := statusOf(r, commits, nil, st)
+		last := ""
+		if !s.last.IsZero() {
+			last = s.lastCommit()
+		}
+		list = append(list, repo{r.Name, r.Path, r.Namespace, s.commits, s.sent, st.Waiting[r.Provider+"/"+r.Namespace] != "",
+			hookStatus(r.Path), last})
+		if r.Namespace != "" {
+			unsent += s.commits - s.sent
+		}
+	}
+	var account any // null: not logged in
+	if c.loggedIn() {
+		account = c.creds.Email
+	}
+	mode := "automatic"
+	if cfg.AutoSyncOff {
+		mode = "local" // commits are never sent: unsent only counts in automatic mode
+	}
+	return printJSON(map[string]any{"account": account, "setUp": c.loggedIn() && len(repos) > 0, "syncMode": mode,
+		"lastSync": st.LastSync, "lastSyncError": st.LastError, "unsent": unsent, "repositories": list})
+}
+
+// repoJSON is status <name> --json: what the text shows of one repository. dependencies is null while
+// dependency detection is off; languages are changed lines per language, agents commits per AI agent.
+func repoJSON(r Repo, s repoStatus, st syncState, depsOn bool) map[string]any {
+	day := func(t time.Time) string {
+		if t.IsZero() {
+			return ""
+		}
+		return t.Local().Format(time.DateOnly)
+	}
+	var deps map[string][]string
+	if depsOn {
+		deps = s.deps
+	}
+	return map[string]any{"name": r.Name, "path": r.Path, "service": r.Provider, "namespace": r.Namespace,
+		"commits": s.commits, "sent": s.sent, "waiting": st.Waiting[r.Provider+"/"+r.Namespace] != "", "fileChanges": s.changes,
+		"linesAdded": s.add, "linesDeleted": s.del, "filesCreated": s.created, "aiCommits": s.ai, "agents": s.agents,
+		"languages": s.lines, "dependencies": deps, "lastCommit": day(s.last), "hooks": hookStatus(r.Path)}
 }
 
 // lineCounts is a "+added -deleted" pair of changed-line counts.

@@ -29,13 +29,13 @@ done
 // A hook that existed before is renamed to <name>.gitfolio-orig and still runs first;
 // for pre-push its exit code is honored, so it can still block a push.
 var hookScripts = map[string]string{
-	"post-commit": "#!/bin/sh\n" + hookMarker + ` (github.com/Alineteam-Inc/GitFolio): notes AI agent use for this commit
+	"post-commit": "#!/bin/sh\n" + hookMarker + ` (github.com/Alineteam-Inc/GitFolio-CLI): notes AI agent use for this commit
 d=$(dirname "$0")
 [ -x "$d/post-commit.gitfolio-orig" ] && "$d/post-commit.gitfolio-orig" "$@"
 ` + hookFind + `[ -n "$g" ] && "$g" hook post-commit >/dev/null 2>&1
 exit 0
 `,
-	"pre-push": "#!/bin/sh\n" + hookMarker + ` (github.com/Alineteam-Inc/GitFolio): collects pushed commits in the background
+	"pre-push": "#!/bin/sh\n" + hookMarker + ` (github.com/Alineteam-Inc/GitFolio-CLI): collects pushed commits in the background
 d=$(dirname "$0")
 in=$(cat)
 if [ -x "$d/pre-push.gitfolio-orig" ]; then
@@ -95,7 +95,7 @@ func huskyHooks(dir string, install bool) error {
 			}
 		} else if install {
 			first, rest, _ := strings.Cut(cmp.Or(s, "#!/usr/bin/env sh\n"), "\n")
-			s = first + "\n" + hookMarker + " (github.com/Alineteam-Inc/GitFolio)\n" + hookFind +
+			s = first + "\n" + hookMarker + " (github.com/Alineteam-Inc/GitFolio-CLI)\n" + hookFind +
 				`[ -n "$g" ] && "$g" ` + cmd + " </dev/null >/dev/null 2>&1\n" + hookMarker + " end\n" + rest
 		} else {
 			continue
@@ -223,7 +223,7 @@ func cmdHook(dir string, args []string) error {
 		if err != nil {
 			return err
 		}
-		if version != "dev" { // what the next push tells about a newer release (noticeUpdate), outside the lock
+		if updatesItself() { // what the next push tells about a newer release (noticeUpdate), outside the lock
 			defer lookUpLatest(dir)
 		}
 		// Only commits on remote-tracking refs are sent (pending), so a rejected push adds nothing.

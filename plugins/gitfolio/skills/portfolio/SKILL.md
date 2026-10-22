@@ -31,8 +31,7 @@ were given, and never fill a gap with a guess.
 6. **Write** in the format and language asked:
    - numbers only as GitFolio gives them or the user says; periods as they are;
    - say what the data shows, not more ("Java for 42 months in 3 repositories", not "Java expert");
-   - no names, features or customers the user did not give; tech hidden on their profile (`stack`,
-     `isHidden`) stays out;
+   - no names, features or customers the user did not give;
    - the most relevant work first.
 7. **Review and save.** Show the draft, adjust, then offer to save it as Markdown. The user can print a
    Markdown file as a PDF with `gitfolio portfolio --from <file.md>` (Chrome, Edge or Chromium).

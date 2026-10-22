@@ -2,7 +2,6 @@ package main
 
 import (
 	"cmp"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -140,8 +139,13 @@ func blank() {
 // failure returns a translated error; main prints it with the GitFolio prefix. Errors that come from
 // git itself or only show up in hooks stay as they are.
 func failure(key string, args ...any) error {
-	return errors.New(strings.TrimSpace(fmt.Sprintf(tr(detectLang(os.Getenv), key), args...)))
+	return &failErr{key, strings.TrimSpace(fmt.Sprintf(tr(detectLang(os.Getenv), key), args...))}
 }
+
+// failErr is a translated error; its message key is the code --json gives programs (errorCode).
+type failErr struct{ key, msg string }
+
+func (e *failErr) Error() string { return e.msg }
 
 // section prints the separator that opens an interactive command.
 func section(lang, titleKey string) {
@@ -149,12 +153,119 @@ func section(lang, titleKey string) {
 	fmt.Fprintf(out, "%s%s\n", margin, heading("===== GitFolio · "+strings.TrimSpace(tr(lang, titleKey))+" ====="))
 }
 
-// tr returns the message for lang, falling back to English.
+// tr returns the message for lang, falling back to English. With --json it is the app's wording when
+// there is one (appMessages).
 func tr(lang, key string) string {
-	if s, ok := messages[key][lang]; ok {
+	m := messages[key]
+	if a, ok := appMessages[key]; ok && jsonOut {
+		m = a
+	}
+	if s, ok := m[lang]; ok {
 		return s
 	}
-	return messages[key]["en"]
+	return m["en"]
+}
+
+// appMessages word, for programs reading --json, the messages that can reach them and point to a
+// gitfolio command or flag: the app shows them to people who use it instead of a terminal, and gives
+// the way out itself (by the error code). Same keys and arguments as in messages. "usage" stays: it
+// means the program called a command wrongly.
+var appMessages = map[string]map[string]string{
+	"portfolioNoBrowser": {
+		"en": "Making a PDF takes Chrome, Edge or Chromium, and none was found (CHROME_PATH can name one).\nWithout one, make the portfolio as Markdown and print it from a Markdown editor.\n",
+		"ko": "PDF를 만들려면 Chrome·Edge·Chromium이 필요한데 찾지 못했습니다(CHROME_PATH로 지정 가능).\n없으면 포트폴리오를 Markdown으로 만든 뒤 Markdown 편집기에서 인쇄하세요.\n",
+		"ja": "PDF の作成には Chrome・Edge・Chromium が必要ですが、見つかりませんでした(CHROME_PATH で指定できます)。\nない場合はポートフォリオを Markdown で作り、Markdown エディタから印刷してください。\n",
+	},
+	"gitInstallManual": {
+		"en": "Install git from its download page, or with your system's package manager.\n",
+		"ko": "다운로드 페이지에서 git을 설치하거나, 시스템의 패키지 관리자로 설치하세요.\n",
+		"ja": "ダウンロードページから git をインストールするか、システムのパッケージマネージャーでインストールしてください。\n",
+	},
+	"alreadyLoggedIn": {
+		"en": "Already logged in as %s. Log out first to switch accounts.\n",
+		"ko": "이미 %s(으)로 로그인되어 있습니다. 계정을 바꾸려면 먼저 로그아웃하세요.\n",
+		"ja": "すでに %s でログインしています。アカウントを切り替えるには先にログアウトしてください。\n",
+	},
+	"busy": {
+		"en": "Another GitFolio task is in progress; try again shortly.\n",
+		"ko": "다른 GitFolio 작업이 진행 중입니다. 잠시 후 다시 시도하세요.\n",
+		"ja": "別の GitFolio の処理が実行中です。しばらくしてから再試行してください。\n",
+	},
+	"depsIsOff": {
+		"en": "Dependency detection is off. Turn it on first.\n",
+		"ko": "의존성 분석이 꺼져 있습니다. 먼저 켜세요.\n",
+		"ja": "依存関係の分析はオフです。先に有効にしてください。\n",
+	},
+	"emailRmPrimary": {
+		"en": "%s is the primary email. Make another one primary first.\n",
+		"ko": "대표 이메일은 지울 수 없습니다: %s\n먼저 다른 이메일을 대표로 지정하세요.\n",
+		"ja": "代表メールアドレスは削除できません: %s\n先に別のアドレスを代表に指定してください。\n",
+	},
+	"emailTooMany": {
+		"en": "aline.team takes no more verified work emails. Remove one first.\n",
+		"ko": "aline.team이 받는 인증된 작업 이메일 수를 넘었습니다. 먼저 하나를 삭제하세요.\n",
+		"ja": "aline.team が受け付ける認証済みの作業用メールアドレスの上限に達しています。先に 1 件削除してください。\n",
+	},
+	"hooksElsewhere": {
+		"en": "Hooks live outside .git (%s, e.g. a shared core.hooksPath or husky 5–8), so GitFolio did not change them.\n",
+		"ko": "훅 폴더가 .git 밖에 있어(%s, 예: 공유 core.hooksPath·husky 5–8) GitFolio가 훅을 바꾸지 않았습니다.\n",
+		"ja": "フックが .git の外にあるため(%s、例: 共有の core.hooksPath・husky 5–8)、GitFolio は変更していません。\n",
+	},
+	"loginFirst": {
+		"en": "Log in or sign up to aline.team first.\n",
+		"ko": "먼저 aline.team에 로그인하거나 가입하세요.\n",
+		"ja": "先に aline.team にログインまたは新規登録してください。\n",
+	},
+	"loginNeedsTerminal": {
+		"en": "Logging in or signing up needs the account's email.\n",
+		"ko": "로그인·가입하려면 계정 이메일이 필요합니다.\n",
+		"ja": "ログイン・新規登録にはアカウントのメールアドレスが必要です。\n",
+	},
+	"noUserEmail": {
+		"en": "git user.email is not set, so your commits cannot be identified. Set your email in git first.\n",
+		"ko": "git user.email이 설정되어 있지 않아 본인 커밋을 식별할 수 없습니다. 먼저 git에 이메일을 설정하세요.\n",
+		"ja": "git の user.email が設定されていないため、あなたのコミットを識別できません。先に git にメールアドレスを設定してください。\n",
+	},
+	"notRegisteredAdd": {
+		"en": "%s is not registered. Add it first.\n",
+		"ko": "등록되지 않은 저장소입니다: %s\n먼저 추가하세요.\n",
+		"ja": "%s は登録されていません。先に追加してください。\n",
+	},
+	"relogin": {
+		"en": "(log in again)",
+		"ko": "(다시 로그인하세요)",
+		"ja": "(もう一度ログインしてください)",
+	},
+	"scheduleLocal": {
+		"en": "Local mode sends nothing by itself, so it has no daily sync. Turn automatic sync on first.\n",
+		"ko": "로컬 모드는 스스로 보내지 않으므로 예약 동기화가 없습니다. 먼저 자동 동기화를 켜세요.\n",
+		"ja": "ローカルモードは自分から送信しないため、予約同期はありません。先に自動同期をオンにしてください。\n",
+	},
+	"scheduleNoScheduler": {
+		"en": "There is no scheduler to use: systemd user timers failed (%v) and crontab is not installed.\nInstall cron, or sync yourself.\n",
+		"ko": "쓸 수 있는 예약 도구가 없습니다: systemd 사용자 타이머 실패(%v), crontab 없음.\ncron을 설치하거나 직접 동기화하세요.\n",
+		"ja": "使える予約ツールがありません: systemd ユーザータイマーが失敗(%v)し、crontab もありません。\ncron をインストールするか、手動で同期してください。\n",
+	},
+	"scheduleUnsupported": {
+		"en": "Scheduling is not supported on this system yet; sync yourself.\n",
+		"ko": "이 시스템에서는 아직 예약 동기화를 지원하지 않습니다. 직접 동기화하세요.\n",
+		"ja": "このシステムでは予約同期にまだ対応していません。手動で同期してください。\n",
+	},
+	"signupConsent": {
+		"en": "%s has no aline.team account yet: signing up needs your agreement to the terms.\n",
+		"ko": "%s(으)로 된 aline.team 계정이 아직 없습니다. 가입하려면 약관 동의가 필요합니다.\n",
+		"ja": "%s の aline.team アカウントはまだありません。登録には規約への同意が必要です。\n",
+	},
+	"statsSlow": {
+		"en": "aline.team is still making your developer type. It keeps it when done; try again in a minute.\n",
+		"ko": "aline.team이 아직 개발자 유형을 만드는 중입니다. 다 만들면 aline.team에 저장되니 잠시 뒤 다시 시도하세요.\n",
+		"ja": "aline.team はまだ開発者タイプを作成中です。完成すると aline.team に保存されるので、少し待ってからもう一度お試しください。\n",
+	},
+	"unknownCommand": {
+		"en": "Unknown command %q.\n",
+		"ko": "알 수 없는 명령입니다: %q\n",
+		"ja": "不明なコマンド %q です。\n",
+	},
 }
 
 // messages holds the text people read. Policy and consent texts must mean the same in every language
@@ -174,7 +285,7 @@ var messages = map[string]map[string]string{
    changed files per language, and later changes to files you
    created) are made on this computer and sent as well. In
    local mode they are all GitFolio uses: it calls the aline.team
-   API with them when you look up your type, stack or portfolio.
+   API with them when you look up your type or portfolio.
  - Sensitive parts of commit messages (tokens, URLs, emails,
    ticket numbers, blocked words) are masked on this computer.
    In local mode (the default) GitFolio calls the aline.team API
@@ -194,7 +305,7 @@ var messages = map[string]map[string]string{
    의존성 파악에만 사용합니다. 찾은 의존성의 이름만(버전·내용 제외) 보냅니다.
  - 저장소별 일 단위 통계(커밋 수, 언어별 변경 파일 수, 내가 만든
    파일의 이후 변경 수)를 이 컴퓨터에서 만들어 함께 보냅니다.
-   로컬 모드에서는 이 통계만 쓰며, 개발자 유형·기술 스택·포트폴리오를
+   로컬 모드에서는 이 통계만 쓰며, 개발자 유형·포트폴리오를
    볼 때 이것으로 aline.team API를 호출합니다.
  - 커밋 메시지의 민감한 부분(토큰·URL·이메일·티켓 번호·금지어)은
    이 컴퓨터에서 가립니다. 로컬 모드(기본)는 필요할 때만 aline.team API를
@@ -215,7 +326,7 @@ var messages = map[string]map[string]string{
  - リポジトリごとの日単位の統計(コミット数、言語別の変更ファイル数、
    自分が作成したファイルのその後の変更数)をこのコンピューターで作成し、
    あわせて送信します。ローカルモードではこの統計だけを使い、
-   開発者タイプ・技術スタック・ポートフォリオを見るときに、これで
+   開発者タイプ・ポートフォリオを見るときに、これで
    aline.team の API を呼び出します。
  - コミットメッセージの機密部分(トークン・URL・メールアドレス・
    チケット番号・ブロックワード)はこのコンピューターでマスキングします。
@@ -301,11 +412,6 @@ var messages = map[string]map[string]string{
 		"en": "aline.team takes at most 20 verified work emails. Remove one first: gitfolio email rm <email>\n",
 		"ko": "aline.team은 인증된 작업 이메일을 20개까지 받습니다. 먼저 하나를 삭제하세요: gitfolio email rm <이메일>\n",
 		"ja": "aline.team が受け付ける認証済みの作業用メールアドレスは 20 件までです。先に 1 件削除してください: gitfolio email rm <メールアドレス>\n",
-	},
-	"emailVerifyNeedsTerminal": {
-		"en": "Verifying an email needs a terminal: run `gitfolio email verify <email>` there.\n",
-		"ko": "이메일 인증은 터미널에서 해야 합니다. 터미널에서 `gitfolio email verify <이메일>`을 실행하세요.\n",
-		"ja": "メールアドレスの認証にはターミナルが必要です。ターミナルで `gitfolio email verify <メールアドレス>` を実行してください。\n",
 	},
 	"emailUnverifyFailed": {
 		"en": "Removed here, but aline.team still has %s as verified (%v).\n",
@@ -482,9 +588,9 @@ var messages = map[string]map[string]string{
 `,
 	},
 	"syncModeNotice": {
-		"en": "Choose whether GitFolio syncs with aline.team.\nLocal mode (default): nothing goes out on its own. Only when you look up your developer type, tech stack or portfolio (`gitfolio stats`, `stack`, `portfolio`, or your AI tool) does GitFolio call the aline.team API, with daily totals made on this computer.\nAutomatic sync: sends the past commits of the chosen repositories right away, then after every git push (and every day, if you schedule it), so your aline.team profile stays current.\n",
-		"ko": "aline.team과 함께 동기화할지 고릅니다.\n로컬 모드(기본): 평소에는 아무것도 보내지 않습니다. 개발자 유형·기술 스택·포트폴리오를 볼 때만(`gitfolio stats`·`stack`·`portfolio` 또는 AI 도구) 이 컴퓨터에서 만든 일 단위 총계로 aline.team API를 호출합니다.\n자동 동기화: 고른 저장소의 지난 커밋 기록을 바로 보내고, 그 뒤로는 git push할 때마다(예약하면 매일도) 보내 aline.team 프로필을 최신으로 유지합니다.\n",
-		"ja": "aline.team と同期するかを選びます。\nローカルモード(既定): 普段は何も送りません。開発者タイプ・技術スタック・ポートフォリオを見るときだけ(`gitfolio stats`・`stack`・`portfolio` または AI ツール)、このコンピュータで作った日単位の合計で aline.team の API を呼び出します。\n自動同期: 選んだリポジトリの過去のコミット記録をすぐに送り、その後は git push のたびに(予約すれば毎日も)送信して、aline.team のプロフィールを最新に保ちます。\n",
+		"en": "Choose whether GitFolio syncs with aline.team.\nLocal mode (default): nothing goes out on its own. Only when you look up your developer type or portfolio (`gitfolio stats`, `portfolio`, or your AI tool) does GitFolio call the aline.team API, with daily totals made on this computer.\nAutomatic sync: sends the past commits of the chosen repositories right away, then after every git push (and every day, if you schedule it), so your aline.team profile stays current.\n",
+		"ko": "aline.team과 함께 동기화할지 고릅니다.\n로컬 모드(기본): 평소에는 아무것도 보내지 않습니다. 개발자 유형·포트폴리오를 볼 때만(`gitfolio stats`·`portfolio` 또는 AI 도구) 이 컴퓨터에서 만든 일 단위 총계로 aline.team API를 호출합니다.\n자동 동기화: 고른 저장소의 지난 커밋 기록을 바로 보내고, 그 뒤로는 git push할 때마다(예약하면 매일도) 보내 aline.team 프로필을 최신으로 유지합니다.\n",
+		"ja": "aline.team と同期するかを選びます。\nローカルモード(既定): 普段は何も送りません。開発者タイプ・ポートフォリオを見るときだけ(`gitfolio stats`・`portfolio` または AI ツール)、このコンピュータで作った日単位の合計で aline.team の API を呼び出します。\n自動同期: 選んだリポジトリの過去のコミット記録をすぐに送り、その後は git push のたびに(予約すれば毎日も)送信して、aline.team のプロフィールを最新に保ちます。\n",
 	},
 	"syncModeAsk": {
 		"en": "Sync with aline.team automatically? (no = local mode)",
@@ -586,6 +692,36 @@ var messages = map[string]map[string]string{
 		"ko": "확인 코드는 숫자 %d자리입니다. 다시 입력하세요.\n",
 		"ja": "確認コードは %d 桁の数字です。もう一度入力してください。\n",
 	},
+	"codeSent": {
+		"en": "A code was sent to %s. Finish with `gitfolio login --email %s --code <code>`.\n",
+		"ko": "%s(으)로 확인 코드를 보냈습니다. `gitfolio login --email %s --code <코드>`로 마치세요.\n",
+		"ja": "%s に確認コードを送りました。`gitfolio login --email %s --code <コード>` で完了してください。\n",
+	},
+	"signupFlags": {
+		"en": "To sign up, add --signup (and --notify to receive aline.team service notifications by email).\n",
+		"ko": "가입하려면 --signup을 붙이세요(--notify를 더하면 aline.team 서비스 알림을 이메일로 받습니다).\n",
+		"ja": "登録するには --signup を付けてください(--notify も付けると aline.team のサービス通知をメールで受け取ります)。\n",
+	},
+	"signupConsent": {
+		"en": "%s has no aline.team account yet: signing up needs your agreement (--signup).\n",
+		"ko": "%s(으)로 된 aline.team 계정이 아직 없습니다. 가입하려면 동의가 필요합니다(--signup).\n",
+		"ja": "%s の aline.team アカウントはまだありません。登録には同意が必要です(--signup)。\n",
+	},
+	"emailCodeSent": {
+		"en": "A code was sent to %s. Finish with `gitfolio email verify %s --code <code>`.\n",
+		"ko": "%s(으)로 확인 코드를 보냈습니다. `gitfolio email verify %s --code <코드>`로 마치세요.\n",
+		"ja": "%s に確認コードを送りました。`gitfolio email verify %s --code <コード>` で完了してください。\n",
+	},
+	"manifestUnknown": {
+		"en": "%s is not a package manager file of %s.\n",
+		"ko": "%s은(는) %s의 패키지 관리 파일이 아닙니다.\n",
+		"ja": "%s は %s のパッケージ管理ファイルではありません。\n",
+	},
+	"codeNotSent": {
+		"en": "No code is waiting for %s. Ask for a new one.\n",
+		"ko": "%s(으)로 보낸 확인 코드가 없습니다. 새 코드를 받으세요.\n",
+		"ja": "%s に送った確認コードがありません。新しいコードを受け取ってください。\n",
+	},
 	"codeWrong": {
 		"en": "The code is not correct. Please try again.\n",
 		"ko": "확인 코드가 맞지 않습니다. 다시 입력하세요.\n",
@@ -666,6 +802,61 @@ var messages = map[string]map[string]string{
 		"en": "API URL %q must use https (plain http is allowed only to this computer).\n",
 		"ko": "API 주소는 https만 쓸 수 있습니다 (http는 이 컴퓨터 주소만 허용): %q\n",
 		"ja": "API URL %q は https である必要があります(http はこのコンピューターのアドレスのみ可)。\n",
+	},
+	"gitMissing": {
+		"en": "git is not installed. GitFolio reads your commits with it.\n",
+		"ko": "git이 설치되어 있지 않습니다. GitFolio는 git으로 커밋을 읽습니다.\n",
+		"ja": "git がインストールされていません。GitFolio は git でコミットを読み取ります。\n",
+	},
+	"gitInstallAsk": {
+		"en": "Install git now with the system's installer? (%s)",
+		"ko": "시스템 설치 도구로 지금 git을 설치할까요? (%s)",
+		"ja": "システムのインストーラーで今 git をインストールしますか? (%s)",
+	},
+	"gitFound": {
+		"en": "git %s (%s)\n",
+		"ko": "git %s (%s)\n",
+		"ja": "git %s (%s)\n",
+	},
+	"gitUpdateApple": {
+		"en": "Apple's git comes with the Command Line Tools, which macOS Software Update keeps up to date.\n",
+		"ko": "Apple의 git은 Command Line Tools에 들어 있으며, macOS 소프트웨어 업데이트로 최신 상태가 유지됩니다.\n",
+		"ja": "Apple の git は Command Line Tools に含まれ、macOS のソフトウェアアップデートで最新の状態に保たれます。\n",
+	},
+	"gitUpdateMac": {
+		"en": "Update git the way you installed it, such as with Homebrew.\n",
+		"ko": "git을 설치한 방법(예: Homebrew)으로 업데이트하세요.\n",
+		"ja": "git をインストールした方法(Homebrew など)で更新してください。\n",
+	},
+	"gitUpdateWindows": {
+		"en": "Update Git for Windows with its installer or the Windows Package Manager.\n",
+		"ko": "Git for Windows 설치 프로그램이나 Windows 패키지 관리자로 업데이트하세요.\n",
+		"ja": "Git for Windows のインストーラーまたは Windows パッケージ マネージャーで更新してください。\n",
+	},
+	"gitUpdateLinux": {
+		"en": "Update git with your system's package manager. A distribution may keep an older version with the security fixes applied.\n",
+		"ko": "시스템의 패키지 관리자로 git을 업데이트하세요. 배포판은 보안 수정을 적용한 이전 버전을 유지하기도 합니다.\n",
+		"ja": "システムのパッケージマネージャーで git を更新してください。ディストリビューションは、セキュリティ修正を適用した古いバージョンを使い続けることがあります。\n",
+	},
+	"gitInstalled": {
+		"en": "git is installed.\n",
+		"ko": "git을 설치했습니다.\n",
+		"ja": "git をインストールしました。\n",
+	},
+	"gitInstallPending": {
+		"en": "Finish installing git (on macOS, in the window that opened), then run `gitfolio init` again.\n",
+		"ko": "git 설치를 마친 뒤(macOS는 열린 창에서) `gitfolio init`을 다시 실행하세요.\n",
+		"ja": "git のインストールを完了してから(macOS では開いたウィンドウで)、もう一度 `gitfolio init` を実行してください。\n",
+	},
+	"gitInstallFailed": {
+		"en": "Installing git failed: %v\n",
+		"ko": "git 설치에 실패했습니다: %v\n",
+		"ja": "git のインストールに失敗しました: %v\n",
+	},
+	"gitInstallManual": {
+		"en": "Install git from https://git-scm.com/downloads, then run `gitfolio init` again.\n",
+		"ko": "https://git-scm.com/downloads 에서 git을 설치한 뒤 `gitfolio init`을 다시 실행하세요.\n",
+		"ja": "https://git-scm.com/downloads から git をインストールしてから、もう一度 `gitfolio init` を実行してください。\n",
 	},
 	"noGit": {
 		"en": "git was not found. Install git first.\n",
@@ -822,6 +1013,26 @@ var messages = map[string]map[string]string{
 		"ko": "GitFolio를 %s(으)로 업데이트했습니다. 명령을 다시 실행하세요.\n",
 		"ja": "GitFolio を %s に更新しました。もう一度コマンドを実行してください。\n",
 	},
+	"uninstalled": {
+		"en": "GitFolio is removed from this computer: %d repositories are unregistered with their hooks put back the way they were, the daily sync is gone and this device is logged out. Nothing on aline.team was deleted.\n",
+		"ko": "이 컴퓨터에서 GitFolio 설정을 지웠습니다. 저장소 %d개의 등록을 해제하고 훅을 원래대로 되돌렸으며, 매일 동기화를 없애고 이 기기를 로그아웃했습니다. aline.team의 데이터는 지우지 않았습니다.\n",
+		"ja": "このコンピューターから GitFolio の設定を削除しました。リポジトリ %d 件の登録を解除してフックを元に戻し、毎日の同期を削除して、このデバイスをログアウトしました。aline.team のデータは削除していません。\n",
+	},
+	"uninstalledData": {
+		"en": "GitFolio's data on this computer (%s) was deleted too.\n",
+		"ko": "이 컴퓨터의 GitFolio 데이터(%s)도 지웠습니다.\n",
+		"ja": "このコンピューターの GitFolio データ(%s)も削除しました。\n",
+	},
+	"uninstalledKept": {
+		"en": "GitFolio's data on this computer is kept in %s; `gitfolio uninstall --purge-local` deletes it.\n",
+		"ko": "이 컴퓨터의 GitFolio 데이터는 %s에 남겨 두었습니다. `gitfolio uninstall --purge-local`로 지울 수 있습니다.\n",
+		"ja": "このコンピューターの GitFolio データは %s に残しています。`gitfolio uninstall --purge-local` で削除できます。\n",
+	},
+	"updateFromApp": {
+		"en": "This copy came with an app, which updates it. Update the app instead.\n",
+		"ko": "앱에 들어 있는 사본이라 앱이 업데이트합니다. 앱을 업데이트하세요.\n",
+		"ja": "アプリに同梱されたコピーで、アプリが更新します。アプリを更新してください。\n",
+	},
 	"updateFromSource": {
 		"en": "This copy was built from source. Update it with `git pull` and `go install ./cmd/gitfolio`.\n",
 		"ko": "소스에서 빌드한 사본입니다. `git pull`과 `go install ./cmd/gitfolio`로 업데이트하세요.\n",
@@ -846,6 +1057,11 @@ var messages = map[string]map[string]string{
 		"en": "Updated GitFolio to %s.\n",
 		"ko": "GitFolio를 %s(으)로 업데이트했습니다.\n",
 		"ja": "GitFolio を %s に更新しました。\n",
+	},
+	"updatePathBad": {
+		"en": "%s is not a GitFolio that runs here: %v\n",
+		"ko": "%s은(는) 여기서 실행되는 GitFolio가 아닙니다: %v\n",
+		"ja": "%s はここで実行できる GitFolio ではありません: %v\n",
 	},
 	"updateFailed": {
 		"en": "Could not update (%v). Update by hand:\n  %s\n",
@@ -1039,14 +1255,14 @@ var messages = map[string]map[string]string{
 		"ja": "aline.team は新しい形式の統計のみを受け付けるようになりました。`gitfolio update` で更新すると送信します。\n",
 	},
 	"stackTitle": {
-		"en": "Your tech stack on aline.team, from the first to the last commit of the repositories using each:\n",
-		"ko": "aline.team의 기술 스택 사용 기간입니다. 각 기술을 쓴 저장소의 첫 커밋부터 마지막 커밋까지:\n",
-		"ja": "aline.team の技術スタックの使用期間です。各技術を使ったリポジトリの最初から最後のコミットまで:\n",
+		"en": "Your tech stack from the registered repositories, from your first to your last commit in the repositories using each:\n",
+		"ko": "등록한 저장소로 만든 기술 스택입니다. 각 기술을 쓴 저장소에서 내 첫 커밋부터 마지막 커밋까지:\n",
+		"ja": "登録したリポジトリから作った技術スタックです。各技術を使ったリポジトリでの自分の最初から最後のコミットまで:\n",
 	},
 	"stackEmpty": {
-		"en": "aline.team has no tech stack for you yet. It comes from the repositories you send (`gitfolio sync`).\n",
-		"ko": "aline.team에 아직 기술 스택이 없습니다. 보낸 저장소에서 만들어집니다(`gitfolio sync`).\n",
-		"ja": "aline.team にはまだ技術スタックがありません。送信したリポジトリから作られます(`gitfolio sync`)。\n",
+		"en": "No tech stack yet. It comes from your commits in the registered repositories (`gitfolio add`).\n",
+		"ko": "아직 기술 스택이 없습니다. 등록한 저장소의 내 커밋에서 만들어집니다(`gitfolio add`).\n",
+		"ja": "まだ技術スタックがありません。登録したリポジトリの自分のコミットから作られます(`gitfolio add`)。\n",
 	},
 	"portfolioHead": {
 		"en": "# Development portfolio\n\nMade by GitFolio from my git history on %s. Repositories: %d, commits: %s, period: %s.\n",
@@ -1060,8 +1276,8 @@ var messages = map[string]map[string]string{
 	},
 	"portfolioStack": {
 		"en": "## Tech stack\n\nFrom the first to the last commit of the repositories using each, as aline.team works it out.\n\n| Kind | Name | Period | Months | Repositories |\n| --- | --- | --- | ---: | ---: |\n",
-		"ko": "## 기술 스택\n\n각 기술을 쓴 저장소의 첫 커밋부터 마지막 커밋까지, aline.team 산출입니다.\n\n| 구분 | 이름 | 기간 | 개월 | 저장소 |\n| --- | --- | --- | ---: | ---: |\n",
-		"ja": "## 技術スタック\n\n各技術を使ったリポジトリの最初から最後のコミットまで、aline.team の算出です。\n\n| 種類 | 名前 | 期間 | 月数 | リポジトリ |\n| --- | --- | --- | ---: | ---: |\n",
+		"ko": "## 기술 스택\n\n각 기술을 쓴 저장소의 첫 커밋부터 마지막 커밋까지, aline.team 방식으로 계산했습니다.\n\n| 구분 | 이름 | 기간 | 개월 | 저장소 |\n| --- | --- | --- | ---: | ---: |\n",
+		"ja": "## 技術スタック\n\n各技術を使ったリポジトリの最初から最後のコミットまで、aline.team の方式で算出しました。\n\n| 種類 | 名前 | 期間 | 月数 | リポジトリ |\n| --- | --- | --- | ---: | ---: |\n",
 	},
 	"portfolioLanguage": {
 		"en": "Language",
@@ -1138,16 +1354,6 @@ var messages = map[string]map[string]string{
 		"ko": "기술 스택 없이 포트폴리오를 만듭니다: %v\n",
 		"ja": "技術スタックなしでポートフォリオを作成します: %v\n",
 	},
-	"stackUnavailable": {
-		"en": "aline.team does not give the CLI tech stack periods yet. They are on your aline.team profile.\n",
-		"ko": "aline.team이 아직 CLI에 기술 스택 기간을 주지 않습니다. aline.team 프로필에서 볼 수 있습니다.\n",
-		"ja": "aline.team はまだ CLI に技術スタックの期間を提供していません。aline.team のプロフィールで確認できます。\n",
-	},
-	"stackHidden": {
-		"en": "* hidden on your aline.team profile\n",
-		"ko": "* aline.team 프로필에서 숨긴 기술\n",
-		"ja": "* aline.team のプロフィールで非表示にした技術\n",
-	},
 	"statsRejected": {
 		"en": "aline.team did not accept the statistics of %s; they are sent again when they change: %v\n",
 		"ko": "aline.team이 %s의 통계를 받지 않았습니다. 바뀌면 다시 보냅니다: %v\n",
@@ -1189,9 +1395,9 @@ var messages = map[string]map[string]string{
 		"ja": "同期: %s\n",
 	},
 	"localModeOnce": {
-		"en": "Since GitFolio 0.6.0, autosync off is local mode: `gitfolio stats`, `stack` and `sync` no longer send commit\nrecords but call the aline.team API with daily statistics (commit records as before while aline.team does not take them yet).\nTo keep sending commit records: gitfolio config autosync on\n",
-		"ko": "GitFolio 0.6.0부터 autosync off는 로컬 모드입니다. 이제 `gitfolio stats`·`stack`·`sync`는 커밋 기록을 보내지 않고\n일 단위 통계로 aline.team API를 호출합니다(aline.team이 아직 통계를 받지 않으면 이전처럼 커밋 기록을 보냄).\n커밋 기록을 계속 보내려면: gitfolio config autosync on\n",
-		"ja": "GitFolio 0.6.0 から autosync off はローカルモードです。`gitfolio stats`・`stack`・`sync` はコミット記録を送らず、\n日単位の統計で aline.team の API を呼び出します(aline.team がまだ統計を受け付けない間は、これまでどおりコミット記録を送信)。\nコミット記録を送り続けるには: gitfolio config autosync on\n",
+		"en": "Since GitFolio 0.6.0, autosync off is local mode: `gitfolio stats` and `sync` no longer send commit\nrecords but call the aline.team API with daily statistics (commit records as before while aline.team does not take them yet).\nTo keep sending commit records: gitfolio config autosync on\n",
+		"ko": "GitFolio 0.6.0부터 autosync off는 로컬 모드입니다. 이제 `gitfolio stats`·`sync`는 커밋 기록을 보내지 않고\n일 단위 통계로 aline.team API를 호출합니다(aline.team이 아직 통계를 받지 않으면 이전처럼 커밋 기록을 보냄).\n커밋 기록을 계속 보내려면: gitfolio config autosync on\n",
+		"ja": "GitFolio 0.6.0 から autosync off はローカルモードです。`gitfolio stats`・`sync` はコミット記録を送らず、\n日単位の統計で aline.team の API を呼び出します(aline.team がまだ統計を受け付けない間は、これまでどおりコミット記録を送信)。\nコミット記録を送り続けるには: gitfolio config autosync on\n",
 	},
 	"historyOff": {
 		"en": "The git command history is off. Turn it on: gitfolio config git-history on\n",

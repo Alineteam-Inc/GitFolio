@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -50,12 +51,16 @@ type devType struct {
 // saved for next time.
 func cmdStats(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
+	jsonMode(args)
 	refresh := false
 	for _, a := range args {
-		if a != "--refresh" {
-			return wrongWord("stats", a, []string{"--refresh"}, "gitfolio stats [--refresh]")
+		switch a {
+		case "--refresh":
+			refresh = true
+		case "--json":
+		default:
+			return wrongWord("stats", a, []string{"--refresh", "--json"}, "gitfolio stats [--refresh] [--json]")
 		}
-		refresh = true
 	}
 	c, err := newClient(dir)
 	if err != nil {
@@ -69,6 +74,13 @@ func cmdStats(dir string, args []string) error {
 	cache, saved, err := devTypeNow(dir, lang, c, refresh)
 	if err != nil {
 		return err
+	}
+	if jsonOut {
+		var d *devType // null: nothing to make a type from yet
+		if cache.Detail.Title != "" {
+			d = &cache.Detail
+		}
+		return printJSON(map[string]any{"year": cache.Year, "saved": saved, "fetchedAt": cache.FetchedAt, "type": d})
 	}
 	showDevType(lang, cache, saved)
 	return nil
@@ -121,7 +133,14 @@ func sendIfLocal(dir, lang string, c *client) (bool, error) {
 	if !c.ensureLogin() {
 		return true, failure("loginFirst")
 	}
-	if err := withLock(dir, func() error { return cmdSync(dir, nil) }); err != nil {
+	err = withLock(dir, func() error {
+		n, _, err := syncNow(dir, lang, false)
+		if err == nil && !jsonOut { // with --json stdout carries the command's own result alone
+			err = reportSync(dir, lang, n, nil)
+		}
+		return err
+	})
+	if err != nil {
 		warn(lang, "failed", err) // what aline.team has from before still shows
 	}
 	return true, nil
@@ -143,12 +162,12 @@ func checkLocalMode(dir, lang string) {
 // techUsage is how long the user used one language, framework or library, as aline.team works it out
 // from the repositories: from the first to the last commit of the repositories using it.
 type techUsage struct {
-	Name         string `json:"name"`
-	StartDate    string `json:"startDate"`
-	EndDate      string `json:"endDate"`
-	CareerMonths *int   `json:"careerMonths"`
-	ProjectCount *int   `json:"projectCount"`
-	Hidden       bool   `json:"isHidden"` // hidden from the profile by the user
+	Name           string   `json:"name"`
+	StartDate      string   `json:"startDate"`
+	EndDate        string   `json:"endDate"`
+	CareerMonths   *int     `json:"careerMonths"`
+	ProjectCount   *int     `json:"projectCount"`
+	ActivityMonths []string `json:"activityMonths"` // the months it was used in ("2026-10"), ascending
 }
 
 type techUsages struct {
@@ -157,40 +176,47 @@ type techUsages struct {
 	Libraries  []techUsage `json:"libraries"`
 }
 
-// techUsagesNow asks aline.team for the tech stack periods.
-func techUsagesNow(c *client) (u techUsages, err error) {
-	if !c.ensureLogin() {
-		return u, failure("loginFirst")
+// techUsagesNow is the tech stack worked out on this computer from the registered repositories, as
+// aline.team works it out (localStack): no login, nothing sent. For AI tools (ai) the repositories
+// hidden from them count for nothing (config ai).
+func techUsagesNow(dir, lang string, ai bool) (techUsages, error) {
+	repos, err := loadRepos(dir)
+	if err != nil {
+		return techUsages{}, err
 	}
-	return u, c.call("GET", "/cli/tech-usages", nil, &u)
+	if ai {
+		repos = aiView(lang, repos)
+	}
+	commits, err := readCommits(dir)
+	if err != nil {
+		return techUsages{}, err
+	}
+	deps, err := loadDeps(dir)
+	if err != nil {
+		return techUsages{}, err
+	}
+	return localStack(repos, commits, deps), nil
 }
 
-// cmdStack shows the user's tech stack periods from aline.team, asked for each time.
+// cmdStack shows the tech stack worked out on this computer (techUsagesNow).
 func cmdStack(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
-	if len(args) > 0 {
-		return failure("usage", "gitfolio stack")
+	jsonMode(args)
+	if len(args) > 0 && !slices.Equal(args, []string{"--json"}) {
+		return failure("usage", "gitfolio stack [--json]")
 	}
-	c, err := newClient(dir)
+	u, err := techUsagesNow(dir, lang, false)
 	if err != nil {
 		return err
 	}
-	if _, err := sendIfLocal(dir, lang, c); err != nil {
-		return err
-	}
-	u, err := techUsagesNow(c)
-	if unsupported(err) {
-		say(lang, "stackUnavailable") // a server without it yet
-		return nil
-	} else if err != nil {
-		return err
+	if jsonOut {
+		return printJSON(u)
 	}
 	if len(u.Languages)+len(u.Frameworks)+len(u.Libraries) == 0 {
 		say(lang, "stackEmpty")
 		return nil
 	}
 	var b strings.Builder
-	hidden := false
 	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "KIND\tNAME\tFROM\tTO\tMONTHS\tPROJECTS")
 	for _, g := range []struct {
@@ -198,11 +224,7 @@ func cmdStack(dir string, args []string) error {
 		items []techUsage
 	}{{"language", u.Languages}, {"framework", u.Frameworks}, {"library", u.Libraries}} {
 		for _, t := range g.items {
-			name := t.Name
-			if t.Hidden { // a mark, not a word: the columns count letters, and Korean ones are two wide
-				name, hidden = name+" *", true
-			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", g.kind, name, yearMonth(t.StartDate), yearMonth(t.EndDate), number(t.CareerMonths), number(t.ProjectCount))
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", g.kind, t.Name, yearMonth(t.StartDate), yearMonth(t.EndDate), number(t.CareerMonths), number(t.ProjectCount))
 		}
 	}
 	if err := w.Flush(); err != nil {
@@ -210,9 +232,6 @@ func cmdStack(dir string, args []string) error {
 	}
 	header, rows, _ := strings.Cut(b.String(), "\n")
 	show(out, strings.TrimRight(tr(lang, "stackTitle"), "\n")+"\n"+dim(strings.TrimRight(header, " "))+"\n"+rows)
-	if hidden {
-		notice(tr(lang, "stackHidden"))
-	}
 	return nil
 }
 

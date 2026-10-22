@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -25,15 +26,43 @@ var manifestNames = map[string]string{
 	"go.mod":             "go",
 	"requirements.txt":   "pypi",
 	"pyproject.toml":     "pypi",
+	"Pipfile":            "pypi",
 	"pom.xml":            "maven",
 	"build.gradle":       "maven",
 	"build.gradle.kts":   "maven",
 	"libs.versions.toml": "maven",
 	"Cargo.toml":         "cargo",
+	"environment.yml":    "conda",
+	"composer.json":      "composer",
+	"Gemfile":            "rubygems",
+	"pubspec.yaml":       "pub",
+	"Package.swift":      "swift",
+	"Podfile":            "cocoapods",
+	"mix.exs":            "hex",
+	"deno.json":          "deno",
+	"build.sbt":          "sbt",
 }
 
-// skipDirs hold other people's code or samples; manifest files inside are not even offered.
-var skipDirs = []string{"node_modules", "vendor", "third_party", "examples", "testdata", "fixtures"}
+// manifestEcosystem is the ecosystem of a package manager file by its path, "" for none: by name, and
+// .NET project files by extension.
+func manifestEcosystem(file string) string {
+	base := path.Base(file)
+	switch path.Ext(base) {
+	case ".csproj", ".vbproj", ".fsproj":
+		return "nuget"
+	}
+	return manifestNames[base]
+}
+
+// skipDirs hold other people's code or samples, as aline.team skips them: manifest files inside are not
+// even offered, and files inside show no tech by their presence.
+var skipDirs = []string{"node_modules", "vendor", "bower_components", "third_party", "testdata", "fixtures", "examples", "example"}
+
+// inSkipDir reports whether a folder of repository path p (in any case) is one of skipDirs.
+func inSkipDir(p string) bool {
+	dirs := strings.Split(strings.ToLower(strings.ReplaceAll(p, `\`, "/")), "/")
+	return slices.ContainsFunc(dirs[:len(dirs)-1], func(d string) bool { return slices.Contains(skipDirs, d) })
+}
 
 const maxManifests = 200
 
@@ -48,7 +77,13 @@ type Dependency struct {
 	Version   string `json:"version,omitempty"`
 }
 
-type dep struct{ name, version string }
+// dep is one dependency a manifest declares; eco, when set, is its ecosystem instead of the manifest's
+// (environment.yml declares conda and pip packages), and local marks one from a local path, a git
+// repository or another address.
+type dep struct {
+	name, version, eco string
+	local              bool
+}
 
 func loadDeps(dir string) (deps []Dependency, err error) {
 	err = loadJSON(filepath.Join(dir, "deps.json"), &deps)
@@ -61,12 +96,10 @@ func manifestCandidates(repo string) []string {
 	if err != nil {
 		return nil // no commits yet
 	}
+	all := strings.Split(out, "\x00")
 	var files []string
-	for _, p := range strings.Split(out, "\x00") {
-		if _, ok := manifestNames[path.Base(p)]; !ok {
-			continue
-		}
-		if slices.ContainsFunc(strings.Split(path.Dir(p), "/"), func(d string) bool { return slices.Contains(skipDirs, d) }) {
+	for _, p := range all {
+		if manifestEcosystem(p) == "" || inSkipDir(p) || path.Base(p) == "Podfile" && crossPlatformIOS(p, all) {
 			continue
 		}
 		if len(files) == maxManifests {
@@ -141,7 +174,7 @@ func refreshDeps(dir string, r *Repo) (files, deps int, err error) {
 		}
 		files++
 		for _, x := range parseManifest(path.Base(p), content) {
-			found = append(found, Dependency{Repo: r.ID, Module: moduleID(manifestDir(p)), Ecosystem: manifestNames[path.Base(p)], Name: x.name, Version: x.version})
+			found = append(found, Dependency{Repo: r.ID, Module: moduleID(manifestDir(p)), Ecosystem: cmp.Or(x.eco, manifestEcosystem(p)), Name: x.name, Version: x.version})
 		}
 	}
 	all, err := loadDeps(dir)
@@ -166,6 +199,10 @@ func parseManifest(name, s string) []dep {
 		deps = parseGoMod(s)
 	case "requirements.txt":
 		for _, line := range strings.Split(s, "\n") {
+			if m := pipEditable.FindStringSubmatch(line); m != nil {
+				deps = append(deps, dep{name: m[1], local: true}) // -e git+https://…#egg=name
+				continue
+			}
 			if i := strings.IndexByte(line, '#'); i >= 0 {
 				line = line[:i]
 			}
@@ -175,34 +212,78 @@ func parseManifest(name, s string) []dep {
 		}
 	case "pyproject.toml":
 		deps = parsePyproject(s)
+	case "Pipfile":
+		section := ""
+		for _, line := range strings.Split(s, "\n") {
+			if t := strings.TrimSpace(line); strings.HasPrefix(t, "[") {
+				section = strings.Trim(t, "[] ")
+			} else if d, ok := tomlDep(t); ok && (section == "packages" || section == "dev-packages") {
+				deps = append(deps, d)
+			}
+		}
 	case "pom.xml":
 		deps = parsePom(s)
 	case "build.gradle", "build.gradle.kts":
 		for _, g := range gradleDep.FindAllStringSubmatch(s, -1) {
-			deps = append(deps, dep{g[1] + ":" + g[2], g[3]})
+			deps = append(deps, dep{name: g[1] + ":" + g[2], version: g[3]})
 		}
 	case "libs.versions.toml":
 		deps = parseVersionCatalog(s)
 	case "Cargo.toml":
 		deps = parseCargo(s)
+	case "environment.yml":
+		deps = parseConda(s)
+	case "composer.json":
+		deps = parseComposer(s)
+	case "Gemfile":
+		deps = matchDeps(gemDecl, s)
+	case "pubspec.yaml":
+		deps = parsePubspec(s)
+	case "Package.swift":
+		for _, m := range swiftPackage.FindAllStringSubmatch(s, -1) {
+			deps = append(deps, dep{name: m[1], version: m[2], local: true}) // an address
+		}
+	case "Podfile":
+		deps = matchDeps(podDecl, s)
+	case "mix.exs":
+		deps = matchDeps(mixDep, s)
+	case "deno.json":
+		deps = parseDeno(s)
+	case "build.sbt":
+		for _, m := range sbtDecl.FindAllStringSubmatch(s, -1) {
+			deps = append(deps, dep{name: m[1] + ":" + m[2], version: m[3]})
+		}
+	default:
+		if manifestEcosystem(name) == "nuget" {
+			deps = parseMsProj(s)
+		}
 	}
+	// aline.team reads a local or git dependency by its name too. It is sent only when that name shows a
+	// tech there, a public one's then, so the rest stay here; never a pod, as any pod shows iOS.
+	eco := manifestEcosystem(name)
+	deps = slices.DeleteFunc(deps, func(d dep) bool {
+		return d.local && (eco == "cocoapods" || len(depTechs(cmp.Or(d.eco, eco), []string{d.name})) == 0)
+	})
 	slices.SortFunc(deps, func(a, b dep) int { return strings.Compare(a.name, b.name) })
 	return slices.CompactFunc(deps, func(a, b dep) bool { return a.name == b.name })
 }
 
 func parsePackageJSON(s string) []dep {
 	var pkg struct {
-		Dependencies    map[string]string `json:"dependencies"`
-		DevDependencies map[string]string `json:"devDependencies"`
+		Dependencies     map[string]string `json:"dependencies"`
+		DevDependencies  map[string]string `json:"devDependencies"`
+		PeerDependencies map[string]string `json:"peerDependencies"` // some frameworks (htmx, tRPC) are only peers
 	}
 	if json.Unmarshal([]byte(s), &pkg) != nil {
 		return nil
 	}
 	var deps []dep
-	for _, m := range []map[string]string{pkg.Dependencies, pkg.DevDependencies} {
+	for _, m := range []map[string]string{pkg.Dependencies, pkg.DevDependencies, pkg.PeerDependencies} {
 		for n, v := range m {
-			if !npmLocal(v) {
-				deps = append(deps, dep{n, v})
+			if npmLocal(v) {
+				deps = append(deps, dep{name: n, local: true}) // its version is a path or an address
+			} else {
+				deps = append(deps, dep{name: n, version: v})
 			}
 		}
 	}
@@ -237,7 +318,7 @@ func parseGoMod(s string) []dep {
 			continue
 		}
 		if f := strings.Fields(line); len(f) >= 2 && !strings.Contains(line, "// indirect") {
-			deps = append(deps, dep{f[0], f[1]})
+			deps = append(deps, dep{name: f[0], version: f[1]})
 		}
 	}
 	return deps
@@ -249,9 +330,16 @@ func pep508(s string) (dep, bool) {
 		s = s[:i]
 	}
 	s = strings.TrimSpace(s)
-	if s == "" || strings.HasPrefix(s, "-") || strings.HasPrefix(s, ".") || strings.HasPrefix(s, "/") ||
-		strings.Contains(s, "://") || strings.Contains(s, " @ ") {
-		return dep{}, false // options, local paths and URLs
+	if s == "" || strings.HasPrefix(s, "-") || strings.HasPrefix(s, ".") || strings.HasPrefix(s, "/") {
+		return dep{}, false // options and local paths
+	}
+	if name, _, ok := strings.Cut(s, "@"); ok { // name @ URL
+		name, _, _ = strings.Cut(name, "[")
+		name = strings.TrimSpace(name)
+		return dep{name: name, local: true}, pyName.MatchString(name)
+	}
+	if strings.Contains(s, "://") {
+		return dep{}, false // a URL
 	}
 	name, version := s, ""
 	if i := strings.IndexAny(s, "=<>!~[ "); i >= 0 {
@@ -260,8 +348,10 @@ func pep508(s string) (dep, bool) {
 			version = strings.TrimPrefix(strings.TrimSpace(s[j:]), "==")
 		}
 	}
-	return dep{name, version}, name != ""
+	return dep{name: name, version: version}, name != ""
 }
+
+var pyName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
 var quotedRe = regexp.MustCompile(`"([^"]*)"|'([^']*)'`)
 
@@ -292,15 +382,15 @@ func tomlDep(line string) (dep, bool) {
 	v = strings.TrimSpace(v)
 	if strings.HasPrefix(v, "{") {
 		if tableKey(v, "path") != "" || tableKey(v, "git") != "" {
-			return dep{}, false
+			return dep{name: name, local: true}, name != ""
 		}
-		return dep{name, tableKey(v, "version")}, name != ""
+		return dep{name: name, version: tableKey(v, "version")}, name != ""
 	}
 	version := ""
 	if q := quoted(v); len(q) > 0 {
 		version = q[0]
 	}
-	return dep{name, version}, name != ""
+	return dep{name: name, version: version}, name != ""
 }
 
 func parsePyproject(s string) []dep {
@@ -343,12 +433,12 @@ func parseCargo(s string) []dep {
 	}
 	var deps []dep
 	var table *dep // [dependencies.serde] describes one dependency in the lines below
-	skip, section := false, ""
+	section := ""
 	flush := func() {
-		if table != nil && !skip {
+		if table != nil {
 			deps = append(deps, *table)
 		}
-		table, skip = nil, false
+		table = nil
 	}
 	for _, line := range strings.Split(s, "\n") {
 		t := strings.TrimSpace(line)
@@ -368,7 +458,7 @@ func parseCargo(s string) []dep {
 						table.version = q[0]
 					}
 				case "path", "git":
-					skip = true
+					table.local = true
 				}
 			}
 			continue
@@ -394,7 +484,7 @@ func parsePom(s string) []dep {
 	}
 	var deps []dep
 	for _, d := range pom.Deps {
-		deps = append(deps, dep{d.Group + ":" + d.Artifact, d.Version})
+		deps = append(deps, dep{name: d.Group + ":" + d.Artifact, version: d.Version})
 	}
 	return deps
 }
@@ -445,7 +535,7 @@ func parseVersionCatalog(s string) []dep {
 			l.version = versions[l.ref]
 		}
 		if l.name != "" {
-			deps = append(deps, dep{l.name, l.version})
+			deps = append(deps, dep{name: l.name, version: l.version})
 		}
 	}
 	return deps
@@ -478,6 +568,198 @@ func prompt(q string) string {
 		answered()
 	}
 	return strings.TrimSpace(line)
+}
+
+// crossPlatformIOS reports whether a Podfile is in an ios/ folder that Flutter or React Native made:
+// one whose parent folder has a pubspec.yaml or package.json. aline.team does not take its pods as an
+// iOS app, so they are not offered.
+func crossPlatformIOS(file string, files []string) bool {
+	dirs := strings.Split(path.Dir(file), "/")
+	for i, d := range dirs {
+		if strings.EqualFold(d, "ios") {
+			parent := strings.Join(dirs[:i], "/")
+			if parent != "" {
+				parent += "/"
+			}
+			if slices.Contains(files, parent+"pubspec.yaml") || slices.Contains(files, parent+"package.json") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+var (
+	gemDecl      = regexp.MustCompile(`(?m)^\s*gem\s+['"]([^'"]+)['"](?:\s*,\s*['"]([^'"]+)['"])?([^\n]*)`)
+	podDecl      = regexp.MustCompile(`(?m)^\s*pod\s+['"]([^'"]+)['"](?:\s*,\s*['"]([^'"]+)['"])?([^\n]*)`)
+	mixDep       = regexp.MustCompile(`\{:([a-z_][a-z0-9_]*)\s*(?:,\s*"([^"]+)")?([^}]*)\}`)
+	swiftPackage = regexp.MustCompile(`\.package\s*\(\s*(?:name\s*:\s*"[^"]*"\s*,\s*)?url\s*:\s*"([^"]+)"(?:\s*,\s*(?:from|exact|branch|revision)\s*:\s*"([^"]*)")?`)
+	sbtDecl      = regexp.MustCompile(`"([^"\s]+)"\s*%{1,3}\s*"([^"\s]+)"\s*%\s*"([^"]*)"`)
+	localDep     = regexp.MustCompile(`\b(?:path|git|github|in_umbrella)\s*(?::|=>)`)
+)
+
+// matchDeps are the name, version and options a Gemfile, Podfile or mix.exs pattern finds; ones taken
+// from a local path or a git repository are local.
+func matchDeps(re *regexp.Regexp, s string) []dep {
+	var deps []dep
+	for _, m := range re.FindAllStringSubmatch(s, -1) {
+		deps = append(deps, dep{name: m[1], version: m[2], local: localDep.MatchString(m[3])})
+	}
+	return deps
+}
+
+// parseConda reads an environment.yml's dependencies: conda packages (a channel prefix like
+// "conda-forge::" dropped), and the PyPI ones of its "- pip:" list.
+func parseConda(s string) []dep {
+	var deps []dep
+	in, pipIndent := false, -1
+	for _, line := range strings.Split(s, "\n") {
+		t := strings.TrimSpace(line)
+		indent := len(line) - len(strings.TrimLeft(line, " "))
+		switch {
+		case t == "" || strings.HasPrefix(t, "#"):
+			continue
+		case indent == 0 && !strings.HasPrefix(t, "-"):
+			in, pipIndent = t == "dependencies:", -1
+			continue
+		case !in || !strings.HasPrefix(t, "-"):
+			continue
+		}
+		item := strings.Trim(strings.TrimSpace(strings.TrimPrefix(t, "-")), `"'`)
+		if pipIndent >= 0 && indent > pipIndent {
+			if d, ok := pep508(item); ok {
+				d.eco = "pypi"
+				deps = append(deps, d)
+			}
+			continue
+		}
+		pipIndent = -1
+		if item == "pip:" {
+			pipIndent = indent
+			continue
+		}
+		if _, after, ok := strings.Cut(item, "::"); ok {
+			item = after
+		}
+		i := strings.IndexAny(item, "=<>!~ ")
+		if i < 0 {
+			i = len(item)
+		}
+		if name := item[:i]; name != "" && name != "python" && name != "pip" {
+			deps = append(deps, dep{name: name, version: strings.TrimLeft(item[i:], "=<>!~ ")})
+		}
+	}
+	return deps
+}
+
+// parseComposer reads a composer.json's require and require-dev ("vendor/package"); PHP itself and its
+// extensions are not packages.
+func parseComposer(s string) []dep {
+	var c struct {
+		Require    map[string]string `json:"require"`
+		RequireDev map[string]string `json:"require-dev"`
+	}
+	if json.Unmarshal([]byte(s), &c) != nil {
+		return nil
+	}
+	var deps []dep
+	for _, m := range []map[string]string{c.Require, c.RequireDev} {
+		for n, v := range m {
+			if strings.Contains(n, "/") {
+				deps = append(deps, dep{name: n, version: v})
+			}
+		}
+	}
+	return deps
+}
+
+// parsePubspec reads a pubspec.yaml's dependencies and dev_dependencies (Flutter's SDK ones too); ones
+// from a local path or git are local.
+func parsePubspec(s string) []dep {
+	var deps []dep
+	section, cur := "", dep{}
+	flush := func() {
+		if cur.name != "" {
+			deps = append(deps, cur)
+		}
+		cur = dep{}
+	}
+	for _, line := range strings.Split(s, "\n") {
+		t := strings.TrimSpace(line)
+		indent := len(line) - len(strings.TrimLeft(line, " "))
+		switch {
+		case t == "" || strings.HasPrefix(t, "#"):
+		case indent == 0:
+			flush()
+			section = strings.TrimSuffix(t, ":")
+		case section != "dependencies" && section != "dev_dependencies":
+		case indent == 2:
+			flush()
+			name, v, _ := strings.Cut(t, ":")
+			cur = dep{name: name, version: strings.Trim(strings.TrimSpace(v), `"'`)}
+		case strings.HasPrefix(t, "path:") || strings.HasPrefix(t, "git:"):
+			cur.local = true
+		}
+	}
+	flush()
+	return deps
+}
+
+// parseDeno reads a deno.json's import map (and its scopes): every key, and of each value (an address)
+// only the module id in it that aline.team reads (deno.land/x/…, @scope/name).
+func parseDeno(s string) []dep {
+	var d struct {
+		Imports map[string]string            `json:"imports"`
+		Scopes  map[string]map[string]string `json:"scopes"`
+	}
+	if json.Unmarshal([]byte(s), &d) != nil {
+		return nil
+	}
+	var deps []dep
+	for _, m := range append([]map[string]string{d.Imports}, slices.Collect(maps.Values(d.Scopes))...) {
+		for k, v := range m {
+			deps = append(deps, dep{name: k})
+			if id := denoModule.FindString(strings.ToLower(v)); id != "" {
+				deps = append(deps, dep{name: id, local: true})
+			}
+		}
+	}
+	return deps
+}
+
+// parseMsProj reads a .NET project file: its Sdk (as "sdk:Microsoft.NET.Sdk.Web"), and the Include of
+// each PackageReference and Reference (an assembly's version part dropped).
+func parseMsProj(s string) []dep {
+	var deps []dep
+	dec := xml.NewDecoder(strings.NewReader(s))
+	for {
+		tok, err := dec.Token()
+		if err != nil {
+			return deps
+		}
+		e, ok := tok.(xml.StartElement)
+		if !ok {
+			continue
+		}
+		attr := func(name string) string {
+			for _, a := range e.Attr {
+				if a.Name.Local == name {
+					return a.Value
+				}
+			}
+			return ""
+		}
+		switch e.Name.Local {
+		case "Project":
+			if sdk := attr("Sdk"); sdk != "" {
+				deps = append(deps, dep{name: "sdk:" + sdk})
+			}
+		case "PackageReference", "Reference":
+			if name, _, _ := strings.Cut(attr("Include"), ","); strings.TrimSpace(name) != "" {
+				deps = append(deps, dep{name: strings.TrimSpace(name), version: attr("Version")})
+			}
+		}
+	}
 }
 
 // parseSelection turns "all", "none" or "1,3,5-7" into sorted numbers between 1 and n.
@@ -577,7 +859,52 @@ func reviewManifests(rs []Repo) []int {
 	}
 }
 
+// cmdDeps shows or changes dependency detection; with --json it shows the state after, as depsJSON.
 func cmdDeps(dir string, args []string) error {
+	jsonMode(args)
+	args = withoutJSON(args)
+	if err := changeDeps(dir, args); err != nil || !jsonOut {
+		return err
+	}
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
+	repos, err := loadRepos(dir)
+	if err != nil {
+		return err
+	}
+	return depsJSON(cfg, repos)
+}
+
+// depsJSON is dependency detection for a program: on or off, deps auto, and each repository's package
+// manager files with the user's decision: allowed, declined, or new (not decided yet).
+func depsJSON(cfg Config, repos []Repo) error {
+	type file struct {
+		Path  string `json:"path"`
+		State string `json:"state"`
+	}
+	type repo struct {
+		Name  string `json:"name"`
+		Path  string `json:"path"`
+		Files []file `json:"files"`
+	}
+	list := []repo{}
+	for _, r := range repos {
+		files := []file{}
+		for _, f := range manifestCandidates(r.Path) {
+			state := "new"
+			if ok, decided := r.Manifests[f]; decided {
+				state = map[bool]string{true: "allowed", false: "declined"}[ok]
+			}
+			files = append(files, file{f, state})
+		}
+		list = append(list, repo{r.Name, r.Path, files})
+	}
+	return printJSON(map[string]any{"on": cfg.Deps, "auto": cfg.DepsAuto, "repositories": list})
+}
+
+func changeDeps(dir string, args []string) error {
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err
@@ -593,6 +920,9 @@ func cmdDeps(dir string, args []string) error {
 	}
 	switch sub {
 	case "":
+		if jsonOut {
+			return nil // cmdDeps shows it
+		}
 		msg := fmt.Sprintf(tr(lang, "depsStatus"), tr(lang, map[bool]string{true: "on", false: "off"}[cfg.Deps]))
 		msg += fmt.Sprintf(tr(lang, "depsAutoStatus"), tr(lang, map[bool]string{true: "on", false: "off"}[cfg.DepsAuto]))
 		for _, r := range repos {
@@ -649,7 +979,15 @@ func cmdDeps(dir string, args []string) error {
 		if !cfg.Deps {
 			return failure("depsIsOff")
 		}
-		top, err := topLevel(pathArg(args[1:]))
+		var allow, rest []string // --allow <file>, any number of times: a program's choice
+		for k := 1; k < len(args); k++ {
+			if args[k] == "--allow" && k+1 < len(args) {
+				allow, k = append(allow, args[k+1]), k+1
+			} else {
+				rest = append(rest, args[k])
+			}
+		}
+		top, err := topLevel(pathArg(rest))
 		if err != nil {
 			return err
 		}
@@ -657,8 +995,28 @@ func cmdDeps(dir string, args []string) error {
 		if i < 0 {
 			return failure("notRegisteredAdd", tildePath(top))
 		}
-		if err := reviewAndRescan(dir, repos[i:i+1]); err != nil {
-			return err
+		if !jsonOut && len(allow) == 0 {
+			if err := reviewAndRescan(dir, repos[i:i+1]); err != nil {
+				return err
+			}
+			return saveRepos(dir, repos)
+		}
+		// Without questions: the files given with --allow may be read, every other one is declined.
+		files := manifestCandidates(top)
+		m := map[string]bool{}
+		for _, f := range files {
+			m[f] = slices.Contains(allow, f)
+		}
+		for _, f := range allow {
+			if !slices.Contains(files, f) {
+				return failure("manifestUnknown", f, repos[i].Name)
+			}
+		}
+		if !maps.Equal(m, repos[i].Manifests) {
+			repos[i].Manifests = m
+			if err := rescanDeps(dir, &repos[i]); err != nil {
+				return err
+			}
 		}
 		return saveRepos(dir, repos)
 	case "auto":
@@ -707,7 +1065,7 @@ func cmdDeps(dir string, args []string) error {
 		}
 		return nil
 	}
-	const usage = "gitfolio deps [on|off|review [path]|scan [path] [--all]|auto on|off]"
+	const usage = "gitfolio deps [on|off|review [path] [--allow <file>]...|scan [path] [--all]|auto on|off] [--json]"
 	if len(args) > 1 && args[0] == "auto" {
 		return wrongWord("deps auto", args[1], []string{"on", "off"}, usage)
 	}
@@ -718,14 +1076,22 @@ func cmdDeps(dir string, args []string) error {
 // whose decisions changed, so dependencies and module IDs match the new approvals.
 func reviewAndRescan(dir string, rs []Repo) error {
 	for _, i := range reviewManifests(rs) {
-		n, err := scanRepo(dir, &rs[i], true) // module IDs of the new approvals
-		if err != nil {
+		if err := rescanDeps(dir, &rs[i]); err != nil {
 			return err
 		}
-		if _, _, err := refreshDeps(dir, &rs[i]); err != nil { // the files were just approved for this
-			return err
-		}
-		say(detectLang(os.Getenv), "depsUpdated", rs[i].Name, n)
 	}
+	return nil
+}
+
+// rescanDeps collects r again after the decisions on its files changed, and reads the approved ones.
+func rescanDeps(dir string, r *Repo) error {
+	n, err := scanRepo(dir, r, true) // module IDs of the new approvals
+	if err != nil {
+		return err
+	}
+	if _, _, err := refreshDeps(dir, r); err != nil { // the files were just approved for this
+		return err
+	}
+	say(detectLang(os.Getenv), "depsUpdated", r.Name, n)
 	return nil
 }

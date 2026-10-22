@@ -112,8 +112,8 @@ func TestMCP(t *testing.T) {
 		strings.Contains(s, "shareCode") {
 		t.Errorf("devtype = %s", s)
 	}
-	if s := text("5"); !got["5"].Result.IsError || !strings.Contains(s, "does not give the CLI tech stack periods") {
-		t.Errorf("stack on a server without it = %s (error %v)", s, got["5"].Result.IsError)
+	if s := text("5"); got["5"].Result.IsError || !strings.Contains(s, `"name":"Go"`) || !strings.Contains(s, `"projectCount":1`) {
+		t.Errorf("stack worked out here = %s (error %v)", s, got["5"].Result.IsError)
 	}
 	if s := text("6"); !strings.HasPrefix(s, "# Development portfolio") || !strings.Contains(s, "**KEEPER**") || !strings.Contains(s, "### app") {
 		t.Errorf("portfolio = %s", s)
@@ -345,5 +345,33 @@ func TestMCPSetup(t *testing.T) {
 	}
 	if cfg, _ := loadConfig(dir); !slices.Contains(cfg.Emails, "work@example.com") {
 		t.Errorf("work email not kept: %v", cfg.Emails)
+	}
+}
+
+// AI tools get the tech stack of the repositories they may see: a hidden one counts for nothing.
+func TestMCPStackLeavesHiddenOut(t *testing.T) {
+	dir := t.TempDir()
+	if err := saveRepos(dir, []Repo{{ID: "a", Name: "app"}, {ID: "s", Name: "secret", AI: aiExposure{Hidden: true}}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeCommits(dir, []Commit{
+		{Repo: "a", Hash: "1", Date: "2026-09-01T12:00:00Z", Message: "feat: app", Files: []FileStat{{Name: "main.go", Add: 1}}},
+		{Repo: "s", Hash: "2", Date: "2026-09-02T12:00:00Z", Message: "feat: secret", Files: []FileStat{{Name: "main.rs", Add: 1}}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	names := func(ai bool) string {
+		u, err := techUsagesNow(dir, "en", ai)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var n []string
+		for _, l := range u.Languages {
+			n = append(n, l.Name)
+		}
+		return strings.Join(n, " ")
+	}
+	if all, ai := names(false), names(true); all != "Go Rust" || ai != "Go" {
+		t.Errorf("stack: %q here, %q for AI tools", all, ai)
 	}
 }

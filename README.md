@@ -2,7 +2,7 @@
 
 **Your development work, written up as a portfolio — from your own git history, without sharing a line of code.**
 
-[Latest release](https://github.com/Alineteam-Inc/GitFolio/releases/latest) · [한국어](#한국어)
+[Latest release](https://github.com/Alineteam-Inc/GitFolio-CLI/releases/latest) · [한국어](#한국어)
 
 ## What GitFolio is
 
@@ -18,7 +18,7 @@ languages and frameworks, what kind of work it was, and how much of it you did w
   facts, so the AI can interview you briefly and write your portfolio, resume or tech stack career —
   only from GitFolio's numbers and your answers.
 - **You decide what leaves your computer.** GitFolio starts in local mode: nothing goes out on its own,
-  and it calls the aline.team API, with daily totals, only when you look up your type, stack or
+  and it calls the aline.team API, with daily totals, only when you look up your type or
   portfolio. Syncing with aline.team after every push is a choice you make in `gitfolio init`. What AI
   tools see of each repository is yours to set as well (`gitfolio config ai`).
 
@@ -33,12 +33,12 @@ also needs Chrome, Edge or Chromium (optional; Markdown needs nothing).
 brew install Alineteam-Inc/tap/gitfolio
 ```
 
-or `curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh`
+or `curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.sh | sh`
 
 ### Linux
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.sh | sh
 ```
 
 or, with Homebrew, `brew install Alineteam-Inc/tap/gitfolio`
@@ -46,7 +46,7 @@ or, with Homebrew, `brew install Alineteam-Inc/tap/gitfolio`
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.ps1 | iex
 ```
 
 ### Claude Code
@@ -54,7 +54,7 @@ irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | 
 Install the CLI above first, then in Claude Code:
 
 ```sh
-/plugin marketplace add Alineteam-Inc/GitFolio
+/plugin marketplace add Alineteam-Inc/GitFolio-CLI
 /plugin install gitfolio@alineteam
 ```
 
@@ -65,7 +65,7 @@ Then ask: *"Set up GitFolio for this repository."*
 Install the CLI above first, then:
 
 ```sh
-codex plugin marketplace add Alineteam-Inc/GitFolio
+codex plugin marketplace add Alineteam-Inc/GitFolio-CLI
 codex plugin add gitfolio@alineteam
 ```
 
@@ -91,7 +91,9 @@ gitfolio init
 sent to your email, and lets you choose the repositories. It then asks what matters before anything
 happens: whether to install git hooks in the chosen repositories, what AI coding tools may see of them,
 and whether to sync with aline.team automatically (no means local mode). Your profile on the web is at
-[aline.team/profile](https://aline.team/profile).
+[aline.team/profile](https://aline.team/profile). GitFolio needs git; when it is missing, init offers to
+install it with your system's installer (the Command Line Tools on macOS, winget on Windows, the
+package manager on Linux).
 
 With an AI tool, the plugin's `setup` skill does the same in conversation: it shows you the policy,
 asks for your email and the code, and asks the same questions.
@@ -120,7 +122,7 @@ Or ask your AI tool, for example:
   commits, changed files per language, files you created and later changes to them (by anyone; other
   people's commits are only counted here, never sent), substantive commits, files that show a tool
   (`Dockerfile`, `*.tf`, ...) and the languages used. No hashes, messages, paths or branches. GitFolio
-  calls the aline.team API with them when you look up your type, stack or portfolio (or run
+  calls the aline.team API with them when you look up your type or portfolio (or run
   `gitfolio sync`). While aline.team does not take them yet, the commit records go instead, as before
   local mode (`--dry-run` may still show the statistics).
 - **Automatic sync, if you turn it on:** also, for each of your commits, the repository (git service and
@@ -146,7 +148,7 @@ Or ask your AI tool, for example:
   too.
 - **Check it yourself:** `gitfolio sync --dry-run` shows what would be sent, `gitfolio history` shows
   every git command GitFolio ran (recorded by git itself), and
-  `gh attestation verify <archive> -R Alineteam-Inc/GitFolio` proves a release was built from this source.
+  `gh attestation verify <archive> -R Alineteam-Inc/GitFolio-CLI` proves a release was built from this source.
 - HTTPS only, to Alineteam Inc. (United States). [Terms](https://aline.team/terms) ·
   [Privacy Policy](https://aline.team/privacy)
 
@@ -160,12 +162,14 @@ gitfolio list                    # registered repositories, hooks and dependency
 gitfolio status [name]           # per repository: commits collected and sent, file changes, lines, AI use, languages, dependencies
 gitfolio stats [--refresh]       # your developer type and five scores from aline.team (saved here after the first time;
                                  # in local mode it calls the aline.team API each time)
-gitfolio stack                   # how long you used each language, framework and library, from aline.team
+gitfolio stack                   # how long you used each language, framework and library (worked out here)
 gitfolio portfolio [file.md|file.pdf]
                                  # your portfolio from your git history: developer type, tech stack, repositories
                                  # (Markdown to edit or a PDF printed with Chrome, Edge or Chromium;
                                  # no file named: it asks which; --from file.md prints your edited one)
 gitfolio mcp                     # serve GitFolio to AI coding tools (Claude Code, Codex) over stdio
+gitfolio <command> --json        # for programs: one JSON document on stdout (status, sync, stats, stack, login,
+                                 # email, add, deps, config, schedule, uninstall, version …; `gitfolio help`)
 gitfolio sync [--dry-run]        # send what aline.team does not have yet (--dry-run: just show it)
 gitfolio config autosync on|off  # on: sync with aline.team after every push; off (default): local mode
 gitfolio config ai               # what AI coding tools see of each repository (name, messages, branches)
@@ -176,6 +180,8 @@ gitfolio schedule 09:00          # optional daily sync with automatic sync (off:
 gitfolio deps [on|off|scan]      # dependency detection: per-file approval, read on request
 gitfolio history                 # git commands GitFolio ran
 gitfolio update                  # install the newest release now
+gitfolio uninstall               # before removing GitFolio: unregister all, put back earlier hooks, log out
+                                 # (--purge-local: also delete the data here; nothing on aline.team is deleted)
 gitfolio help                    # everything else
 ```
 
@@ -211,7 +217,7 @@ Releases up to v0.4.1 were published under MIT.
 - **AI 코딩 도구와 함께**(Claude Code, Codex 등 MCP를 쓰는 도구) 이 사실을 AI에게 넘겨, AI가 짧게 묻고 포트폴리오·이력서·
   기술 스택 커리어를 쓰게 합니다. GitFolio의 숫자와 내 답만으로 씁니다.
 - **무엇이 컴퓨터 밖으로 나갈지는 내가 정합니다.** GitFolio는 로컬 모드로 시작해, 평소에는 아무것도 보내지 않고
-  유형·스택·포트폴리오를 볼 때만 일 단위 총계로 aline.team API를 호출합니다. push할 때마다 aline.team과 동기화할지는
+  유형·포트폴리오를 볼 때만 일 단위 총계로 aline.team API를 호출합니다. push할 때마다 aline.team과 동기화할지는
   `gitfolio init`에서 고릅니다. AI 도구에 저장소를 어디까지 보일지도 내가 정합니다(`gitfolio config ai`).
 
 ### 설치
@@ -225,12 +231,12 @@ Releases up to v0.4.1 were published under MIT.
 brew install Alineteam-Inc/tap/gitfolio
 ```
 
-또는 `curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh`
+또는 `curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.sh | sh`
 
 **Linux**
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.sh | sh
 ```
 
 또는 Homebrew가 있으면 `brew install Alineteam-Inc/tap/gitfolio`
@@ -238,13 +244,13 @@ curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install
 **Windows** (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.ps1 | iex
 ```
 
 **Claude Code** — 위의 CLI를 먼저 설치한 뒤 Claude Code에서:
 
 ```sh
-/plugin marketplace add Alineteam-Inc/GitFolio
+/plugin marketplace add Alineteam-Inc/GitFolio-CLI
 /plugin install gitfolio@alineteam
 ```
 
@@ -253,7 +259,7 @@ irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | 
 **Codex** — 위의 CLI를 먼저 설치한 뒤:
 
 ```sh
-codex plugin marketplace add Alineteam-Inc/GitFolio
+codex plugin marketplace add Alineteam-Inc/GitFolio-CLI
 codex plugin add gitfolio@alineteam
 ```
 
@@ -274,7 +280,8 @@ gitfolio init
 `gitfolio init`은 데이터 정책을 보여 주고 동의를 받은 뒤, 이메일로 받은 코드로 가입·로그인하고 저장소를 고르게 합니다.
 그다음 실제로 무언가 하기 전에 중요한 것을 묻습니다. 고른 저장소에 git 훅을 설치할지, AI 코딩 도구에 저장소를
 어디까지 보일지, aline.team과 자동으로 동기화할지(아니요 = 로컬 모드)입니다. 웹 프로필은
-[aline.team/profile](https://aline.team/profile)에서 봅니다.
+[aline.team/profile](https://aline.team/profile)에서 봅니다. GitFolio는 git이 필요하며, git이 없으면 init이 시스템 설치
+도구(macOS는 Command Line Tools, Windows는 winget, Linux는 패키지 관리자)로 설치할지 묻습니다.
 
 AI 도구에서는 플러그인의 `setup` 스킬이 대화로 같은 과정을 진행합니다. 정책을 보여 주고, 이메일과 코드를 묻고,
 같은 질문을 합니다.
@@ -300,7 +307,7 @@ gitfolio status                  # 저장소별로 모은 내용
 - **로그인한 뒤, 내가 고른 저장소에서, 내가 push한 내 커밋만** 다룹니다.
 - **로컬 모드(기본):** 저장소별 일 단위 통계만 씁니다. 날짜별 내 커밋 수, 언어별 변경 파일 수, 내가 만든 파일과 그 이후
   변경 수(누가 고쳤든. 다른 사람의 커밋은 여기서 세기만 하고 보내지 않음), 실질 커밋 수, 도구를 알 수 있는 파일
-  (`Dockerfile`, `*.tf` 등), 사용한 언어입니다. 해시·메시지·경로·브랜치는 없습니다. 유형·스택·포트폴리오를 볼 때(또는
+  (`Dockerfile`, `*.tf` 등), 사용한 언어입니다. 해시·메시지·경로·브랜치는 없습니다. 유형·포트폴리오를 볼 때(또는
   `gitfolio sync`를 실행할 때) 이것으로 aline.team API를 호출합니다. aline.team이 아직 이 통계를 받지 않으면 로컬 모드
   이전처럼 커밋 기록을 대신 보냅니다(`--dry-run`에는 통계로 보일 수 있음).
 - **자동 동기화를 켜면:** 커밋마다 저장소(git 서비스와 `소유자/저장소`), 커밋 해시·브랜치·시각, 커밋 메시지(이 컴퓨터에서
@@ -318,7 +325,7 @@ gitfolio status                  # 저장소별로 모은 내용
   `gitfolio deps auto on`). push 때는 읽지 않습니다. 내 커밋이 바꾼 모듈의 의존성 이름만 보내고(버전·파일 경로 제외),
   aline.team이 그 프레임워크·라이브러리를 기술 스택에 넣습니다. `gitfolio deps off`로 끄면 aline.team에서도 지웁니다.
 - **직접 확인:** `gitfolio sync --dry-run`으로 보낼 내용을, `gitfolio history`로 실행한 git 명령(git이 직접 기록)을 봅니다.
-  `gh attestation verify <파일> -R Alineteam-Inc/GitFolio`로 릴리스가 이 소스로 빌드됐음을 확인합니다.
+  `gh attestation verify <파일> -R Alineteam-Inc/GitFolio-CLI`로 릴리스가 이 소스로 빌드됐음을 확인합니다.
 - HTTPS로만 Alineteam Inc.(미국)에 보냅니다. [이용약관](https://aline.team/terms) ·
   [개인정보처리방침](https://aline.team/privacy)
 
@@ -332,12 +339,14 @@ gitfolio list                    # 등록 저장소, 훅, 의존성 파일
 gitfolio status [이름]           # 저장소별 모은 커밋·보낸 수, 파일 변경, 줄 수, AI 사용, 언어, 의존성
 gitfolio stats [--refresh]       # aline.team의 개발자 유형과 능력치 다섯 가지 (처음 받은 뒤 이 컴퓨터에 저장.
                                  # 로컬 모드에서는 매번 aline.team API를 호출)
-gitfolio stack                   # aline.team의 언어·프레임워크·라이브러리별 사용 기간
+gitfolio stack                   # 언어·프레임워크·라이브러리별 사용 기간 (이 컴퓨터에서 계산)
 gitfolio portfolio [파일.md|파일.pdf]
                                  # git 이력으로 만든 포트폴리오: 개발자 유형, 기술 스택, 저장소
                                  # (고쳐 쓸 Markdown 또는 Chrome·Edge·Chromium으로 인쇄한 PDF.
                                  # 파일 이름이 없으면 형식을 물음, --from 파일.md는 고친 파일을 PDF로)
 gitfolio mcp                     # AI 코딩 도구(Claude Code, Codex)에 GitFolio를 MCP 서버로 제공
+gitfolio <명령> --json           # 프로그램용: 표준 출력에 JSON 하나 (status, sync, stats, stack, login, email,
+                                 # add, deps, config, schedule, uninstall, version 등. `gitfolio help` 참고)
 gitfolio sync [--dry-run]        # aline.team에 없는 것만 전송 (--dry-run: 보여 주기만)
 gitfolio config autosync on|off  # on: push할 때마다 aline.team과 동기화, off(기본): 로컬 모드
 gitfolio config ai               # AI 코딩 도구가 저장소별로 볼 수 있는 범위 (이름, 메시지, 브랜치)
@@ -348,6 +357,8 @@ gitfolio schedule 09:00          # 자동 동기화일 때 매일 동기화 (선
 gitfolio deps [on|off|scan]      # 의존성 분석: 파일별 승인, 요청할 때만 읽기
 gitfolio history                 # GitFolio가 실행한 git 명령
 gitfolio update                  # 최신 버전을 바로 설치
+gitfolio uninstall               # GitFolio를 지우기 전에: 등록 해제, 원래 훅 복원, 로그아웃
+                                 # (--purge-local: 이 컴퓨터의 데이터도 삭제. aline.team의 데이터는 그대로)
 gitfolio help                    # 그 밖의 명령
 ```
 

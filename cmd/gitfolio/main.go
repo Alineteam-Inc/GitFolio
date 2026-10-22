@@ -2,49 +2,73 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 	"text/tabwriter"
+	"time"
 )
 
-// version is set at release time via -ldflags "-X main.version=...".
-var version = "dev"
+// version is set at release time via -ldflags "-X main.version=...". A build from source carries the
+// release it leads to, with "-dev" (sourceBuild).
+var version = "0.7.0-dev"
+
+// sourceBuild reports whether this is a build from source: version "dev" or a release number with
+// "-dev". It keeps its own data folder (dataDir), may talk to another server (apiBase), registers its own
+// daily sync (fromSource) and never updates itself.
+func sourceBuild() bool { return version == "dev" || strings.HasSuffix(version, "-dev") }
 
 const usage = `usage: gitfolio <command> [arguments]
 
 commands:
   init [folder...]      first-time setup: data policy, aline.team log in / sign up, then find the repositories
-                        under your code folders and choose which ones to collect
+                        under your code folders and choose which ones to collect (without git, it offers
+                        to install it first)
+  init --policy [--json] | init --scan [--root <folder>]... --json
+                        init's steps for a program, without questions: the data policy, then (logged
+                        in) the repositories and emails found; email, add, deps, config autosync and
+                        schedule set up what the user picks
   login                 log in / sign up to aline.team with an email code (an email without an
                         account is signed up)
-  logout                sign out: revoke and remove this device's token
-  whoami                show the aline.team account this device is signed in to
-  add [path]            register a repository, collect its commits and install git hooks
+  login --email <email> [--code <code> [--signup [--notify]]] [--json]
+                        the same without questions, in two runs: --email sends the code, --code
+                        finishes (--signup: agree to sign up an email without an account,
+                        --notify: also receive aline.team service notifications by email)
+  logout [--json]       sign out: revoke and remove this device's token
+  whoami [--json]       show the aline.team account this device is signed in to
+  add [path] [--json]   register a repository, collect its commits and install git hooks
                         (post-commit, pre-push) so later pushes are collected automatically
-  remove [path] [--purge]
+  remove [path] [--purge] [--json]
                         unregister a repository and restore its previous hooks
                         (--purge: also delete its collected commits, here and on aline.team)
-  scan [path] [--all] [--rebuild]
+  scan [path] [--all] [--rebuild] [--json]
                         collect new commits (--all: every registered repository,
                         --rebuild: drop stored commits and collect again)
-  sync [--dry-run]      collect new commits in every repository and send what aline.team
-                        does not have yet (--dry-run: print it as JSON, send nothing).
+  sync [--dry-run] [--json]
+                        collect new commits in every repository and send what aline.team
+                        does not have yet (--dry-run: print it as JSON, send nothing;
+                        --json: what was sent and what waits, as JSON).
                         Pushes are sent right after git push unless autosync is off;
                         in local mode (autosync off) only the statistics are sent
   list                  show registered repositories
-  status [name|path]    what GitFolio collected per repository: commits, how many aline.team has,
+  status [name|path] [--json]
+                        what GitFolio collected per repository: commits, how many aline.team has,
                         file changes, lines, AI use, languages, dependencies (this computer's data only)
-  stats [--refresh]     your developer type and its five scores from aline.team, saved here after the
-                        first time (--refresh: get it again; aline.team makes it if it has none yet).
-                        In local mode it sends the statistics first and gets the type each time
-  stack                 how long you used each language, framework and library, from aline.team
-                        (local mode: sends the statistics first)
+  status --json         without a name: the account, sync mode, last sync, commits not sent yet and
+                        each repository, as JSON for programs (this computer's data only)
+  stats [--refresh] [--json]
+                        your developer type and its five scores from aline.team, saved here after the
+                        first time (--refresh: get it again; aline.team makes it if it has none yet,
+                        --json: as JSON, for programs). In local mode it sends the statistics first
+                        and gets the type each time
+  stack [--json]        how long you used each language, framework and library, worked out on this
+                        computer from the registered repositories as aline.team does (no login needed;
+                        --json: as JSON, for programs)
   portfolio [file.md|file.pdf] [--from file.md]
                         write your portfolio from your git history: developer type, tech stack and
                         repositories, as Markdown to edit or a PDF printed with Chrome, Edge or
@@ -52,23 +76,24 @@ commands:
   mcp                   serve GitFolio to AI coding tools (Claude Code, Codex, ...) as an MCP server
                         on stdin and stdout: your work, type, stack and portfolio as config ai allows,
                         and setting GitFolio up with your email (nothing is removed through it)
-  export                print collected commits, dependencies and statistics as JSON
-  deps [on|off|review [path]]
+  export [--json]       print collected commits, dependencies and statistics as JSON
+  deps [on|off|review [path] [--allow <file>]...] [--json]
                         dependency detection: show status, turn it on (you choose which
                         package manager files may be read) or off (collected dependencies
-                        are deleted), or change the file choices of a repository
+                        are deleted), or change the file choices of a repository (--allow,
+                        without questions: the files that may be read; the others are declined)
   deps scan [path] [--all]
                         read the approved package manager files again to update the
                         dependencies
   deps auto on|off      scan, sync and the daily sync also read the approved package
                         manager files (off by default; pushes never read them)
-  config                show settings
+  config [--json]       show settings (--json after a change below: the settings)
   config mask add|rm <word>...
                         add or remove blocked words (customer or internal project names);
                         added words are also applied to already stored data
   config autosync on|off
                         on: sync with aline.team right after each git push; off (the default):
-                        local mode, where only stats, stack, portfolio and sync call the aline.team API, and
+                        local mode, where only stats, portfolio and sync call the aline.team API, and
                         the daily sync is removed
   config git-history on|off
                         keep git's own record of the git commands gitfolio runs (on by default;
@@ -78,22 +103,79 @@ commands:
                         what AI coding tools see of each repository through gitfolio mcp: its real
                         name (default), anonymous or another name; commit messages and branch names
                         (off by default); or nothing. Paths and file names are never shown
-  history [--all]       the git commands gitfolio ran, newest last (--all: every run kept)
-  email [add <email>... | verify <email> | rm <email> | primary <email>]
+  history [--all] [--json]
+                        the git commands gitfolio ran, newest last (--all: every run kept)
+  email [add <email>... | verify <email> [--code <code>] | rm <email> | primary <email>] [--json]
                         your work emails: commits by any of them count as yours, and aline.team
                         gets all of them under the primary one (the first, marked ★); verified
-                        ones (✔, email code) merge the repositories linked on aline.team with them
-  schedule [HH:MM | off]
+                        ones (✔, email code) merge the repositories linked on aline.team with them;
+                        without a terminal, verify sends the code and verify --code finishes
+  schedule [HH:MM | off] [--json]
                         optional daily sync at a local time, for pushes the hooks missed
                         (launchd on macOS, systemd or cron on Linux); no argument: show it
-  update                install the newest release now (otherwise GitFolio offers it once a day)
-  version               print version`
+  update [--path <gitfolio>] [--json]
+                        install the newest release now (otherwise GitFolio offers it once a day), the
+                        way it was installed; --path: of the gitfolio there instead of this one
+  uninstall [--purge-local] [--json]
+                        before removing GitFolio: unregister every repository and put back its earlier
+                        hooks, remove the daily sync and log out (--purge-local: also delete the data on
+                        this computer). Nothing on aline.team is deleted
+  git [install] [--json]
+                        whether git is installed (path, version), or install it with the system's
+                        installer (at the terminal after asking, as init does)
+  version [--json]      print version (--json: also the release number, whether it is a build from source
+                        or a copy an app ships and updates, and the language of GitFolio's texts)
+
+--json, where a command takes it, prints one JSON document on stdout for programs, a failure too
+({"error": {"code", "message"}}, exit status 1); messages for people go to stderr, and so does the
+progress of a long run, one JSON line per step: {"progress": {"step", "text", "done", "total"}}.`
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		warn(detectLang(os.Getenv), "failed", err)
+		if jsonOut {
+			_ = printJSON(map[string]any{"error": map[string]string{"code": errorCode(err), "message": err.Error()}})
+		} else {
+			warn(detectLang(os.Getenv), "failed", err)
+		}
 		os.Exit(1)
 	}
+}
+
+// jsonOut is set by --json: stdout then carries one JSON document for programs,
+// a failure too (main), and what people read goes to stderr.
+var jsonOut bool
+
+func jsonMode(args []string) {
+	if slices.Contains(args, "--json") {
+		jsonOut, out = true, errOut
+	}
+}
+
+// withoutJSON is args without --json, for commands that read the rest by position.
+func withoutJSON(args []string) []string {
+	return slices.DeleteFunc(slices.Clone(args), func(a string) bool { return a == "--json" })
+}
+
+// errorCode is what programs reading --json branch on: the message key of a translated error, a name
+// for the aline.team answers a program acts on (serverCodes), failed for anything else.
+func errorCode(err error) string {
+	var f *failErr
+	var ae *apiError
+	if errors.As(err, &f) {
+		return f.key
+	}
+	if errors.As(err, &ae) && serverCodes[ae.Code] != "" {
+		return serverCodes[ae.Code]
+	}
+	return "failed"
+}
+
+var serverCodes = map[string]string{
+	codeTokenInvalid: "loginFirst", // the login is gone: log in again
+	codeNotLoggedIn:  "loginFirst",
+	codeWrongCode:    "codeWrong",   // try the code again
+	codeExpired:      "codeExpired", // ask for a new code
+	codeRateLimited:  "rateLimited", // try again later
 }
 
 func run(args []string) error {
@@ -102,14 +184,44 @@ func run(args []string) error {
 		return nil
 	}
 	if args[0] == "version" {
+		if slices.Contains(args[1:], "--json") {
+			// lang: the screen language GitFolio's texts are in, for an app to show its own in the same
+			// release: the release number, also of a build from source ("0.6.0-dev" is 0.6.0); dev: one
+			release := strings.TrimSuffix(version, "-dev")
+			if version == "dev" {
+				release = ""
+			}
+			res := map[string]any{"version": version, "release": release, "dev": sourceBuild(), "bundled": bundled != "",
+				"lang": detectLang(os.Getenv)}
+			// --latest also asks for the newest release, unless an app ships this copy (it updates it)
+			if slices.Contains(args[1:], "--latest") && bundled == "" {
+				if latest, err := latestRelease(); err == nil { // offline: left out
+					res["latest"] = strings.TrimPrefix(latest, "v")
+					if !sourceBuild() {
+						res["upToDate"] = !newer(latest, version)
+					}
+				}
+			}
+			return printJSON(res)
+		}
 		fmt.Print(header())
 		return nil
 	}
+	// --json first: a failure in the checks below comes as JSON too.
+	jsonMode(args[1:])
 	if args[0] != "hook" && !slices.Contains(commands, args[0]) { // before anything else runs for a typo
 		return unknownCommand(args[0])
 	}
-	if _, err := exec.LookPath("git"); err != nil {
-		return failure("noGit")
+	if args[0] == "git" { // whether git is there, before needing it
+		return cmdGit(args[1:])
+	}
+	if args[0] == "init" && slices.Equal(withoutJSON(args[1:]), []string{"--policy"}) { // a fixed text: before git and the data folder
+		return cmdInit("", args[1:])
+	}
+	if !gitWorks() && args[0] != "uninstall" && args[0] != "update" { // removing goes as far as it can; updating needs no git
+		if args[0] != "init" || jsonOut || !interactive() || !installGit(detectLang(os.Getenv)) {
+			return failure("noGit")
+		}
 	}
 	dir, err := dataDir()
 	if err != nil {
@@ -119,10 +231,10 @@ func run(args []string) error {
 	if args[0] == "mcp" { // stdout is the protocol: no update question or notices before it
 		return cmdMCP(dir, args[1:])
 	}
-	if args[0] != "hook" && args[0] != "update" && checkUpdate(dir) {
+	if !slices.Contains([]string{"hook", "update", "uninstall"}, args[0]) && checkUpdate(dir) {
 		return nil // updated: the user runs the command again with the new binary
 	}
-	if !slices.Contains([]string{"hook", "init", "login", "logout", "email"}, args[0]) {
+	if !slices.Contains([]string{"hook", "init", "login", "logout", "email", "uninstall"}, args[0]) {
 		checkEmails(dir, detectLang(os.Getenv))
 		checkLocalMode(dir, detectLang(os.Getenv))
 	}
@@ -147,15 +259,17 @@ func run(args []string) error {
 	case "init":
 		return cmdInit(dir, args[1:]) // interactive; takes the lock only while writing
 	case "login":
-		return cmdLogin(dir)
+		return cmdLogin(dir, args[1:])
 	case "logout":
-		return cmdLogout(dir)
+		return cmdLogout(dir, args[1:])
 	case "whoami":
-		return cmdWhoami(dir)
+		return cmdWhoami(dir, args[1:])
 	case "history":
 		return cmdHistory(dir, args[1:]) // only reads
 	case "update":
-		return cmdUpdate(dir)
+		return cmdUpdate(dir, args[1:])
+	case "uninstall":
+		return cmdUninstall(dir, args[1:]) // takes the lock itself: --purge-local deletes it with the data
 	case "stats":
 		return cmdStats(dir, args[1:]) // outside the lock: it may wait on aline.team
 	case "stack":
@@ -166,7 +280,7 @@ func run(args []string) error {
 	return withLock(dir, func() error {
 		switch args[0] {
 		case "add":
-			return cmdAdd(dir, pathArg(args[1:]))
+			return cmdAdd(dir, args[1:])
 		case "remove":
 			return cmdRemove(dir, args[1:])
 		case "scan":
@@ -178,7 +292,7 @@ func run(args []string) error {
 		case "status":
 			return cmdStatus(dir, args[1:])
 		case "export":
-			return cmdExport(dir)
+			return cmdExport(dir, args[1:])
 		case "config":
 			return cmdConfig(dir, args[1:])
 		case "deps":
@@ -194,7 +308,7 @@ func run(args []string) error {
 
 // commands are the commands people type; "hook" is run by git hooks only and never suggested.
 var commands = []string{"init", "login", "logout", "whoami", "add", "remove", "scan", "sync", "list", "status",
-	"stats", "stack", "portfolio", "mcp", "export", "config", "deps", "schedule", "email", "history", "update", "version", "help"}
+	"stats", "stack", "portfolio", "mcp", "export", "config", "deps", "schedule", "email", "history", "update", "uninstall", "git", "version", "help"}
 
 // unknownCommand names the commands the user may have meant (similarCommands), or points to help.
 func unknownCommand(s string) error {
@@ -328,16 +442,21 @@ func flagsFirst(args []string) []string {
 	return append(flags, rest...)
 }
 
-func cmdAdd(dir, path string) error {
-	top, err := topLevel(path)
+func cmdAdd(dir string, args []string) error {
+	jsonMode(args)
+	top, err := topLevel(pathArg(withoutJSON(args)))
 	if err != nil {
 		return err
 	}
 	n, err := registerRepo(dir, newRepo(top), true)
-	if err == nil {
-		say(detectLang(os.Getenv), "registered", filepath.Base(top), n)
+	if err != nil {
+		return err
 	}
-	return err
+	if jsonOut {
+		return printJSON(map[string]any{"name": filepath.Base(top), "path": top, "commits": n})
+	}
+	say(detectLang(os.Getenv), "registered", filepath.Base(top), n)
+	return nil
 }
 
 // registerRepo registers repo (a git top-level), collects it and installs hooks, and returns how many
@@ -388,9 +507,11 @@ func registerRepo(dir string, repo Repo, ask bool) (int, error) {
 }
 
 func cmdRemove(dir string, args []string) error {
+	jsonMode(args)
 	fs := flag.NewFlagSet("remove", flag.ContinueOnError)
 	purge := fs.Bool("purge", false, "also delete this repository's collected commits")
-	if err := parseFlags(fs, flagsFirst(args), "gitfolio remove [path] [--purge]"); err != nil {
+	fs.Bool("json", false, "print the result as JSON")
+	if err := parseFlags(fs, flagsFirst(args), "gitfolio remove [path] [--purge] [--json]"); err != nil {
 		return err
 	}
 	p := pathArg(fs.Args())
@@ -409,15 +530,20 @@ func cmdRemove(dir string, args []string) error {
 		return failure("notRegistered", tildePath(top))
 	}
 	r := repos[i]
+	hooksErr := ""
 	if err := uninstallHooks(top); err != nil {
 		warn(detectLang(os.Getenv), "hooksNotRestored", err)
+		hooksErr = err.Error()
 	}
+	deleted := 0
 	if *purge {
 		commits, err := readCommits(dir)
 		if err != nil {
 			return err
 		}
-		if err := writeCommits(dir, slices.DeleteFunc(commits, func(c Commit) bool { return c.Repo == r.ID })); err != nil {
+		kept := slices.DeleteFunc(slices.Clone(commits), func(c Commit) bool { return c.Repo == r.ID })
+		deleted = len(commits) - len(kept)
+		if err := writeCommits(dir, kept); err != nil {
 			return err
 		}
 		if err := queueDeletion(dir, deletion{r.Provider, r.Namespace}); err != nil {
@@ -439,6 +565,10 @@ func cmdRemove(dir string, args []string) error {
 			}
 		}
 	}
+	if jsonOut { // what aline.team holds goes with the next sync (serverDeletionQueued)
+		return printJSON(map[string]any{"name": r.Name, "path": r.Path, "hooksRestored": hooksErr == "", "hooksError": hooksErr,
+			"commitsDeleted": deleted, "serverDeletionQueued": *purge})
+	}
 	say(detectLang(os.Getenv), "removed", r.Name)
 	if *purge {
 		say(detectLang(os.Getenv), "purgeQueued")
@@ -446,11 +576,105 @@ func cmdRemove(dir string, args []string) error {
 	return nil
 }
 
+// cmdUninstall undoes what GitFolio set up on this computer, before it is removed (an app's uninstaller
+// runs it): every repository is unregistered and its hooks give way to the ones before, the daily sync
+// goes, and this device's login is revoked when aline.team answers in time. --purge-local also deletes
+// GitFolio's data here. Nothing on aline.team is deleted, nothing is asked, and running it again does
+// no harm.
+func cmdUninstall(dir string, args []string) error {
+	jsonMode(args)
+	purge := false
+	for _, a := range args {
+		switch a {
+		case "--purge-local":
+			purge = true
+		case "--json":
+		default:
+			return failure("usage", "gitfolio uninstall [--purge-local] [--json]")
+		}
+	}
+	lang := detectLang(os.Getenv)
+	type repo struct {
+		Name  string `json:"name"`
+		Path  string `json:"path"`
+		Error string `json:"error,omitempty"` // its hooks could not be put back
+	}
+	res := struct {
+		Repositories []repo `json:"repositories"`
+		Revoked      bool   `json:"revoked"` // aline.team revoked this device's login
+		DataDeleted  bool   `json:"dataDeleted"`
+	}{Repositories: []repo{}}
+	err := withLock(dir, func() error {
+		repos, err := loadRepos(dir)
+		if err != nil {
+			return err
+		}
+		for _, r := range repos {
+			e := ""
+			if _, err := os.Stat(r.Path); err == nil { // a folder that is gone took its hooks with it
+				if err := uninstallHooks(r.Path); err != nil {
+					warn(lang, "hooksNotRestored", fmt.Errorf("%s: %w", r.Name, err))
+					e = err.Error()
+				}
+			}
+			res.Repositories = append(res.Repositories, repo{r.Name, r.Path, e})
+		}
+		if err := saveRepos(dir, []Repo{}); err != nil {
+			return err
+		}
+		if cfg, err := loadConfig(dir); err != nil {
+			return err
+		} else if cfg.Schedule != "" {
+			if err := unschedule(dir); err != nil {
+				return err
+			}
+			cfg.Schedule = ""
+			if err := saveConfig(dir, cfg); err != nil {
+				return err
+			}
+		}
+		apiTimeout = 5 * time.Second // an uninstaller does not wait long on the network
+		c, err := newClient(dir)
+		if err != nil {
+			return err
+		}
+		if c.loggedIn() { // send, not call: an expired login is not renewed only to be revoked
+			if err := c.send("POST", "/cli/logout", nil, nil, true); err != nil {
+				warn(lang, "logoutServerFailed", err)
+			} else {
+				res.Revoked = true
+			}
+		}
+		return saveCredentials(dir, Credentials{})
+	})
+	if err != nil {
+		return err
+	}
+	if purge {
+		if err := os.RemoveAll(dir); err != nil {
+			return err
+		}
+		res.DataDeleted = true
+	}
+	if jsonOut {
+		return printJSON(res)
+	}
+	say(lang, "uninstalled", len(res.Repositories))
+	if purge {
+		say(lang, "uninstalledData", tildePath(dir))
+	} else {
+		notice(fmt.Sprintf(tr(lang, "uninstalledKept"), tildePath(dir)))
+	}
+	return nil
+}
+
 func cmdScan(dir string, args []string) error {
+	jsonMode(args)
 	fs := flag.NewFlagSet("scan", flag.ContinueOnError)
 	all := fs.Bool("all", false, "scan every registered repository")
 	rebuild := fs.Bool("rebuild", false, "drop stored commits and collect again")
-	if err := parseFlags(fs, flagsFirst(args), "gitfolio scan [path] [--all] [--rebuild]"); err != nil {
+	fs.Bool("json", false, "print the result as JSON")
+	if err := parseFlags(fs, flagsFirst(args), "gitfolio scan [path] [--all] [--rebuild] [--json]"); err != nil {
 		return err
 	}
 	repos, err := loadRepos(dir)
@@ -469,37 +693,56 @@ func cmdScan(dir string, args []string) error {
 	}
 	lang := detectLang(os.Getenv)
 	var failed, matched bool
+	type result struct {
+		Name    string `json:"name"`
+		Path    string `json:"path"`
+		Commits int    `json:"commits"`          // collected now
+		Pending int    `json:"pendingManifests"` // package manager files not decided on yet (deps on)
+		Error   string `json:"error,omitempty"`
+	}
+	results := []result{}
 	for i := range repos {
 		r := &repos[i]
 		if !*all && r.Path != top {
 			continue
+		}
+		if *all {
+			progress(lang, "progressScan", i, len(repos))
 		}
 		matched = true
 		n, err := scanRepo(dir, r, *rebuild)
 		if err != nil {
 			warn(lang, "repoFailed", r.Name, err)
 			failed = true
+			results = append(results, result{Name: r.Name, Path: r.Path, Error: err.Error()})
 			continue
 		}
+		results = append(results, result{Name: r.Name, Path: r.Path, Commits: n})
 		msg := fmt.Sprintf(tr(lang, "scanned"), r.Name, n)
 		if cfg.Deps && cfg.DepsAuto {
 			if _, _, err := refreshDeps(dir, r); err != nil {
 				warn(lang, "repoFailed", r.Name, err)
 				failed = true
+				results[len(results)-1].Error = err.Error()
 			}
 		}
 		if cfg.Deps {
 			if n := pendingManifests(*r); n > 0 {
 				msg += fmt.Sprintf(tr(lang, "depsPending"), n, r.Path)
+				results[len(results)-1].Pending = n
 			}
 		}
 		show(out, msg)
 	}
+	progressDone()
 	if !*all && !matched {
 		return failure("notRegisteredAdd", tildePath(top))
 	}
 	if err := saveRepos(dir, repos); err != nil {
 		return err
+	}
+	if jsonOut { // a repository that failed says so in its error; the others were collected
+		return printJSON(map[string]any{"repositories": results})
 	}
 	if failed {
 		return failure("scanFailed")
@@ -609,7 +852,10 @@ func buildExport(dir string) (exportData, error) {
 	return out, nil
 }
 
-func cmdExport(dir string) error {
+func cmdExport(dir string, args []string) error {
+	if len(withoutJSON(args)) > 0 { // JSON either way; --json makes a failure JSON too (run)
+		return failure("usage", "gitfolio export [--json]")
+	}
 	out, err := buildExport(dir)
 	if err != nil {
 		return err
@@ -625,7 +871,21 @@ func printJSON(v any) error {
 	return enc.Encode(v)
 }
 
+// cmdConfig shows the settings as JSON, or changes one; with --json a change is followed by the settings.
 func cmdConfig(dir string, args []string) error {
+	jsonMode(args)
+	args = withoutJSON(args)
+	if err := changeConfig(dir, args); err != nil || !jsonOut || len(args) == 0 {
+		return err
+	}
+	cfg, err := loadConfig(dir)
+	if err != nil {
+		return err
+	}
+	return printJSON(cfg)
+}
+
+func changeConfig(dir string, args []string) error {
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err
@@ -663,7 +923,7 @@ func cmdConfig(dir string, args []string) error {
 		return nil
 	}
 	// Development only: not in the help, and release builds refuse it (apiBase ignores it there too).
-	if args[0] == "api-url" && version == "dev" { // aline.team server, e.g. the development server; "default" = production
+	if args[0] == "api-url" && sourceBuild() { // aline.team server, e.g. the development server; "default" = production
 		cfg.APIURL = ""
 		if len(args) > 1 && args[1] != "default" {
 			if err := checkAPIURL(args[1]); err != nil {

@@ -122,3 +122,20 @@ func TestScheduleRefusedInLocalMode(t *testing.T) {
 		t.Errorf("schedule saved: %q", cfg.Schedule)
 	}
 }
+
+// A build from source registers its own daily sync: the OS schedulers are per user, not per home
+// folder, so with the release's names a test run could replace the job of the installed release.
+func TestScheduleNamesFromSource(t *testing.T) {
+	if !sourceBuild() || launchdLabel != "team.aline.gitfolio.dev" || systemdUnit != "gitfolio-sync-dev" ||
+		cronMarker != "# gitfolio-schedule-dev" || winTaskName != `GitFolio\SyncDev` {
+		t.Errorf("source build: %s %s %q %s", launchdLabel, systemdUnit, cronMarker, winTaskName)
+	}
+	if cronWith("5 9 * * * 'brew' sync # gitfolio-schedule\n", "") == "" {
+		t.Error("a source build removed the release's cron line")
+	}
+	defer func(v string) { version = v }(version)
+	version = "0.6.0"
+	if fromSource(".dev") != "" {
+		t.Error("a release takes the source build's names")
+	}
+}

@@ -80,7 +80,7 @@ func dataDir() (string, error) {
 		return "", err
 	}
 	name := "gitfolio"
-	if version == "dev" { // a build from source keeps its own data, apart from the installed release
+	if sourceBuild() { // a build from source keeps its own data, apart from the installed release
 		name = "gitfolio-dev"
 	}
 	dir := filepath.Join(base, name)

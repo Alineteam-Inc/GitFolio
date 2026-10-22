@@ -30,9 +30,9 @@ func TestNewPath(t *testing.T) {
 
 func TestParseRemote(t *testing.T) {
 	for in, want := range map[string]string{
-		"https://github.com/Alineteam-Inc/GitFolio.git":        "GITHUB Alineteam-Inc/GitFolio",
+		"https://github.com/Alineteam-Inc/GitFolio-CLI.git":    "GITHUB Alineteam-Inc/GitFolio-CLI",
 		"https://x-access-token:ghp_secret@github.com/o/r.git": "GITHUB o/r",
-		"git@github.com:Alineteam-Inc/GitFolio.git":            "GITHUB Alineteam-Inc/GitFolio",
+		"git@github.com:Alineteam-Inc/GitFolio-CLI.git":        "GITHUB Alineteam-Inc/GitFolio-CLI",
 		"ssh://git@GitHub.com:22/o/r.git":                      "GITHUB o/r",
 		"git@gitlab.com:group/sub/project.git":                 "GITLAB group/sub/project",
 		"https://gitlab.company.internal/group/project/":       "OTHER group/project",
@@ -82,7 +82,7 @@ func webURL(provider, namespace string) string {
 // service's web UI shows when sharing the repository.
 func TestRemoteGivesWebURL(t *testing.T) {
 	for remote, want := range map[string]string{
-		"git@github.com:Alineteam-Inc/GitFolio.git":                     "https://github.com/Alineteam-Inc/GitFolio",
+		"git@github.com:Alineteam-Inc/GitFolio-CLI.git":                 "https://github.com/Alineteam-Inc/GitFolio-CLI",
 		"https://x-access-token:ghp_secret@github.com/o/r.git":          "https://github.com/o/r",
 		"git@github.com:me/me.github.io.git":                            "https://github.com/me/me.github.io",
 		"https://github.com/me/me.github.io":                            "https://github.com/me/me.github.io",

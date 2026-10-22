@@ -13,7 +13,7 @@ ask, and never guess an email, a code or a repository.
 ## Steps
 
 1. **Check.** Call the GitFolio `status` tool. Without GitFolio's tools, the GitFolio CLI is missing or old:
-   point the user to https://github.com/Alineteam-Inc/GitFolio#install and stop.
+   point the user to https://github.com/Alineteam-Inc/GitFolio-CLI#install and stop.
 2. **Policy and actions.** Call `policy` and show the user, in their language, before doing anything:
    - what is collected and where it goes (`dataPolicy`), with the links to the terms of service and the
      privacy policy;
@@ -39,7 +39,7 @@ ask, and never guess an email, a code or a repository.
      clearly choose otherwise.
    - Apply with `set_ai_exposure`. File paths, folders and file names are never shown, whatever is set.
 6. **Sync with aline.team?** GitFolio is in local mode by default: nothing goes out on its own, and it
-   calls the aline.team API, with daily totals, only when the user looks up their type, stack or portfolio. Ask whether they want automatic sync
+   calls the aline.team API, with daily totals, only when the user looks up their type or portfolio. Ask whether they want automatic sync
    instead (the past commits right away, then after each git push, to keep their aline.team profile
    current). Call `set_sync_mode` only if they choose automatic.
 7. **Summary.** List what was set and how to change it later: `gitfolio config ai`, `gitfolio config

@@ -2,7 +2,7 @@
 
 Let your AI coding tool write your portfolio, resume or tech stack career from your own git history:
 GitFolio gives it the facts of your work, you give it what the work was about, and it writes only from
-those two. Through the [GitFolio CLI](https://github.com/Alineteam-Inc/GitFolio).
+those two. Through the [GitFolio CLI](https://github.com/Alineteam-Inc/GitFolio-CLI).
 
 ## What it adds
 
@@ -23,7 +23,7 @@ portfolio, resume or career description, fitted to a job posting if you give one
 ## Needs
 
 The GitFolio CLI 0.7.0 or later on your `PATH`. The plugin does not install it: see
-[Install](https://github.com/Alineteam-Inc/GitFolio#install). The `setup` skill logs you in with your
+[Install](https://github.com/Alineteam-Inc/GitFolio-CLI#install). The `setup` skill logs you in with your
 email if you are not yet.
 
 ## Install
@@ -31,14 +31,14 @@ email if you are not yet.
 Claude Code:
 
 ```sh
-/plugin marketplace add Alineteam-Inc/GitFolio
+/plugin marketplace add Alineteam-Inc/GitFolio-CLI
 /plugin install gitfolio@alineteam
 ```
 
 Codex:
 
 ```sh
-codex plugin marketplace add Alineteam-Inc/GitFolio
+codex plugin marketplace add Alineteam-Inc/GitFolio-CLI
 codex plugin add gitfolio@alineteam
 ```
 
@@ -53,9 +53,9 @@ Any other tool that runs MCP servers: add the command `gitfolio mcp`.
   shown: kinds of work are worked out on your computer and only their shares leave it.
 - What a tool returns becomes part of the conversation, so your AI tool's provider receives it like
   anything else you type.
-- `devtype`, `stack` and `portfolio` ask aline.team, as `gitfolio stats` and `gitfolio stack` do; in local
-  mode they first run the sync those commands run. Logging in and adding a repository work as
+- `devtype` and `portfolio` ask aline.team for the developer type, as `gitfolio stats` does; in local
+  mode they first run the sync it runs. `stack` is worked out on this computer, as `gitfolio stack` is. Logging in and adding a repository work as
   `gitfolio login` and `gitfolio add` do. What the CLI sends to aline.team is listed in its
-  [README](https://github.com/Alineteam-Inc/GitFolio#nothing-is-collected-without-your-permission).
+  [README](https://github.com/Alineteam-Inc/GitFolio-CLI#nothing-is-collected-without-your-permission).
 
 Apache-2.0, like GitFolio. GitFolio and aline.team are Alineteam Inc.'s names.

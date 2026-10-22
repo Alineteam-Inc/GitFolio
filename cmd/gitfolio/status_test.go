@@ -1,6 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"io"
+	"net/http/httptest"
+	"os"
+	"os/exec"
 	"testing"
 	"time"
 )
@@ -71,5 +76,73 @@ func TestStatusOf(t *testing.T) {
 		if got := languageOf(file); got != want {
 			t.Errorf("languageOf(%q) = %q, want %q", file, got, want)
 		}
+	}
+}
+
+// status --json tells a program the account, the sync mode and the last sync, what is not sent yet and
+// each repository, from this computer only; sync --json what one sync sent and what waits.
+func TestStatusSyncJSON(t *testing.T) {
+	t.Setenv("GITFOLIO_LANG", "en")
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	f := &fakeAline{token: testToken}
+	ts := httptest.NewServer(f.handler())
+	defer ts.Close()
+	t.Setenv("GITFOLIO_API_URL", ts.URL)
+	var buf bytes.Buffer
+	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
+	out, errOut = &buf, &buf
+	repo := t.TempDir()
+	for _, args := range [][]string{{"init", "-q", "-b", "main"}, {"remote", "add", "origin", "https://github.com/me/app.git"},
+		{"-c", "user.email=dev@example.com", "-c", "user.name=x", "commit", "-q", "--allow-empty", "-m", "feat: start"},
+		{"update-ref", "refs/remotes/origin/main", "HEAD"}} {
+		if b, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, b)
+		}
+	}
+	dir := t.TempDir()
+	for _, err := range []error{saveConfig(dir, Config{Emails: []string{"dev@example.com"}}), saveRepos(dir, []Repo{newRepo(repo)})} {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	status := func() map[string]any {
+		t.Helper()
+		v, err := jsonStdout(t, func() error { return cmdStatus(dir, []string{"--json"}) })
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
+	if v := status(); v["account"] != nil || v["setUp"] != false || v["syncMode"] != "automatic" {
+		t.Errorf("logged out: %v", v)
+	}
+	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}); err != nil {
+		t.Fatal(err)
+	}
+	v, err := jsonStdout(t, func() error { return cmdSync(dir, []string{"--json"}) })
+	if failed, _ := v["failed"].([]any); err != nil || v["commits"] != 1.0 || len(failed) != 0 {
+		t.Fatalf("sync --json: %v %v", v, err)
+	}
+	v = status()
+	list, _ := v["repositories"].([]any)
+	if len(list) != 1 || v["account"] != "dev@example.com" || v["setUp"] != true || v["unsent"] != 0.0 || v["lastSync"] == "" {
+		t.Fatalf("status --json: %v", v)
+	}
+	if r := list[0].(map[string]any); r["namespace"] != "me/app" || r["commits"] != 1.0 || r["sent"] != 1.0 || r["hooks"] != "off" {
+		t.Errorf("repository: %v", r)
+	}
+	if cmdStatus(dir, []string{"app", "--json"}) == nil {
+		t.Error("status --json took a repository")
+	}
+	ts.Close() // a new commit pushed while aline.team cannot be reached
+	for _, args := range [][]string{{"-c", "user.email=dev@example.com", "-c", "user.name=x", "commit", "-q", "--allow-empty", "-m", "fix: more"},
+		{"update-ref", "refs/remotes/origin/main", "HEAD"}} {
+		if b, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, b)
+		}
+	}
+	if _, err := jsonStdout(t, func() error { return cmdSync(dir, []string{"--json"}) }); errorCode(err) != "syncLater" {
+		t.Errorf("offline sync: %v", err)
 	}
 }

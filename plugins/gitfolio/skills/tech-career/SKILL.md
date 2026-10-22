@@ -11,8 +11,7 @@ allowed-tools: mcp__plugin_gitfolio_gitfolio__status, mcp__plugin_gitfolio_gitfo
 1. **Check.** Call `status`. Not logged in: use the `setup` skill first.
 2. **Facts.**
    - `stack`: each language, framework and library with its first and last month, months and number of
-     repositories, as aline.team works it out. Leave out anything with `isHidden: true` — the user hid it
-     on their profile.
+     repositories, worked out on this computer as aline.team does.
    - `timeline`: month by month, which languages the user's changes were in — to show when a technology
      was current and how it changed.
    - `work`: per repository, the kinds of work (source, test, build, ci_deploy, database, docs) — to show

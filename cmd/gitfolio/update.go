@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -9,19 +11,28 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 )
 
+// bundled is set by -ldflags "-X main.bundled=yes" in a copy an app ships and updates with itself:
+// such a copy never updates itself or offers to (updatesItself), as that would change the app.
+var bundled string
+
+// updatesItself reports whether this copy looks for, offers and installs newer releases: not a build
+// from source, and not one an app ships.
+func updatesItself() bool { return !sourceBuild() && bundled == "" }
+
 // latestURL redirects to the newest release's tag page (no API rate limit).
-var latestURL = "https://github.com/Alineteam-Inc/GitFolio/releases/latest"
+var latestURL = "https://github.com/Alineteam-Inc/GitFolio-CLI/releases/latest"
 
 const (
 	updateFile  = "update.json"
-	installSh   = "https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh"
-	installPs1  = "https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1"
+	installSh   = "https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.sh"
+	installPs1  = "https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.ps1"
 	updateEvery = 24 * time.Hour
 )
 
@@ -55,7 +66,7 @@ func lookUpLatest(dir string) updateState {
 // runs the command again with the new binary. Builds from source never check, and nothing is asked
 // unless a person is at the terminal (not hooks, scheduled runs or redirected output).
 func checkUpdate(dir string) bool {
-	if version == "dev" || !interactive() || !terminal(os.Stdout) {
+	if !updatesItself() || !interactive() || !terminal(os.Stdout) {
 		return false
 	}
 	st := lookUpLatest(dir)
@@ -68,7 +79,7 @@ func checkUpdate(dir string) bool {
 	if !askYesNo(lang, "updateAsk", true, st.Latest, version) || stdinClosed {
 		return false
 	}
-	if err := installUpdate(st.Latest); err != nil {
+	if err := installUpdate(st.Latest, ""); err != nil {
 		warn(lang, "failed", err)
 		return false
 	}
@@ -86,7 +97,7 @@ var ttyOut = func() (io.WriteCloser, error) { return openTTY() }
 func noticeUpdate(dir string) {
 	p := filepath.Join(dir, updateFile)
 	var st updateState
-	if version == "dev" || loadJSON(p, &st) != nil || !newer(st.Latest, version) || time.Since(st.NoticedAt) < updateEvery {
+	if !updatesItself() || loadJSON(p, &st) != nil || !newer(st.Latest, version) || time.Since(st.NoticedAt) < updateEvery {
 		return
 	}
 	w, err := ttyOut()
@@ -105,45 +116,132 @@ func noticeUpdate(dir string) {
 	_ = saveJSON(p, st)
 }
 
-// installUpdate installs release tag latest the way this copy was installed.
-func installUpdate(latest string) error {
-	cmd, manual := updateCommand(latest)
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+// installUpdate installs release tag latest the way the copy at exe ("" for this one) was installed. What
+// the installer prints goes where messages for people go (stderr with --json).
+func installUpdate(latest, exe string) error {
+	cmd, manual := updateCommand(latest, exe)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, out, os.Stderr
 	if err := cmd.Run(); err != nil {
 		return failure("updateFailed", err, manual)
 	}
 	return nil
 }
 
-// cmdUpdate checks for a newer release now, whenever the daily check last ran, and installs it.
-func cmdUpdate(dir string) error {
+// cmdUpdate checks for a newer release now, whenever the daily check last ran, and installs it the way
+// the copy was installed: this one, or with --path another one (an app updating a copy installed apart
+// from it, which the app's own copy may do). --json prints {updated, from, to, method}; method is brew,
+// script, or one never updated here: source (built from source) or app (an app ships it).
+func cmdUpdate(dir string, args []string) error {
 	lang := detectLang(os.Getenv)
-	if version == "dev" {
-		say(lang, "updateFromSource")
+	exe, have, method := "", version, installMethod("", sourceBuild(), bundled != "")
+	if args = withoutJSON(args); len(args) > 0 {
+		if len(args) != 2 || args[0] != "--path" {
+			return failure("usage", "gitfolio update [--path <gitfolio>] [--json]")
+		}
+		exe = args[1]
+		var err error
+		if have, method, err = copyOf(exe); err != nil {
+			return failure("updatePathBad", exe, err)
+		}
+	}
+	res := map[string]any{"updated": false, "from": have, "method": method}
+	finish := func(key string, a ...any) error {
+		if jsonOut {
+			return printJSON(res)
+		}
+		say(lang, key, a...)
 		return nil
+	}
+	switch method {
+	case "source":
+		return finish("updateFromSource")
+	case "app":
+		return finish("updateFromApp")
 	}
 	latest, err := latestRelease()
 	if err != nil {
 		return failure("updateCheckFailed", err)
 	}
-	now := time.Now() // looked up and asked: no offer again today
-	_ = saveJSON(filepath.Join(dir, updateFile), updateState{CheckedAt: now, Latest: latest, AskedAt: now})
-	if !newer(latest, version) {
-		say(lang, "updateLatest", version)
-		return nil
+	res["to"] = strings.TrimPrefix(latest, "v")
+	if exe == "" {
+		now := time.Now() // looked up and asked: no offer again today
+		_ = saveJSON(filepath.Join(dir, updateFile), updateState{CheckedAt: now, Latest: latest, AskedAt: now})
 	}
-	say(lang, "updating", version, latest)
-	if err := installUpdate(latest); err != nil {
+	if !newer(latest, have) {
+		return finish("updateLatest", have)
+	}
+	say(lang, "updating", have, latest)
+	if err := installUpdate(latest, exe); err != nil {
 		return err
 	}
-	say(lang, "updatedNow", latest)
-	return nil
+	res["updated"] = true
+	return finish("updatedNow", latest)
 }
 
-// latestRelease returns the newest release tag, e.g. "v0.2.0".
+// versionHeader is the version in what `gitfolio version` prints ("… :: GitFolio ::   (0.5.0)").
+var versionHeader = regexp.MustCompile(`:: GitFolio ::\s+\(([^)\s]+)\)`)
+
+// copyOf runs the gitfolio at exe for its version and the way it updates (installMethod). One before
+// 0.6.0 takes no version --json and prints its header for it.
+func copyOf(exe string) (have, method string, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	b, err := exec.CommandContext(ctx, exe, "version", "--json").Output()
+	if err != nil {
+		return "", "", err
+	}
+	var v struct {
+		Version      string
+		Dev, Bundled bool
+	}
+	if json.Unmarshal(b, &v) != nil || v.Version == "" {
+		m := versionHeader.FindSubmatch(b)
+		if m == nil {
+			return "", "", errors.New("no GitFolio version in its output")
+		}
+		v.Version = string(m[1])
+		v.Dev = v.Version == "dev" || strings.HasSuffix(v.Version, "-dev")
+	}
+	return v.Version, installMethod(exe, v.Dev, v.Bundled), nil
+}
+
+// installMethod is how the copy at exe ("" for this one) updates: brew (a Homebrew cask), script
+// (install.sh or install.ps1), or never here: source or app.
+func installMethod(exe string, dev, app bool) string {
+	sep := string(filepath.Separator)
+	switch {
+	case dev:
+		return "source"
+	case app:
+		return "app"
+	case strings.Contains(realExe(exe), sep+"Caskroom"+sep):
+		return "brew"
+	}
+	return "script"
+}
+
+// realExe is the file the gitfolio at exe ("" for this one) is, links followed; "" when unknown.
+func realExe(exe string) string {
+	if exe == "" {
+		exe, _ = os.Executable()
+	}
+	if real, err := filepath.EvalSymlinks(exe); err == nil {
+		return real
+	}
+	return exe
+}
+
+// latestRelease returns the newest release tag, e.g. "v0.2.0": the tag page releases/latest redirects
+// to. Redirects before it are followed: a renamed repository redirects its old address first.
 func latestRelease() (string, error) {
-	c := &http.Client{Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error {
-		return http.ErrUseLastResponse
+	c := &http.Client{Timeout: 3 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if strings.Contains(req.URL.Path, "/releases/tag/") {
+			return http.ErrUseLastResponse // its address names the tag; the page itself is not needed
+		}
+		if len(via) >= 10 {
+			return errors.New("too many redirects")
+		}
+		return nil
 	}}
 	res, err := c.Head(latestURL)
 	if err != nil {
@@ -187,20 +285,16 @@ func newer(a, b string) bool {
 	return false
 }
 
-// updateCommand returns the command that installs release tag the way this binary was installed, and
-// the same thing written out for the user in case it fails.
-func updateCommand(tag string) (*exec.Cmd, string) {
-	exe, err := os.Executable()
-	if err == nil {
-		if real, err := filepath.EvalSymlinks(exe); err == nil {
-			exe = real
-		}
-	}
+// updateCommand returns the command that installs release tag the way the binary at exe ("" for this
+// one) was installed, and the same thing written out for the user in case it fails.
+func updateCommand(tag, exe string) (*exec.Cmd, string) {
+	exe = realExe(exe)
 	sep := string(filepath.Separator)
 	switch {
 	case strings.Contains(exe, sep+"Caskroom"+sep): // Homebrew cask, macOS or Linux
-		s := "brew update && brew upgrade --cask gitfolio"
-		return exec.Command("sh", "-c", s), s
+		// The brew of that Homebrew: an app's PATH has none
+		brew := filepath.Join(exe[:strings.Index(exe, sep+"Caskroom"+sep)], "bin", "brew")
+		return exec.Command("sh", "-c", `"$0" update && "$0" upgrade --cask gitfolio`, brew), "brew update && brew upgrade --cask gitfolio"
 	case runtime.GOOS == "windows":
 		s := "irm " + installPs1 + " | iex"
 		c := exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", s)

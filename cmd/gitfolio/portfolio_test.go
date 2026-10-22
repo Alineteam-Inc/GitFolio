@@ -18,9 +18,8 @@ func TestPortfolioMarkdown(t *testing.T) {
 	d := devTypeCache{Year: 2026, Detail: devType{Title: "SPRINTER", Description: "Ships fast.", HashTags: "#fast #steady",
 		Position: "BACKEND", Agility: n(72), AgilityAI: n(75), Stability: n(60)}}
 	u := techUsages{
-		Languages:  []techUsage{{Name: "Go", StartDate: "2025-03-02T10:00:00", EndDate: "2026-10-05T09:00:00", CareerMonths: n(20), ProjectCount: n(3)}},
-		Frameworks: []techUsage{{Name: "Spring Boot", StartDate: "2024-01-10", EndDate: "2025-12-01", Hidden: true}},
-		Libraries:  []techUsage{{Name: "a|b", StartDate: "2026-01-01"}},
+		Languages: []techUsage{{Name: "Go", StartDate: "2025-03-02T10:00:00", EndDate: "2026-10-05T09:00:00", CareerMonths: n(20), ProjectCount: n(3)}},
+		Libraries: []techUsage{{Name: "a|b", StartDate: "2026-01-01"}},
 	}
 	repos := []Repo{{ID: "t", Name: "tool"}, {ID: "a", Name: "app", Provider: "GITHUB", Namespace: "me/app"}, {ID: "e", Name: "empty"}}
 	commits := []Commit{
@@ -114,8 +113,7 @@ func TestPortfolioPage(t *testing.T) {
 }
 
 func TestPortfolio(t *testing.T) {
-	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "KEEPER", "agilityStat": 50},
-		techUsages: map[string]any{"languages": []map[string]any{{"name": "Go", "startDate": "2025-03-02", "endDate": "2026-10-05"}}}}
+	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "KEEPER", "agilityStat": 50}}
 	ts := httptest.NewServer(f.handler())
 	defer ts.Close()
 	t.Setenv("GITFOLIO_API_URL", ts.URL)
@@ -136,13 +134,13 @@ func TestPortfolio(t *testing.T) {
 	must(saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}))
 	must(saveConfig(dir, Config{})) // automatic sync: no sync runs first
 	must(saveRepos(dir, []Repo{{ID: "a", Name: "app", Provider: "GITHUB", Namespace: "me/app"}}))
-	must(writeCommits(dir, []Commit{{Repo: "a", Hash: "1", Date: "2026-09-01T12:00:00Z", CreationType: creationHuman,
+	must(writeCommits(dir, []Commit{{Repo: "a", Hash: "1", Date: "2026-09-01T12:00:00Z", Message: "feat: start", CreationType: creationHuman,
 		Files: []FileStat{{Name: "main.go", Add: 1}}}}))
 
 	must(cmdPortfolio(dir, nil))
 	md, err := os.ReadFile(filepath.Join(work, "portfolio.md"))
 	must(err)
-	for _, want := range []string{"**KEEPER**", "| Agility | 50 | - |", "| Language | Go | 2025-03 ~ 2026-10 | - | - |", "### app"} {
+	for _, want := range []string{"**KEEPER**", "| Agility | 50 | - |", "| Language | Go | 2026-09 ~ 2026-09 | 0 | 1 |", "### app"} {
 		if !strings.Contains(string(md), want) {
 			t.Errorf("portfolio.md has no %q:\n%s", want, md)
 		}

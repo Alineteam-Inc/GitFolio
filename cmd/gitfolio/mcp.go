@@ -16,8 +16,8 @@ import (
 
 // cmdMCP serves GitFolio to AI coding tools (Claude Code, Codex and others) as an MCP server: JSON-RPC
 // 2.0 messages, one per line, on stdin and stdout. Its tools only read: what is collected on this
-// computer, and the developer type and tech stack from aline.team. Anything said for people goes to
-// stderr, never into the protocol.
+// computer, the tech stack worked out here, and the developer type from aline.team. Anything said for
+// people goes to stderr, never into the protocol.
 func cmdMCP(dir string, args []string) error {
 	if len(args) > 0 {
 		return failure("usage", "gitfolio mcp")
@@ -64,8 +64,7 @@ var mcpTools = []mcpTool{
 		Name:  "stack",
 		Title: "Tech stack periods",
 		Description: "How long the user used each language, framework and library, from the first to the last commit of " +
-			"the repositories using it, as aline.team works it out. Ones marked hidden are hidden on the user's " +
-			"aline.team profile: leave them out of anything shared.",
+			"the repositories using it, worked out on this computer as aline.team does, from the repositories AI tools may see.",
 		run: mcpStack,
 	},
 	{
@@ -231,7 +230,7 @@ var mcpSetupTools = []mcpTool{
 		Name:  "set_sync_mode",
 		Title: "Choose the sync mode",
 		Description: "local (the default): nothing goes out on its own; GitFolio calls the aline.team API, with daily totals, " +
-			"only when its devtype, stack or portfolio is asked for. automatic: the user's commits go to aline.team right after each git push, the past ones " +
+			"only when its devtype or portfolio is asked for. automatic: the user's commits go to aline.team right after each git push, the past ones " +
 			"right away. Ask the user; leave it local unless they choose automatic.",
 		InputSchema: object(map[string]any{"mode": map[string]any{"type": "string", "enum": []string{"automatic", "local"}}}, "mode"),
 		Annotations: mcpWrites,
@@ -296,8 +295,7 @@ func serveMCP(dir string, r io.Reader, w io.Writer) error {
 				"capabilities":    map[string]any{"tools": map[string]any{}},
 				"serverInfo":      map[string]any{"name": "gitfolio", "title": "GitFolio", "version": version},
 				"instructions": "GitFolio collects the metadata of the user's own pushed commits (no source code) and aline.team " +
-					"works out a developer type and tech stack from it. Everything here is the user's own; tech marked hidden " +
-					"is hidden on their profile, so leave it out of anything shared.",
+					"works out a developer type and tech stack from it. Everything here is the user's own.",
 			}, 0, "")
 		case "ping":
 			err = reply(req.ID, map[string]any{}, 0, "")
@@ -450,19 +448,7 @@ func mcpDevType(dir string, args map[string]any) (any, error) {
 }
 
 func mcpStack(dir string, _ map[string]any) (any, error) {
-	c, err := newClient(dir)
-	if err != nil {
-		return nil, err
-	}
-	lang := detectLang(os.Getenv)
-	if _, err := sendIfLocal(dir, lang, c); err != nil {
-		return nil, err
-	}
-	u, err := techUsagesNow(c)
-	if unsupported(err) {
-		return nil, errors.New(strings.TrimSpace(tr(lang, "stackUnavailable")))
-	}
-	return u, err
+	return techUsagesNow(dir, detectLang(os.Getenv), true)
 }
 
 func mcpPortfolio(dir string, _ map[string]any) (any, error) {

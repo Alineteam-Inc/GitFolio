@@ -101,6 +101,8 @@ func verifyEmails(lang string, c *client, emails []string) {
 
 // cmdEmail shows or changes the work emails: add, rm, primary.
 func cmdEmail(dir string, args []string) error {
+	jsonMode(args)
+	args = withoutJSON(args)
 	lang := detectLang(os.Getenv)
 	cfg, err := loadConfig(dir)
 	if err != nil {
@@ -114,12 +116,16 @@ func cmdEmail(dir string, args []string) error {
 		_, _ = c.me() // fresh ✔ marks; offline, the last known ones
 	}
 	if len(args) == 0 {
+		if jsonOut {
+			return emailsJSON(cfg, c.creds)
+		}
 		show(out, emailList(lang, cfg, c.creds))
 		return nil
 	}
-	if len(args) < 2 || !slices.Contains([]string{"add", "verify", "rm", "primary"}, args[0]) {
+	if len(args) < 2 || !slices.Contains([]string{"add", "verify", "rm", "primary"}, args[0]) ||
+		(args[0] == "verify" && len(args) != 2 && (len(args) != 4 || args[2] != "--code")) {
 		return wrongWord("email", args[0], []string{"add", "verify", "rm", "primary"},
-			"gitfolio email [add <email>... | verify <email> | rm <email> | primary <email>]")
+			"gitfolio email [add <email>... | verify <email> [--code <code>] | rm <email> | primary <email>] [--json]")
 	}
 	e := strings.ToLower(strings.TrimSpace(args[1]))
 	var done string
@@ -142,9 +148,6 @@ func cmdEmail(dir string, args []string) error {
 		if noreply(e) {
 			return failure("emailNoreply", e)
 		}
-		if !interactive() {
-			return failure("emailVerifyNeedsTerminal")
-		}
 		if !c.ensureLogin() {
 			return failure("loginFirst")
 		}
@@ -152,14 +155,32 @@ func cmdEmail(dir string, args []string) error {
 		if err := saveConfig(dir, cfg); err != nil {
 			return err
 		}
-		switch err := c.verifyEmail(e, askCode(lang, e, true)); {
-		case errors.Is(err, errSkipped):
+		if len(args) == 2 && !interactive() { // a program, in two runs: the code now, --code finishes
+			s, already, err := c.startEmailCheck(e)
+			if err != nil {
+				return err
+			}
+			if !already {
+				if err := keepCode(dir, "email", e, &s); err != nil {
+					return err
+				}
+				if jsonOut {
+					return printJSON(map[string]any{"email": e, "verified": false, "codeLength": s.length})
+				}
+				say(lang, "emailCodeSent", e, e)
+				return nil
+			}
+		} else if len(args) == 4 {
+			if err := finishEmailCode(dir, c, e, args[3]); err != nil {
+				return err
+			}
+		} else if err := c.verifyEmail(e, askCode(lang, e, true)); errors.Is(err, errSkipped) {
 			done = fmt.Sprintf(tr(lang, "emailSkipped"), e)
-		case err != nil:
+			break
+		} else if err != nil {
 			return err
-		default:
-			done = fmt.Sprintf(tr(lang, "emailVerified"), e)
 		}
+		done = fmt.Sprintf(tr(lang, "emailVerified"), e)
 	case "rm":
 		i := slices.Index(cfg.Emails, e)
 		switch {
@@ -185,8 +206,41 @@ func cmdEmail(dir string, args []string) error {
 	if err := saveConfig(dir, cfg); err != nil {
 		return err
 	}
+	if jsonOut {
+		return emailsJSON(cfg, c.creds)
+	}
 	show(out, done+emailList(lang, cfg, c.creds))
 	return nil
+}
+
+// finishEmailCode tries the code sent to work email e by an earlier run (email verify without --code).
+func finishEmailCode(dir string, c *client, e, code string) error {
+	s, ok, err := keptCode(dir, "email", e)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return failure("codeNotSent", e)
+	}
+	if !validCode(code, s.length) {
+		return failure("codeFormat", s.length)
+	}
+	err = c.finishEmailCheck(s, code)
+	if err == nil || codeEnded(err) { // a wrong code keeps it: aline.team takes a few tries
+		if kerr := keepCode(dir, "email", e, nil); err == nil {
+			err = kerr
+		}
+	}
+	return err
+}
+
+// emailsJSON is the work emails for a program: the primary first, each verified or not.
+func emailsJSON(cfg Config, creds Credentials) error {
+	list := []map[string]any{}
+	for i, e := range cfg.Emails {
+		list = append(list, map[string]any{"email": e, "primary": i == 0, "verified": verified(creds, e), "noreply": noreply(e)})
+	}
+	return printJSON(map[string]any{"emails": list})
 }
 
 // checkEmails asks, once, a user set up before 0.2.0 to verify the work emails: aline.team now takes a

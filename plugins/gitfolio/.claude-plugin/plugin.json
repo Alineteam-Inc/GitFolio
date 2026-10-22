@@ -7,8 +7,8 @@
     "name": "Alineteam Inc.",
     "url": "https://aline.team"
   },
-  "homepage": "https://github.com/Alineteam-Inc/GitFolio",
-  "repository": "https://github.com/Alineteam-Inc/GitFolio",
+  "homepage": "https://github.com/Alineteam-Inc/GitFolio-CLI",
+  "repository": "https://github.com/Alineteam-Inc/GitFolio-CLI",
   "license": "Apache-2.0",
   "keywords": [
     "git",

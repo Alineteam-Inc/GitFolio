@@ -138,15 +138,16 @@ func portfolioOf(dir, lang string, ai bool) (string, error) {
 	if err != nil {
 		warn(lang, "portfolioNoType", err)
 	}
-	u, err := techUsagesNow(c)
-	if err != nil && !unsupported(err) {
+	deps, err := loadDeps(dir)
+	if err != nil {
 		warn(lang, "portfolioNoStack", err)
 	}
+	u := localStack(repos, commits, deps) // of the repositories shown (aiView for AI tools)
 	return portfolioMarkdown(lang, time.Now(), d, u, repos, commits), nil
 }
 
-// portfolioMarkdown lays the portfolio out: who the user is as a developer, the tech stack (without
-// what they hid on aline.team), then the repositories, the latest work first.
+// portfolioMarkdown lays the portfolio out: who the user is as a developer, the tech stack, then the
+// repositories, the latest work first.
 func portfolioMarkdown(lang string, now time.Time, d devTypeCache, u techUsages, repos []Repo, commits []Commit) string {
 	type entry struct {
 		r Repo
@@ -195,9 +196,6 @@ func portfolioMarkdown(lang string, now time.Time, d devTypeCache, u techUsages,
 		items []techUsage
 	}{{"portfolioLanguage", u.Languages}, {"portfolioFramework", u.Frameworks}, {"portfolioLibrary", u.Libraries}} {
 		for _, t := range g.items {
-			if t.Hidden {
-				continue
-			}
 			fmt.Fprintf(&rows, "| %s | %s | %s ~ %s | %s | %s |\n", tr(lang, g.kind), strings.ReplaceAll(t.Name, "|", `\|`),
 				yearMonth(t.StartDate), yearMonth(t.EndDate), number(t.CareerMonths), number(t.ProjectCount))
 		}
