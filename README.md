@@ -4,7 +4,7 @@
 
 GitFolio by [Alineteam Inc.](https://aline.team) (macOS, Linux, Windows) sends metadata of the commits
 you authored and pushed to [aline.team](https://aline.team), which turns it into your developer profile.
-[Latest release](https://github.com/Alineteam-Inc/GitFolio/releases/latest) · [한국어](#한국어)
+[Latest release](https://github.com/Alineteam-Inc/GitFolio-CLI/releases/latest) · [한국어](#한국어)
 
 ## Install
 
@@ -16,12 +16,12 @@ Requires `git`. The install scripts verify the SHA-256 checksum before installin
 brew install Alineteam-Inc/tap/gitfolio
 ```
 
-or `curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh`
+or `curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.sh | sh`
 
 **Linux**
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.sh | sh
 ```
 
 or, with Homebrew, `brew install Alineteam-Inc/tap/gitfolio`
@@ -29,7 +29,7 @@ or, with Homebrew, `brew install Alineteam-Inc/tap/gitfolio`
 **Windows** (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.ps1 | iex
 ```
 
 **Update:** GitFolio checks for a new release once a day when you run it in a terminal and asks before
@@ -68,7 +68,7 @@ and logs you in again on the spot.
   removes them there too.
 - **Check it yourself:** `gitfolio sync --dry-run` shows what would be sent, `gitfolio history`
   shows every git command GitFolio ran (recorded by git itself), and
-  `gh attestation verify <archive> -R Alineteam-Inc/GitFolio` proves a release was built from this source.
+  `gh attestation verify <archive> -R Alineteam-Inc/GitFolio-CLI` proves a release was built from this source.
 - HTTPS only, to Alineteam Inc. (United States). [Terms](https://aline.team/terms) ·
   [Privacy Policy](https://aline.team/privacy)
 
@@ -121,12 +121,12 @@ GitFolio는 내가 작성하고 push한 커밋의 메타데이터를 [aline.team
 brew install Alineteam-Inc/tap/gitfolio
 ```
 
-또는 `curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh`
+또는 `curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.sh | sh`
 
 **Linux**
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.sh | sh
 ```
 
 또는 Homebrew가 있으면 `brew install Alineteam-Inc/tap/gitfolio`
@@ -134,7 +134,7 @@ curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install
 **Windows** (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.ps1 | iex
 ```
 
 **업데이트:** 터미널에서 실행하면 하루 한 번 새 버전을 확인하고, 업데이트할지 묻습니다. 직접 하려면
@@ -168,7 +168,7 @@ gitfolio init
   이름만 보내고(버전·파일 경로 제외), aline.team이 그 프레임워크·라이브러리를 기술 스택에 넣습니다.
   `gitfolio deps off`로 끄면 aline.team에서도 지웁니다.
 - **직접 확인:** `gitfolio sync --dry-run`으로 보낼 내용을, `gitfolio history`로 실행한 git 명령(git이 직접 기록)을 봅니다.
-  `gh attestation verify <파일> -R Alineteam-Inc/GitFolio`로 릴리스가 이 소스로 빌드됐음을 확인합니다.
+  `gh attestation verify <파일> -R Alineteam-Inc/GitFolio-CLI`로 릴리스가 이 소스로 빌드됐음을 확인합니다.
 - HTTPS로만 Alineteam Inc.(미국)에 보냅니다. [이용약관](https://aline.team/terms) ·
   [개인정보처리방침](https://aline.team/privacy)
 
