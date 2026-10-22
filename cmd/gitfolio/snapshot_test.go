@@ -11,7 +11,7 @@ import (
 func TestSourceFileAndMarkers(t *testing.T) {
 	for p, want := range map[string]bool{
 		"main.go": true, "web/App.vue": true, "a/b.SCSS": true, "x.tsx": true, "setup.py": false, "tools/setup.py": false,
-		"DockerfileParser.java": true, "lib/Makefile.am": false, "web/Dockerfile.html": false, "Makefile": false, "data.json": false, "query.sql": false, ".bashrc": false, "README.md": false,
+		"DockerfileParser.java": true, "lib/Makefile.am": false, "docs/makefile.png": false, "Dockerfile.j2": false, "web/Dockerfile.html": false, "Makefile": false, "data.json": false, "query.sql": false, ".bashrc": false, "README.md": false,
 	} {
 		if got := sourceFile(p); got != want {
 			t.Errorf("sourceFile(%q) = %v, want %v", p, got, want)
@@ -25,6 +25,13 @@ func TestSourceFileAndMarkers(t *testing.T) {
 	}
 	if got, want := slices.Sorted(maps.Keys(m)), []string{"*.svelte", "*.tf", "*.vue", "chart.yaml", "cmakelists.txt", "dockerfile"}; !slices.Equal(got, want) {
 		t.Errorf("markers = %v, want %v", got, want)
+	}
+	m = map[string]bool{} // code, prose and media named like a Dockerfile are not one
+	for _, p := range []string{"docs/dockerfile.md", "src/DockerfileParser.java", "img/dockerfile.png"} {
+		addMarkers(m, p)
+	}
+	if len(m) > 0 {
+		t.Errorf("markers = %v, want none", m)
 	}
 }
 

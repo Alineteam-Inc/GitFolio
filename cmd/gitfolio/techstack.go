@@ -24,7 +24,7 @@ var (
 	gradleLine     = regexp.MustCompile(`(?i)(?:implementation|api|compile|runtimeOnly|compileOnly|testImplementation)\s*['"]([^:'"]+):([^:'"]+)(?::([^'"]+))?['"]`)
 	pipEditable    = regexp.MustCompile(`(?i)^\s*-e\s+.*#egg=([a-zA-Z0-9_\-.]+)`)
 	pipRequirement = regexp.MustCompile(`(?i)^\s*([a-zA-Z0-9_\-\.]+)`)
-	condaItem      = regexp.MustCompile(`^\s*-\s*"?([a-zA-Z0-9][a-zA-Z0-9_.\-]*)`)
+	condaItem      = regexp.MustCompile(`^\s*-\s*"?(?:[a-zA-Z0-9_.\-/]+::)?([a-zA-Z0-9][a-zA-Z0-9_.\-]*)`)
 	gemLine        = regexp.MustCompile(`(?i)^\s*gem\s+['"]([^'"]+)['"]`)
 	pubDep         = regexp.MustCompile(`(?i)^\s+([a-z0-9_]+):`)
 	swiftURL       = regexp.MustCompile(`(?i)\.package\s*\(\s*url\s*:\s*['"]([^'"]+)['"]`)
@@ -188,7 +188,7 @@ func filePresenceTechs(file string) []string {
 	case inSkipDir(file) || slices.ContainsFunc(segments[:len(segments)-1], func(s string) bool { return s == "android" || s == "ios" }):
 	case presenceTechs[base] != nil:
 		techs = slices.Clone(presenceTechs[base])
-	case strings.HasPrefix(base, "dockerfile"):
+	case strings.HasPrefix(base, "dockerfile") && !prefixBlockingExts[extension(file)]: // not dockerfile.md
 		techs = []string{"DOCKER"}
 	case strings.HasSuffix(base, ".tf"):
 		techs = []string{"TERRAFORM"}
@@ -209,8 +209,8 @@ func techClass(category string) string {
 }
 
 // knownFile reports whether aline.team knows the kind of a file (code, markup, data, prose, media, a
-// package file), by its name or extension. (A code file whose name starts with Dockerfile is code, not a
-// package file, but known either way.)
+// package file), by its name or extension. (A code, prose or media file whose name starts with Dockerfile
+// is of that kind, not a package file, but known either way.)
 func knownFile(file string) bool {
 	base := file[strings.LastIndexAny(file, `/\`)+1:]
 	lower := strings.ToLower(base)

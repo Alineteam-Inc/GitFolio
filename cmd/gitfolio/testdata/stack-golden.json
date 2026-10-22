@@ -7044,14 +7044,7 @@
    "input": [
     "Dockerfile.md"
    ],
-   "expected": [
-    {
-     "key": "DOCKER",
-     "name": "Docker",
-     "category": "TOOL",
-     "webClass": "LIBRARY"
-    }
-   ]
+   "expected": []
   },
   {
    "ecosystem": "file-presence",
@@ -7364,6 +7357,76 @@
     "src/main.rs"
    ],
    "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "node_modules/pkg/Dockerfile"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "vendor/lib/Chart.yaml"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "examples/demo/Dockerfile"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "third_party/x/main.tf"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "Vendor/x/turbo.json"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "src/vendor.tf"
+   ],
+   "expected": [
+    {
+     "key": "TERRAFORM",
+     "name": "Terraform",
+     "category": "TOOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "file-presence",
+   "kind": "file-presence",
+   "input": [
+    "node_modules/ui/Comp.vue"
+   ],
+   "expected": [
+    {
+     "key": "VUEJS",
+     "name": "Vue.js",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
   },
   {
    "ecosystem": "file-presence",

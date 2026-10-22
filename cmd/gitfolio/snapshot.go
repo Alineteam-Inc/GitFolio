@@ -235,8 +235,8 @@ func snapshots(repos []Repo, commits []Commit, author string) []snapshot {
 }
 
 // File types, aline.team's way, by file name: build and package files by name first (one starting with
-// Dockerfile or Makefile too, unless its extension is code's: DockerfileParser.java), then the extension.
-// Only code and markup count in a snapshot.
+// Dockerfile or Makefile too, unless its extension is code's, prose's or media's: DockerfileParser.java,
+// makefile.png), then the extension. Only code and markup count in a snapshot.
 var (
 	packageFiles = set("pom.xml build.gradle build.gradle.kts settings.gradle settings.gradle.kts gradle.properties package.json " +
 		"package-lock.json yarn.lock pnpm-lock.yaml bun.lockb deno.json deno.lock requirements.txt pyproject.toml Pipfile Pipfile.lock " +
@@ -261,7 +261,7 @@ func set(words string) map[string]bool {
 // sourceFile reports whether the file at repository path p is code or markup.
 func sourceFile(p string) bool {
 	name, e := path.Base(strings.ReplaceAll(p, `\`, "/")), extension(p)
-	if lower := strings.ToLower(name); packageFiles[name] || (strings.HasPrefix(lower, "dockerfile") || strings.HasPrefix(lower, "makefile")) && !codeExtensions[e] {
+	if lower := strings.ToLower(name); packageFiles[name] || (strings.HasPrefix(lower, "dockerfile") || strings.HasPrefix(lower, "makefile")) && !prefixBlockingExts[e] {
 		return false
 	}
 	return codeExtensions[e] || markupExtensions[e]
@@ -294,7 +294,7 @@ func addMarkers(m map[string]bool, p string) {
 		switch {
 		case presenceFiles[base]:
 			m[base] = true
-		case strings.HasPrefix(base, "dockerfile"):
+		case strings.HasPrefix(base, "dockerfile") && !prefixBlockingExts[extension(p)]: // not dockerfile.md
 			m["dockerfile"] = true
 		case strings.HasSuffix(base, ".tf"):
 			m["*.tf"] = true
