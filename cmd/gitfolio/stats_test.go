@@ -274,3 +274,43 @@ func TestStatsJSON(t *testing.T) {
 		}
 	}
 }
+
+// In local mode stats and stack send the statistics first; with --json only their own result goes to
+// stdout, not the sync's as a second document.
+func TestLocalModeJSON(t *testing.T) {
+	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "BUILDER"},
+		techUsages: map[string]any{"languages": []map[string]any{{"name": "Go"}}}}
+	ts := httptest.NewServer(f.handler())
+	defer ts.Close()
+	t.Setenv("GITFOLIO_API_URL", ts.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	var buf bytes.Buffer
+	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
+	out, errOut = &buf, &buf
+	repo := t.TempDir()
+	for _, args := range [][]string{{"init", "-q", "-b", "main"}, {"remote", "add", "origin", "https://github.com/me/app.git"},
+		{"-c", "user.email=dev@example.com", "-c", "user.name=x", "commit", "-q", "--allow-empty", "-m", "feat: start"},
+		{"update-ref", "refs/remotes/origin/main", "HEAD"}} {
+		if b, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, b)
+		}
+	}
+	dir := t.TempDir()
+	for _, err := range []error{saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}),
+		saveConfig(dir, Config{Emails: []string{"dev@example.com"}, AutoSyncOff: true}), saveRepos(dir, []Repo{newRepo(repo)})} {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, cmd := range []func(string, []string) error{cmdStats, cmdStack} {
+		v, err := jsonStdout(t, func() error { return cmd(dir, []string{"--json"}) }) // one document, or it fails
+		if err != nil || v == nil {
+			t.Errorf("local mode --json: %v %v", v, err)
+		}
+	}
+	if _, ok := f.stats["GITHUB/me/app"]; !ok {
+		t.Error("the statistics were not sent first")
+	}
+}

@@ -623,15 +623,26 @@ func cmdSync(dir string, args []string) error {
 		return err
 	}
 	lang := detectLang(os.Getenv)
+	n, failed, err := syncNow(dir, lang, *dryRun)
+	if err != nil || *dryRun {
+		return err
+	}
+	return reportSync(dir, lang, n, failed)
+}
+
+// syncNow collects new commits in every repository and sends what aline.team does not have yet (with
+// dryRun prints it instead); failed lists the repositories that could not be read. Callers hold the
+// data lock.
+func syncNow(dir, lang string, dryRun bool) (n syncCounts, failed []map[string]string, err error) {
 	repos, err := loadRepos(dir)
 	if err != nil {
-		return err
+		return n, nil, err
 	}
 	cfg, err := loadConfig(dir)
 	if err != nil {
-		return err
+		return n, nil, err
 	}
-	failed := []map[string]string{} // repositories that could not be read, for --json
+	failed = []map[string]string{}
 	for i := range repos {
 		progress(lang, "progressScan", i, len(repos))
 		if _, err := scanRepo(dir, &repos[i], false); err != nil {
@@ -647,16 +658,18 @@ func cmdSync(dir string, args []string) error {
 	}
 	progressDone() // before --dry-run prints its requests
 	if err := saveRepos(dir, repos); err != nil {
-		return err
+		return n, failed, err
 	}
-	n, err := syncData(dir, *dryRun)
+	n, err = syncData(dir, dryRun)
 	var ae *apiError
 	if err != nil && (!errors.As(err, &ae) || ae.Status >= 500 || ae.Code == codeRateLimited) {
-		return failure("syncLater", err) // offline, server trouble or too many requests
+		return n, failed, failure("syncLater", err) // offline, server trouble or too many requests
 	}
-	if err != nil || *dryRun {
-		return err
-	}
+	return n, failed, err
+}
+
+// reportSync tells what one sync sent and what waits: as JSON with --json, else for people.
+func reportSync(dir, lang string, n syncCounts, failed []map[string]string) error {
 	st, err := loadSync(dir)
 	if err != nil {
 		return err

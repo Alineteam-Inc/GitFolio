@@ -133,7 +133,14 @@ func sendIfLocal(dir, lang string, c *client) (bool, error) {
 	if !c.ensureLogin() {
 		return true, failure("loginFirst")
 	}
-	if err := withLock(dir, func() error { return cmdSync(dir, nil) }); err != nil {
+	err = withLock(dir, func() error {
+		n, _, err := syncNow(dir, lang, false)
+		if err == nil && !jsonOut { // with --json stdout carries the command's own result alone
+			err = reportSync(dir, lang, n, nil)
+		}
+		return err
+	})
+	if err != nil {
 		warn(lang, "failed", err) // what aline.team has from before still shows
 	}
 	return true, nil
