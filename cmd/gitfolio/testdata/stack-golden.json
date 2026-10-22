@@ -5127,6 +5127,1371 @@
    ]
   },
   {
+   "ecosystem": "conda",
+   "kind": "single",
+   "input": [
+    "pytorch"
+   ],
+   "expected": [
+    {
+     "key": "PYTORCH",
+     "name": "PyTorch",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "conda",
+   "kind": "single",
+   "input": [
+    "tensorflow-gpu"
+   ],
+   "expected": [
+    {
+     "key": "TENSORFLOW",
+     "name": "TensorFlow",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "cakephp/cakephp"
+   ],
+   "expected": [
+    {
+     "key": "CAKEPHP",
+     "name": "CakePHP",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "codeigniter/framework"
+   ],
+   "expected": [
+    {
+     "key": "CODEIGNITER",
+     "name": "CodeIgniter",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "codeigniter4/framework"
+   ],
+   "expected": [
+    {
+     "key": "CODEIGNITER",
+     "name": "CodeIgniter",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "laminas/laminas-mvc"
+   ],
+   "expected": [
+    {
+     "key": "LAMINAS",
+     "name": "Laminas",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "laravel/framework"
+   ],
+   "expected": [
+    {
+     "key": "LARAVEL",
+     "name": "Laravel",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "laravel/laravel"
+   ],
+   "expected": [
+    {
+     "key": "LARAVEL",
+     "name": "Laravel",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "laravel/lumen-framework"
+   ],
+   "expected": [
+    {
+     "key": "LUMEN",
+     "name": "Lumen",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "phalcon/cphalcon"
+   ],
+   "expected": [
+    {
+     "key": "PHALCON",
+     "name": "Phalcon",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "slim/slim"
+   ],
+   "expected": [
+    {
+     "key": "SLIM",
+     "name": "Slim",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "symfony/framework-bundle"
+   ],
+   "expected": [
+    {
+     "key": "SYMFONY",
+     "name": "Symfony",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "symfony/symfony"
+   ],
+   "expected": [
+    {
+     "key": "SYMFONY",
+     "name": "Symfony",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "yiisoft/yii-web"
+   ],
+   "expected": [
+    {
+     "key": "YII",
+     "name": "Yii",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "single",
+   "input": [
+    "yiisoft/yii2"
+   ],
+   "expected": [
+    {
+     "key": "YII",
+     "name": "Yii",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "single",
+   "input": [
+    "elasticsearch-rails"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "single",
+   "input": [
+    "hanami"
+   ],
+   "expected": [
+    {
+     "key": "HANAMI",
+     "name": "Hanami",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "single",
+   "input": [
+    "mongoid"
+   ],
+   "expected": [
+    {
+     "key": "MONGODB",
+     "name": "MongoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "single",
+   "input": [
+    "mysql2"
+   ],
+   "expected": [
+    {
+     "key": "MYSQL",
+     "name": "MySQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "single",
+   "input": [
+    "pg"
+   ],
+   "expected": [
+    {
+     "key": "POSTGRESQL",
+     "name": "PostgreSQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "single",
+   "input": [
+    "rails"
+   ],
+   "expected": [
+    {
+     "key": "RUBY_ON_RAILS",
+     "name": "Ruby on Rails",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "single",
+   "input": [
+    "redis"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "single",
+   "input": [
+    "rspec"
+   ],
+   "expected": [
+    {
+     "key": "RSPEC",
+     "name": "RSpec",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "single",
+   "input": [
+    "rspec-rails"
+   ],
+   "expected": [
+    {
+     "key": "RSPEC",
+     "name": "RSpec",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "single",
+   "input": [
+    "sidekiq"
+   ],
+   "expected": [
+    {
+     "key": "SIDEKIQ",
+     "name": "Sidekiq",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "single",
+   "input": [
+    "sinatra"
+   ],
+   "expected": [
+    {
+     "key": "SINATRA",
+     "name": "Sinatra",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pub",
+   "kind": "single",
+   "input": [
+    "flame"
+   ],
+   "expected": [
+    {
+     "key": "FLAME",
+     "name": "Flame",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pub",
+   "kind": "single",
+   "input": [
+    "flutter"
+   ],
+   "expected": [
+    {
+     "key": "FLUTTER",
+     "name": "Flutter",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pub",
+   "kind": "single",
+   "input": [
+    "serverpod"
+   ],
+   "expected": [
+    {
+     "key": "SERVERPOD",
+     "name": "Serverpod",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pub",
+   "kind": "single",
+   "input": [
+    "serverpod_client"
+   ],
+   "expected": [
+    {
+     "key": "SERVERPOD",
+     "name": "Serverpod",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "swift",
+   "kind": "single",
+   "input": [
+    "https://github.com/owner/hummingbird.git"
+   ],
+   "expected": [
+    {
+     "key": "HUMMINGBIRD",
+     "name": "Hummingbird",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "swift",
+   "kind": "single",
+   "input": [
+    "https://github.com/owner/vapor.git"
+   ],
+   "expected": [
+    {
+     "key": "VAPOR",
+     "name": "Vapor",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "hex",
+   "kind": "single",
+   "input": [
+    "nerves"
+   ],
+   "expected": [
+    {
+     "key": "NERVES",
+     "name": "Nerves",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "hex",
+   "kind": "single",
+   "input": [
+    "phoenix"
+   ],
+   "expected": [
+    {
+     "key": "PHOENIX",
+     "name": "Phoenix",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "AWSSDK.DynamoDBv2"
+   ],
+   "expected": [
+    {
+     "key": "DYNAMODB",
+     "name": "DynamoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "CassandraCSharpDriver"
+   ],
+   "expected": [
+    {
+     "key": "CASSANDRA",
+     "name": "Cassandra",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "ClickHouse.Client"
+   ],
+   "expected": [
+    {
+     "key": "CLICKHOUSE",
+     "name": "ClickHouse",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Elastic.Clients.Elasticsearch"
+   ],
+   "expected": [
+    {
+     "key": "ELASTICSEARCH",
+     "name": "Elasticsearch",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Grpc.AspNetCore"
+   ],
+   "expected": [
+    {
+     "key": "GRPC",
+     "name": "gRPC",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Grpc.Net.Client"
+   ],
+   "expected": [
+    {
+     "key": "GRPC",
+     "name": "gRPC",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "HotChocolate"
+   ],
+   "expected": [
+    {
+     "key": "GRAPHQL",
+     "name": "GraphQL",
+     "category": "PROTOCOL",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.AspNetCore.All"
+   ],
+   "expected": [
+    {
+     "key": "ASP_NET_CORE",
+     "name": "ASP.NET Core",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.AspNetCore.App"
+   ],
+   "expected": [
+    {
+     "key": "ASP_NET_CORE",
+     "name": "ASP.NET Core",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.AspNetCore.Components.Web"
+   ],
+   "expected": [
+    {
+     "key": "BLAZOR",
+     "name": "Blazor",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.AspNetCore.Components.WebAssembly"
+   ],
+   "expected": [
+    {
+     "key": "BLAZOR",
+     "name": "Blazor",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.AspNetCore.Mvc"
+   ],
+   "expected": [
+    {
+     "key": "ASP_NET_CORE",
+     "name": "ASP.NET Core",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.EntityFrameworkCore"
+   ],
+   "expected": [
+    {
+     "key": "EF_CORE",
+     "name": "Entity Framework Core",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.EntityFrameworkCore.Relational"
+   ],
+   "expected": [
+    {
+     "key": "EF_CORE",
+     "name": "Entity Framework Core",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.EntityFrameworkCore.SqlServer"
+   ],
+   "expected": [
+    {
+     "key": "EF_CORE",
+     "name": "Entity Framework Core",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.ML"
+   ],
+   "expected": [
+    {
+     "key": "ML_DOT_NET",
+     "name": "ML.NET",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.ML.Vision"
+   ],
+   "expected": [
+    {
+     "key": "ML_DOT_NET",
+     "name": "ML.NET",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.Maui.Controls"
+   ],
+   "expected": [
+    {
+     "key": "MAUI",
+     "name": "MAUI",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.Maui.Essentials"
+   ],
+   "expected": [
+    {
+     "key": "MAUI",
+     "name": "MAUI",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.Maui.Graphics"
+   ],
+   "expected": [
+    {
+     "key": "MAUI",
+     "name": "MAUI",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.Unity.Analyzers"
+   ],
+   "expected": [
+    {
+     "key": "UNITY",
+     "name": "Unity",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.WindowsAppSDK"
+   ],
+   "expected": [
+    {
+     "key": "WINUI",
+     "name": "WinUI",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Microsoft.WindowsAppSDK.Foundation"
+   ],
+   "expected": [
+    {
+     "key": "WINUI",
+     "name": "WinUI",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "MongoDB.Driver"
+   ],
+   "expected": [
+    {
+     "key": "MONGODB",
+     "name": "MongoDB",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "MySql.Data"
+   ],
+   "expected": [
+    {
+     "key": "MYSQL",
+     "name": "MySQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "MySqlConnector"
+   ],
+   "expected": [
+    {
+     "key": "MYSQL",
+     "name": "MySQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "Npgsql"
+   ],
+   "expected": [
+    {
+     "key": "POSTGRESQL",
+     "name": "PostgreSQL",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "PresentationCore"
+   ],
+   "expected": [
+    {
+     "key": "WPF",
+     "name": "WPF",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "PresentationFramework"
+   ],
+   "expected": [
+    {
+     "key": "WPF",
+     "name": "WPF",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "ServiceStack"
+   ],
+   "expected": [
+    {
+     "key": "SERVICESTACK",
+     "name": "ServiceStack",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "StackExchange.Redis"
+   ],
+   "expected": [
+    {
+     "key": "REDIS",
+     "name": "Redis",
+     "category": "DATABASE",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "System.Windows.Forms"
+   ],
+   "expected": [
+    {
+     "key": "WINFORMS",
+     "name": "Windows Forms",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "UnityEngine"
+   ],
+   "expected": [
+    {
+     "key": "UNITY",
+     "name": "Unity",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "xunit"
+   ],
+   "expected": [
+    {
+     "key": "XUNIT",
+     "name": "xUnit",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single",
+   "input": [
+    "xunit.core"
+   ],
+   "expected": [
+    {
+     "key": "XUNIT",
+     "name": "xUnit",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single-sdk",
+   "input": [
+    "sdk:Microsoft.NET.Sdk.BlazorWebAssembly"
+   ],
+   "expected": [
+    {
+     "key": "BLAZOR",
+     "name": "Blazor",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single-sdk",
+   "input": [
+    "sdk:Microsoft.NET.Sdk.Maui"
+   ],
+   "expected": [
+    {
+     "key": "MAUI",
+     "name": "MAUI",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single-sdk",
+   "input": [
+    "sdk:Microsoft.NET.Sdk.Razor"
+   ],
+   "expected": [
+    {
+     "key": "ASP_NET_CORE",
+     "name": "ASP.NET Core",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "single-sdk",
+   "input": [
+    "sdk:Microsoft.NET.Sdk.Web"
+   ],
+   "expected": [
+    {
+     "key": "ASP_NET_CORE",
+     "name": "ASP.NET Core",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single",
+   "input": [
+    "$fresh"
+   ],
+   "expected": [
+    {
+     "key": "FRESH",
+     "name": "Fresh",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single",
+   "input": [
+    "$fresh/"
+   ],
+   "expected": [
+    {
+     "key": "FRESH",
+     "name": "Fresh",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single",
+   "input": [
+    "@hono/hono"
+   ],
+   "expected": [
+    {
+     "key": "HONO",
+     "name": "Hono",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single",
+   "input": [
+    "@oak/oak"
+   ],
+   "expected": [
+    {
+     "key": "OAK",
+     "name": "Oak",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single",
+   "input": [
+    "fresh"
+   ],
+   "expected": [
+    {
+     "key": "FRESH",
+     "name": "Fresh",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single",
+   "input": [
+    "fresh/"
+   ],
+   "expected": [
+    {
+     "key": "FRESH",
+     "name": "Fresh",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single",
+   "input": [
+    "hono"
+   ],
+   "expected": [
+    {
+     "key": "HONO",
+     "name": "Hono",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single",
+   "input": [
+    "hono/"
+   ],
+   "expected": [
+    {
+     "key": "HONO",
+     "name": "Hono",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single",
+   "input": [
+    "oak"
+   ],
+   "expected": [
+    {
+     "key": "OAK",
+     "name": "Oak",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single",
+   "input": [
+    "oak/"
+   ],
+   "expected": [
+    {
+     "key": "OAK",
+     "name": "Oak",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single-url",
+   "input": [
+    "jsr:@hono/hono@^1"
+   ],
+   "expected": [
+    {
+     "key": "HONO",
+     "name": "Hono",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single-url",
+   "input": [
+    "jsr:@oak/oak@^1"
+   ],
+   "expected": [
+    {
+     "key": "OAK",
+     "name": "Oak",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single-url",
+   "input": [
+    "https://deno.land/x/fresh@v1.0.0/mod.ts"
+   ],
+   "expected": [
+    {
+     "key": "FRESH",
+     "name": "Fresh",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single-url",
+   "input": [
+    "https://deno.land/x/hono@v1.0.0/mod.ts"
+   ],
+   "expected": [
+    {
+     "key": "HONO",
+     "name": "Hono",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "single-url",
+   "input": [
+    "https://deno.land/x/oak@v1.0.0/mod.ts"
+   ],
+   "expected": [
+    {
+     "key": "OAK",
+     "name": "Oak",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "sbt",
+   "kind": "single",
+   "input": [
+    "com.typesafe.akka:core_2.13"
+   ],
+   "expected": [
+    {
+     "key": "AKKA",
+     "name": "Akka",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "sbt",
+   "kind": "single",
+   "input": [
+    "dev.zio:core_2.13"
+   ],
+   "expected": [
+    {
+     "key": "ZIO",
+     "name": "ZIO",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "sbt",
+   "kind": "single",
+   "input": [
+    "org.apache.pekko:core_2.13"
+   ],
+   "expected": [
+    {
+     "key": "AKKA",
+     "name": "Akka",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
    "ecosystem": "maven",
    "kind": "combo",
    "input": [
@@ -5366,6 +6731,236 @@
    "ecosystem": "npm",
    "kind": "edge",
    "input": [],
+   "expected": []
+  },
+  {
+   "ecosystem": "cocoapods",
+   "kind": "edge",
+   "input": [
+    "Alamofire"
+   ],
+   "expected": [
+    {
+     "key": "IOS_NATIVE",
+     "name": "iOS Native",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "cocoapods",
+   "kind": "edge",
+   "input": [
+    "Firebase/Analytics",
+    "GoogleMaps"
+   ],
+   "expected": [
+    {
+     "key": "IOS_NATIVE",
+     "name": "iOS Native",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "conda",
+   "kind": "combo",
+   "input": [
+    "numpy",
+    "pytorch",
+    "scikit-learn",
+    "pandas"
+   ],
+   "expected": [
+    {
+     "key": "NUMPY",
+     "name": "NumPy",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "PANDAS",
+     "name": "pandas",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "PYTORCH",
+     "name": "PyTorch",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    },
+    {
+     "key": "SCIKIT_LEARN",
+     "name": "scikit-learn",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "sbt",
+   "kind": "edge",
+   "input": [
+    "com.typesafe.akka:akka-actor_2.13"
+   ],
+   "expected": [
+    {
+     "key": "AKKA",
+     "name": "Akka",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "sbt",
+   "kind": "edge",
+   "input": [
+    "org.springframework.boot:spring-boot-starter-web"
+   ],
+   "expected": [
+    {
+     "key": "SPRING_BOOT",
+     "name": "Spring Boot",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "sbt",
+   "kind": "edge",
+   "input": [
+    "noColonName"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "combo",
+   "input": [
+    "sdk:Microsoft.NET.Sdk.Web",
+    "Microsoft.EntityFrameworkCore",
+    "Newtonsoft.Json"
+   ],
+   "expected": [
+    {
+     "key": "ASP_NET_CORE",
+     "name": "ASP.NET Core",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    },
+    {
+     "key": "EF_CORE",
+     "name": "Entity Framework Core",
+     "category": "LIBRARY",
+     "webClass": "LIBRARY"
+    }
+   ]
+  },
+  {
+   "ecosystem": "nuget",
+   "kind": "edge",
+   "input": [
+    "sdk:Microsoft.NET.Sdk"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "swift",
+   "kind": "edge",
+   "input": [
+    "https://gitlab.com/owner/vapor.git"
+   ],
+   "expected": []
+  },
+  {
+   "ecosystem": "swift",
+   "kind": "edge",
+   "input": [
+    "git@github.com:vapor/vapor.git"
+   ],
+   "expected": [
+    {
+     "key": "VAPOR",
+     "name": "Vapor",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "composer",
+   "kind": "edge",
+   "input": [
+    "laravel/framework",
+    "symfony/console"
+   ],
+   "expected": [
+    {
+     "key": "LARAVEL",
+     "name": "Laravel",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "rubygems",
+   "kind": "edge",
+   "input": [
+    "Rails"
+   ],
+   "expected": [
+    {
+     "key": "RUBY_ON_RAILS",
+     "name": "Ruby on Rails",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "hex",
+   "kind": "edge",
+   "input": [
+    "Phoenix"
+   ],
+   "expected": [
+    {
+     "key": "PHOENIX",
+     "name": "Phoenix",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "pub",
+   "kind": "edge",
+   "input": [
+    "flutter",
+    "Http"
+   ],
+   "expected": [
+    {
+     "key": "FLUTTER",
+     "name": "Flutter",
+     "category": "FRAMEWORK",
+     "webClass": "FRAMEWORK"
+    }
+   ]
+  },
+  {
+   "ecosystem": "deno",
+   "kind": "edge",
+   "input": [
+    "npm:express@4",
+    "https://deno.land/std@0.200.0/http/server.ts"
+   ],
    "expected": []
   },
   {

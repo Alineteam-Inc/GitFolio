@@ -654,6 +654,141 @@ var presenceExtTechs = map[string]string{
 	"svelte": "SVELTE",
 }
 
+// composerTechs maps composer.json package names ("vendor/package") to techs (exact).
+var composerTechs = map[string]string{
+	"laravel/framework":        "LARAVEL",
+	"laravel/laravel":          "LARAVEL",
+	"symfony/symfony":          "SYMFONY",
+	"symfony/framework-bundle": "SYMFONY",
+	"cakephp/cakephp":          "CAKEPHP",
+	"yiisoft/yii2":             "YII",
+	"yiisoft/yii-web":          "YII",
+	"laminas/laminas-mvc":      "LAMINAS",
+	"codeigniter4/framework":   "CODEIGNITER",
+	"codeigniter/framework":    "CODEIGNITER",
+	"phalcon/cphalcon":         "PHALCON",
+	"slim/slim":                "SLIM",
+	"laravel/lumen-framework":  "LUMEN",
+}
+
+// gemTechs maps gem names, lower-cased, to techs.
+var gemTechs = map[string]string{
+	"rails":               "RUBY_ON_RAILS",
+	"hanami":              "HANAMI",
+	"sinatra":             "SINATRA",
+	"rspec":               "RSPEC",
+	"rspec-rails":         "RSPEC",
+	"sidekiq":             "SIDEKIQ",
+	"pg":                  "POSTGRESQL",
+	"mysql2":              "MYSQL",
+	"mongoid":             "MONGODB",
+	"redis":               "REDIS",
+	"elasticsearch-rails": "ELASTICSEARCH",
+}
+
+// pubTechs maps pubspec.yaml package names, lower-cased, to techs.
+var pubTechs = map[string]string{
+	"flutter":          "FLUTTER",
+	"serverpod":        "SERVERPOD",
+	"serverpod_client": "SERVERPOD",
+	"flame":            "FLAME",
+}
+
+// swiftTechs maps Swift package repository names (from github.com URLs, lower-cased) to techs.
+var swiftTechs = map[string]string{
+	"vapor":       "VAPOR",
+	"hummingbird": "HUMMINGBIRD",
+}
+
+// hexTechs maps mix.exs package names, lower-cased, to techs.
+var hexTechs = map[string]string{
+	"phoenix": "PHOENIX",
+	"nerves":  "NERVES",
+}
+
+// nugetSdkTechs maps a .NET project's Sdk to techs (exact).
+var nugetSdkTechs = map[string]string{
+	"Microsoft.NET.Sdk.Web":               "ASP_NET_CORE",
+	"Microsoft.NET.Sdk.BlazorWebAssembly": "BLAZOR",
+	"Microsoft.NET.Sdk.Razor":             "ASP_NET_CORE",
+	"Microsoft.NET.Sdk.Maui":              "MAUI",
+}
+
+// nugetTechs maps NuGet package and assembly references to techs (exact).
+var nugetTechs = map[string]string{
+	"Microsoft.AspNetCore.Components.WebAssembly": "BLAZOR",
+	"Microsoft.AspNetCore.Components.Web":         "BLAZOR",
+	"Microsoft.AspNetCore.App":                    "ASP_NET_CORE",
+	"Microsoft.AspNetCore.Mvc":                    "ASP_NET_CORE",
+	"Microsoft.AspNetCore.All":                    "ASP_NET_CORE",
+	"Microsoft.Maui.Controls":                     "MAUI",
+	"Microsoft.Maui.Graphics":                     "MAUI",
+	"Microsoft.Maui.Essentials":                   "MAUI",
+	"PresentationFramework":                       "WPF",
+	"PresentationCore":                            "WPF",
+	"System.Windows.Forms":                        "WINFORMS",
+	"Microsoft.WindowsAppSDK":                     "WINUI",
+	"Microsoft.WindowsAppSDK.Foundation":          "WINUI",
+	"ServiceStack":                                "SERVICESTACK",
+	"UnityEngine":                                 "UNITY",
+	"Microsoft.Unity.Analyzers":                   "UNITY",
+	"Microsoft.ML":                                "ML_DOT_NET",
+	"Microsoft.ML.Vision":                         "ML_DOT_NET",
+	"Microsoft.EntityFrameworkCore":               "EF_CORE",
+	"Microsoft.EntityFrameworkCore.SqlServer":     "EF_CORE",
+	"Microsoft.EntityFrameworkCore.Relational":    "EF_CORE",
+	"xunit":                         "XUNIT",
+	"xunit.core":                    "XUNIT",
+	"Grpc.Net.Client":               "GRPC",
+	"Grpc.AspNetCore":               "GRPC",
+	"HotChocolate":                  "GRAPHQL",
+	"Npgsql":                        "POSTGRESQL",
+	"MySql.Data":                    "MYSQL",
+	"MySqlConnector":                "MYSQL",
+	"MongoDB.Driver":                "MONGODB",
+	"StackExchange.Redis":           "REDIS",
+	"Elastic.Clients.Elasticsearch": "ELASTICSEARCH",
+	"CassandraCSharpDriver":         "CASSANDRA",
+	"AWSSDK.DynamoDBv2":             "DYNAMODB",
+	"ClickHouse.Client":             "CLICKHOUSE",
+}
+
+// denoKeyTechs maps deno.json import map keys, lower-cased, to techs.
+var denoKeyTechs = map[string]string{
+	"fresh":      "FRESH",
+	"fresh/":     "FRESH",
+	"$fresh":     "FRESH",
+	"$fresh/":    "FRESH",
+	"@oak/oak":   "OAK",
+	"oak":        "OAK",
+	"oak/":       "OAK",
+	"hono":       "HONO",
+	"hono/":      "HONO",
+	"@hono/hono": "HONO",
+}
+
+// denoModuleTechs maps the module ids in deno.json import map values to techs.
+var denoModuleTechs = map[string]string{
+	"deno.land/x/fresh": "FRESH",
+	"@oak/oak":          "OAK",
+	"deno.land/x/oak":   "OAK",
+	"@hono/hono":        "HONO",
+	"deno.land/x/hono":  "HONO",
+}
+
+// scalaGroupTechs are build.sbt group IDs with a tech of their own, before the JVM rules.
+var scalaGroupTechs = map[string]string{
+	"com.typesafe.akka": "AKKA",
+	"org.apache.pekko":  "AKKA",
+	"dev.zio":           "ZIO",
+}
+
+// condaTechs are conda package names, lower-cased, that differ from the PyPI ones.
+var condaTechs = map[string]string{
+	"pytorch":        "PYTORCH",
+	"tensorflow-gpu": "TENSORFLOW",
+}
+
 // knownFileNames and knownFileExts are the files aline.team knows the kind of (code, markup, data,
 // prose, media, package files); a commit counts toward a repository's span only with one of them.
 var knownFileNames = map[string]bool{"pom.xml": true, "build.gradle": true, "build.gradle.kts": true, "settings.gradle": true, "settings.gradle.kts": true, "gradle.properties": true, "package.json": true, "package-lock.json": true, "yarn.lock": true, "pnpm-lock.yaml": true, "bun.lockb": true, "deno.json": true, "deno.lock": true, "requirements.txt": true, "pyproject.toml": true, "Pipfile": true, "Pipfile.lock": true, "setup.py": true, "setup.cfg": true, "tox.ini": true, "environment.yml": true, "Gemfile": true, "Gemfile.lock": true, "Rakefile": true, "rakefile": true, "composer.json": true, "composer.lock": true, "go.mod": true, "go.sum": true, "Cargo.toml": true, "Cargo.lock": true, "global.json": true, "CMakeLists.txt": true, "Makefile": true, "Package.swift": true, "Podfile": true, "Podfile.lock": true, "pubspec.yaml": true, "pubspec.lock": true, "AndroidManifest.xml": true, "build.sbt": true, "cabal.project": true, "cabal.project.freeze": true, "package.yaml": true, "stack.yaml": true, "stack.yaml.lock": true, "mix.exs": true, "mix.lock": true, "rebar.config": true, "rebar.lock": true, "Project.toml": true, "Manifest.toml": true, "Makefile.PL": true, "cpanfile": true, "DESCRIPTION": true, "flake.nix": true, "flake.lock": true, "nx.json": true, "turbo.json": true, "lerna.json": true, "Chart.yaml": true, "helmfile.yaml": true, ".pre-commit-config.yaml": true, "lefthook.yml": true, "mise.toml": true, ".tool-versions": true, "BUILD": true, "WORKSPACE": true}

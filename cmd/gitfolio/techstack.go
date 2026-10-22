@@ -16,7 +16,7 @@ import (
 type techInfo struct{ name, category string }
 
 // safeDepName is the dependency names aline.team takes; others (spaces, quotes, line breaks) are dropped.
-var safeDepName = regexp.MustCompile(`^[A-Za-z0-9@/._:+~-]{1,214}$`)
+var safeDepName = regexp.MustCompile(`^[A-Za-z0-9@/._:+~$^-]{1,214}$`)
 
 var (
 	goRequire      = regexp.MustCompile(`(?i)^\s*([\w\-./]+(?:/v\d+)?)\s+v[\d.]+`)
@@ -24,12 +24,22 @@ var (
 	gradleLine     = regexp.MustCompile(`(?i)(?:implementation|api|compile|runtimeOnly|compileOnly|testImplementation)\s*['"]([^:'"]+):([^:'"]+)(?::([^'"]+))?['"]`)
 	pipEditable    = regexp.MustCompile(`(?i)^\s*-e\s+.*#egg=([a-zA-Z0-9_\-.]+)`)
 	pipRequirement = regexp.MustCompile(`(?i)^\s*([a-zA-Z0-9_\-\.]+)`)
+	condaItem      = regexp.MustCompile(`^\s*-\s*"?([a-zA-Z0-9][a-zA-Z0-9_.\-]*)`)
+	gemLine        = regexp.MustCompile(`(?i)^\s*gem\s+['"]([^'"]+)['"]`)
+	pubDep         = regexp.MustCompile(`(?i)^\s+([a-z0-9_]+):`)
+	swiftURL       = regexp.MustCompile(`(?i)\.package\s*\(\s*url\s*:\s*['"]([^'"]+)['"]`)
+	githubRepo     = regexp.MustCompile(`(?i)github\.com[/:]([^/]+)/([^/\.]+)`)
+	hexDep         = regexp.MustCompile(`(?i)\{:([a-z_][a-z0-9_]*)`)
+	denoModule     = regexp.MustCompile(`(deno\.land/x/[a-z0-9_]+|@[a-z0-9_-]+/[a-z0-9_-]+)`)
+	sbtDep         = regexp.MustCompile(`"([a-zA-Z0-9_.\-]+)"\s*%{1,3}\s*"([a-zA-Z0-9_.\-]+)"`)
 )
 
-// depTechs are the techs one ecosystem's dependency names show (npm, go, maven as group:artifact, pypi,
-// cargo). Each name is read the way aline.team reads the names GitFolio sends: the same filter, then the
-// line that ecosystem's manifest would have for it, read with the same patterns, so a name gives here
-// exactly what it gives there (testdata/stack-golden.json).
+// depTechs are the techs one ecosystem's dependency names show: npm, go, maven (group:artifact), pypi,
+// cargo, conda, composer (vendor/package), rubygems, pub, swift (package URL), cocoapods, hex, nuget
+// (package or assembly; "sdk:" and the project Sdk), deno (import map key or value), sbt (group:artifact).
+// Each name is read the way aline.team reads the names GitFolio sends: the same filter, then the line
+// that ecosystem's manifest would have for it, read with the same patterns, so a name gives here exactly
+// what it gives there (testdata/stack-golden.json).
 func depTechs(ecosystem string, names []string) map[string]bool {
 	techs := map[string]bool{}
 	add := func(t string) {
@@ -56,14 +66,66 @@ func depTechs(ecosystem string, names []string) map[string]bool {
 			}
 		case "maven":
 			for _, m := range gradleLine.FindAllStringSubmatch("implementation '"+name+":0'", -1) {
-				add(jvmGroupTech(m[1]))
-				for _, r := range jvmArtifactRules {
-					if r.group == m[1] && strings.HasPrefix(m[2], r.artifactPrefix) {
-						for _, t := range r.techs {
-							add(t)
-						}
+				if !strings.HasPrefix(m[1], "$") { // a Gradle variable
+					add(jvmGroupTech(m[1]))
+					for _, t := range jvmArtifactTechs(m[1], m[2]) {
+						add(t)
 					}
 				}
+			}
+		case "sbt":
+			group, artifact, ok := strings.Cut(name, ":")
+			if !ok {
+				continue
+			}
+			for _, m := range sbtDep.FindAllStringSubmatch(`libraryDependencies += "`+group+`" % "`+artifact+`" % "0"`, -1) {
+				if t := scalaGroupTechs[m[1]]; t != "" {
+					add(t)
+					continue
+				}
+				add(jvmGroupTech(m[1]))
+				for _, t := range jvmArtifactTechs(m[1], m[2]) {
+					add(t)
+				}
+			}
+		case "conda":
+			if m := condaItem.FindStringSubmatch("  - " + name); m != nil && !strings.EqualFold(m[1], "pip") && !strings.EqualFold(m[1], "python") {
+				add(cmp.Or(condaTechs[strings.ToLower(m[1])], pypiTechs[pypiName(m[1])]))
+			}
+		case "composer":
+			add(composerTechs[name])
+		case "rubygems":
+			if m := gemLine.FindStringSubmatch("gem '" + name + "'"); m != nil {
+				add(gemTechs[strings.ToLower(m[1])])
+			}
+		case "pub":
+			if m := pubDep.FindStringSubmatch("  " + name + ": any"); m != nil {
+				add(pubTechs[strings.ToLower(m[1])])
+			}
+		case "swift":
+			if m := swiftURL.FindStringSubmatch(`.package(url: "` + name + `", from: "0.0.0"),`); m != nil {
+				if g := githubRepo.FindStringSubmatch(m[1]); g != nil {
+					add(swiftTechs[strings.ReplaceAll(strings.ToLower(g[2]), ".git", "")])
+				}
+			}
+		case "cocoapods":
+			add("IOS_NATIVE") // any pod: an iOS app
+		case "hex":
+			for _, m := range hexDep.FindAllStringSubmatch("{:"+name+`, "~> 0.0"},`, -1) {
+				add(hexTechs[strings.ToLower(m[1])])
+			}
+		case "nuget":
+			if sdk, ok := strings.CutPrefix(name, "sdk:"); ok {
+				add(nugetSdkTechs[sdk])
+			} else {
+				add(nugetTechs[name])
+			}
+		case "deno":
+			lower := strings.ToLower(name)
+			if t := denoKeyTechs[lower]; t != "" {
+				add(t)
+			} else if m := denoModule.FindStringSubmatch(lower); m != nil {
+				add(denoModuleTechs[m[1]])
 			}
 		case "pypi":
 			if strings.HasPrefix(name, "-") && !strings.HasPrefix(name, "-e") {
@@ -75,11 +137,27 @@ func depTechs(ecosystem string, names []string) map[string]bool {
 			} else if m := pipRequirement.FindStringSubmatch(name); m != nil {
 				pkg = m[1]
 			}
-			add(pypiTechs[strings.NewReplacer("_", "-", ".", "-").Replace(strings.ToLower(pkg))])
+			add(pypiTechs[pypiName(pkg)])
 		}
 	}
 	if techs["SPRING_BOOT"] { // Spring Framework comes with Spring Boot: not a tech of its own there
 		delete(techs, "SPRING_FRAMEWORK")
+	}
+	return techs
+}
+
+// pypiName is a PyPI name normalized as PEP 503 does: lower case, _ and . as -.
+func pypiName(name string) string {
+	return strings.NewReplacer("_", "-", ".", "-").Replace(strings.ToLower(name))
+}
+
+// jvmArtifactTechs are the techs an artifact of a group adds, by artifact ID prefix.
+func jvmArtifactTechs(group, artifact string) []string {
+	var techs []string
+	for _, r := range jvmArtifactRules {
+		if r.group == group && strings.HasPrefix(artifact, r.artifactPrefix) {
+			techs = append(techs, r.techs...)
+		}
 	}
 	return techs
 }
