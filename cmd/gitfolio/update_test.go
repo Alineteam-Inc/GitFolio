@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -48,12 +50,12 @@ func TestUpdateCheck(t *testing.T) {
 
 	// gitfolio update: nothing to do from source or on the newest release, and today's offer is used up.
 	dir := t.TempDir()
-	if err := cmdUpdate(dir); err != nil {
+	if err := cmdUpdate(dir, nil); err != nil {
 		t.Errorf("update from a source build: %v", err)
 	}
 	defer func(v string) { version = v }(version)
 	version = "0.2.0"
-	if err := cmdUpdate(dir); err != nil {
+	if err := cmdUpdate(dir, nil); err != nil {
 		t.Errorf("update on the newest release: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, updateFile)); err != nil {
@@ -187,7 +189,7 @@ func TestBundledCopy(t *testing.T) {
 	t.Setenv("GITFOLIO_LANG", "en")
 	bundled = "yes"
 	noticeUpdate(dir)
-	if err := cmdUpdate(dir); err != nil || looks != 0 || tty.Len() != 0 || !strings.Contains(buf.String(), "came with an app") {
+	if err := cmdUpdate(dir, nil); err != nil || looks != 0 || tty.Len() != 0 || !strings.Contains(buf.String(), "came with an app") {
 		t.Errorf("bundled: %d look-ups, told %q, update says %q (%v)", looks, tty.String(), buf.String(), err)
 	}
 	if v, err := jsonStdout(t, func() error { return run([]string{"version", "--json"}) }); err != nil || v["bundled"] != true {
@@ -260,6 +262,55 @@ func TestSourceBuildVersion(t *testing.T) {
 		dir, err := dataDir()
 		if err != nil || strings.HasSuffix(dir, "gitfolio-dev") != want.dev {
 			t.Errorf("version %q: data folder %s %v", v, dir, err)
+		}
+	}
+}
+
+// update --path updates another copy the way it was installed, after asking it its version (one before
+// 0.6.0 prints it in its header); one built from source or shipped by an app is left as it is.
+func TestUpdatePath(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the copies here are shell scripts")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/Alineteam-Inc/GitFolio-CLI/releases/tag/v0.6.0", http.StatusFound)
+	}))
+	defer srv.Close()
+	defer func(u string, j bool, o io.Writer) { latestURL, jsonOut, out = u, j, o }(latestURL, jsonOut, out)
+	latestURL, jsonOut, out = srv.URL, true, io.Discard
+	dir := t.TempDir()
+	copyAt := func(rel, prints string) string {
+		p := filepath.Join(dir, rel)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte("#!/bin/sh\nprintf '%s\\n' '"+prints+"'\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	cask := copyAt("brew/Caskroom/gitfolio/0.6.0/gitfolio", `{"version":"0.6.0","dev":false,"bundled":false}`)
+	for p, want := range map[string]string{
+		copyAt("bin/gitfolio", " :: GitFolio ::          (0.6.0)"): `{"from":"0.6.0","method":"script","to":"0.6.0","updated":false}`,
+		cask: `{"from":"0.6.0","method":"brew","to":"0.6.0","updated":false}`,
+		copyAt("src/gitfolio", `{"version":"0.6.0-dev","dev":true,"bundled":false}`): `{"from":"0.6.0-dev","method":"source","updated":false}`,
+		copyAt("app/gitfolio", `{"version":"0.6.0","dev":false,"bundled":true}`):     `{"from":"0.6.0","method":"app","updated":false}`,
+	} {
+		v, err := jsonStdout(t, func() error { return cmdUpdate(dir, []string{"--path", p, "--json"}) })
+		if b, _ := json.Marshal(v); err != nil || string(b) != want {
+			t.Errorf("%s: %s %v, want %s", p, b, err, want)
+		}
+	}
+	// A cask is upgraded with the brew of its own Homebrew, which an app's PATH lacks.
+	real, _ := filepath.EvalSymlinks(dir) // a temporary folder may be behind a link (/var on macOS)
+	if cmd, _ := updateCommand("v0.6.0", cask); cmd.Args[len(cmd.Args)-1] != filepath.Join(real, "brew", "bin", "brew") {
+		t.Errorf("cask update: %q", cmd.Args)
+	}
+	for _, args := range [][]string{{"--path", filepath.Join(dir, "none")}, {"--path"}} {
+		if err := cmdUpdate(dir, args); err == nil {
+			t.Errorf("update %q went through", args)
+		} else if code := errorCode(err); code != map[int]string{1: "usage", 2: "updatePathBad"}[len(args)] {
+			t.Errorf("update %q: %s", args, code)
 		}
 	}
 }

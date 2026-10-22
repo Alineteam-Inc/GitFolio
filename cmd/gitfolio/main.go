@@ -100,7 +100,9 @@ commands:
   schedule [HH:MM | off] [--json]
                         optional daily sync at a local time, for pushes the hooks missed
                         (launchd on macOS, systemd or cron on Linux); no argument: show it
-  update                install the newest release now (otherwise GitFolio offers it once a day)
+  update [--path <gitfolio>] [--json]
+                        install the newest release now (otherwise GitFolio offers it once a day), the
+                        way it was installed; --path: of the gitfolio there instead of this one
   uninstall [--purge-local] [--json]
                         before removing GitFolio: unregister every repository and put back its earlier
                         hooks, remove the daily sync and log out (--purge-local: also delete the data on
@@ -203,7 +205,7 @@ func run(args []string) error {
 	if args[0] == "init" && slices.Equal(withoutJSON(args[1:]), []string{"--policy"}) { // a fixed text: before git and the data folder
 		return cmdInit("", args[1:])
 	}
-	if !gitWorks() && args[0] != "uninstall" { // removing goes as far as it can
+	if !gitWorks() && args[0] != "uninstall" && args[0] != "update" { // removing goes as far as it can; updating needs no git
 		if args[0] != "init" || jsonOut || !interactive() || !installGit(detectLang(os.Getenv)) {
 			return failure("noGit")
 		}
@@ -249,7 +251,7 @@ func run(args []string) error {
 	case "history":
 		return cmdHistory(dir, args[1:]) // only reads
 	case "update":
-		return cmdUpdate(dir)
+		return cmdUpdate(dir, args[1:])
 	case "uninstall":
 		return cmdUninstall(dir, args[1:]) // takes the lock itself: --purge-local deletes it with the data
 	case "stats":

@@ -937,6 +937,11 @@ var messages = map[string]map[string]string{
 		"ko": "GitFolio를 %s(으)로 업데이트했습니다.\n",
 		"ja": "GitFolio を %s に更新しました。\n",
 	},
+	"updatePathBad": {
+		"en": "%s is not a GitFolio that runs here: %v\n",
+		"ko": "%s은(는) 여기서 실행되는 GitFolio가 아닙니다: %v\n",
+		"ja": "%s はここで実行できる GitFolio ではありません: %v\n",
+	},
 	"updateFailed": {
 		"en": "Could not update (%v). Update by hand:\n  %s\n",
 		"ko": "업데이트하지 못했습니다(%v). 직접 업데이트하세요:\n  %s\n",
