@@ -177,18 +177,15 @@ func jvmGroupTech(group string) string {
 }
 
 // filePresenceTechs are the techs a file's presence in a repository shows (a Dockerfile shows Docker), by
-// its path in the repository: none in a folder of other people's code or samples (skipDirs). Under an
-// android/ or ios/ folder its name shows none (Flutter and React Native make those folders), its
-// extension still does.
+// its path in the repository. In a folder of other people's code or samples (skipDirs), or under an
+// android/ or ios/ folder (Flutter and React Native make those), its name shows none; its extension
+// (.vue) still does.
 func filePresenceTechs(file string) []string {
-	if inSkipDir(file) {
-		return nil
-	}
 	segments := strings.Split(strings.ToLower(strings.ReplaceAll(file, `\`, "/")), "/")
 	base := segments[len(segments)-1]
 	var techs []string
 	switch {
-	case slices.ContainsFunc(segments[:len(segments)-1], func(s string) bool { return s == "android" || s == "ios" }):
+	case inSkipDir(file) || slices.ContainsFunc(segments[:len(segments)-1], func(s string) bool { return s == "android" || s == "ios" }):
 	case presenceTechs[base] != nil:
 		techs = slices.Clone(presenceTechs[base])
 	case strings.HasPrefix(base, "dockerfile"):

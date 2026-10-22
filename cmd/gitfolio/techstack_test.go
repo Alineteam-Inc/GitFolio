@@ -9,10 +9,11 @@ import (
 	"testing"
 )
 
-// Files in other people's code or samples show nothing by their presence; a file named like such a folder does.
+// Files in other people's code or samples show nothing by their name, still by their extension; a file
+// named like such a folder is not in one.
 func TestPresenceSkipsVendor(t *testing.T) {
 	for p, want := range map[string]string{"vendor/Dockerfile": "", `Bower_Components\x\Dockerfile`: "", "a/Example/main.tf": "",
-		"src/vendor.tf": "TERRAFORM", "infra/Dockerfile.prod": "DOCKER"} {
+		"node_modules/x/App.vue": "VUEJS", "src/vendor.tf": "TERRAFORM", "infra/Dockerfile.prod": "DOCKER"} {
 		if got := strings.Join(filePresenceTechs(p), " "); got != want {
 			t.Errorf("filePresenceTechs(%q) = %q, want %q", p, got, want)
 		}

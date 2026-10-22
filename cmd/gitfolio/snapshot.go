@@ -285,11 +285,12 @@ func botAuthor(email string) bool {
 // presenceFiles are the file names whose presence alone shows a tool (Helm, Bun, Nx, CMake, ...).
 var presenceFiles = set("chart.yaml helmfile.yaml bun.lockb nx.json turbo.json cmakelists.txt androidmanifest.xml")
 
-// addMarkers adds what the file at path p shows by its presence: its name, "dockerfile" or "*.tf" (not
-// under an android/ or ios/ folder, which Flutter and React Native make), and "*.vue" or "*.svelte".
+// addMarkers adds what the file at path p shows by its presence: its name, "dockerfile" or "*.tf" (not in
+// a folder of other people's code or samples, skipDirs, or under an android/ or ios/ folder, which
+// Flutter and React Native make), and "*.vue" or "*.svelte".
 func addMarkers(m map[string]bool, p string) {
 	dirs, base := path.Split(strings.ToLower(strings.ReplaceAll(p, `\`, "/")))
-	if !slices.ContainsFunc(strings.Split(dirs, "/"), func(s string) bool { return s == "android" || s == "ios" }) {
+	if !inSkipDir(p) && !slices.ContainsFunc(strings.Split(dirs, "/"), func(s string) bool { return s == "android" || s == "ios" }) {
 		switch {
 		case presenceFiles[base]:
 			m[base] = true

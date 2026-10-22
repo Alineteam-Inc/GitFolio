@@ -19,10 +19,11 @@ func TestSourceFileAndMarkers(t *testing.T) {
 	}
 	m := map[string]bool{}
 	for _, p := range []string{"Dockerfile", "deploy/Dockerfile.prod", "infra/main.tf", "charts/app/Chart.yaml", "web/App.vue",
-		"android/app/src/main/AndroidManifest.xml", "ios/Dockerfile", "src/main.go", "CMakeLists.txt"} {
+		"android/app/src/main/AndroidManifest.xml", "ios/Dockerfile", "src/main.go", "CMakeLists.txt",
+		"vendor/x/helmfile.yaml", "Examples/y/bun.lockb", "node_modules/z/Widget.svelte"} {
 		addMarkers(m, p)
 	}
-	if got, want := slices.Sorted(maps.Keys(m)), []string{"*.tf", "*.vue", "chart.yaml", "cmakelists.txt", "dockerfile"}; !slices.Equal(got, want) {
+	if got, want := slices.Sorted(maps.Keys(m)), []string{"*.svelte", "*.tf", "*.vue", "chart.yaml", "cmakelists.txt", "dockerfile"}; !slices.Equal(got, want) {
 		t.Errorf("markers = %v, want %v", got, want)
 	}
 }
