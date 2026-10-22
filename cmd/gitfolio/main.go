@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -39,11 +40,13 @@ commands:
   list                  show registered repositories
   status [name|path]    what GitFolio collected per repository: commits, how many aline.team has,
                         file changes, lines, AI use, languages, dependencies (this computer's data only)
-  stats [--refresh]     your developer type and its five scores from aline.team, saved here after the
-                        first time (--refresh: get it again; aline.team makes it if it has none yet).
-                        In local mode it sends the statistics first and gets the type each time
-  stack                 how long you used each language, framework and library, from aline.team
-                        (local mode: sends the statistics first)
+  stats [--refresh] [--json]
+                        your developer type and its five scores from aline.team, saved here after the
+                        first time (--refresh: get it again; aline.team makes it if it has none yet,
+                        --json: as JSON, for programs). In local mode it sends the statistics first
+                        and gets the type each time
+  stack [--json]        how long you used each language, framework and library, from aline.team
+                        (local mode: sends the statistics first; --json: as JSON, for programs)
   export                print collected commits, dependencies and statistics as JSON
   deps [on|off|review [path]]
                         dependency detection: show status, turn it on (you choose which
@@ -78,9 +81,37 @@ commands:
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		warn(detectLang(os.Getenv), "failed", err)
+		if jsonOut {
+			_ = printJSON(map[string]any{"error": map[string]string{"code": errorCode(err), "message": err.Error()}})
+		} else {
+			warn(detectLang(os.Getenv), "failed", err)
+		}
 		os.Exit(1)
 	}
+}
+
+// jsonOut is set by --json: stdout then carries one JSON document for programs,
+// a failure too (main), and what people read goes to stderr.
+var jsonOut bool
+
+func jsonMode(args []string) {
+	if slices.Contains(args, "--json") {
+		jsonOut, out = true, errOut
+	}
+}
+
+// errorCode is what programs reading --json branch on: the message key of a translated error,
+// loginFirst for a login aline.team no longer takes, failed for anything else.
+func errorCode(err error) string {
+	var f *failErr
+	var ae *apiError
+	switch {
+	case errors.As(err, &f):
+		return f.key
+	case errors.As(err, &ae) && (ae.Code == codeTokenInvalid || ae.Code == codeNotLoggedIn):
+		return "loginFirst"
+	}
+	return "failed"
 }
 
 func run(args []string) error {

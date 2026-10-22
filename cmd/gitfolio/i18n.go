@@ -2,7 +2,6 @@ package main
 
 import (
 	"cmp"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -140,8 +139,13 @@ func blank() {
 // failure returns a translated error; main prints it with the GitFolio prefix. Errors that come from
 // git itself or only show up in hooks stay as they are.
 func failure(key string, args ...any) error {
-	return errors.New(strings.TrimSpace(fmt.Sprintf(tr(detectLang(os.Getenv), key), args...)))
+	return &failErr{key, strings.TrimSpace(fmt.Sprintf(tr(detectLang(os.Getenv), key), args...))}
 }
+
+// failErr is a translated error; its message key is the code --json gives programs (errorCode).
+type failErr struct{ key, msg string }
+
+func (e *failErr) Error() string { return e.msg }
 
 // section prints the separator that opens an interactive command.
 func section(lang, titleKey string) {

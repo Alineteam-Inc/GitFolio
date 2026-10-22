@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http/httptest"
 	"os"
@@ -196,5 +199,86 @@ func TestStack(t *testing.T) {
 	buf.Reset()
 	if err := cmdStack(dir, nil); err != nil || !strings.Contains(buf.String(), "does not give the CLI") {
 		t.Errorf("server without tech stack periods: %v\n%s", err, buf.String())
+	}
+}
+
+// stats and stack --json print one JSON document on stdout for programs, and what people read goes
+// to stderr. A failure is printed by main, with the code errorCode gives.
+func TestStatsJSON(t *testing.T) {
+	f := &fakeAline{token: testToken, devType: map[string]any{"devTypeTitle": "ARCHITECT", "agilityStat": 72, "devTypeReason": "because"},
+		techUsages: map[string]any{"languages": []map[string]any{{"name": "Go", "careerMonths": 20}}}}
+	ts := httptest.NewServer(f.handler())
+	defer ts.Close()
+	t.Setenv("GITFOLIO_API_URL", ts.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	var buf, errBuf bytes.Buffer
+	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
+	out, errOut = &buf, &errBuf
+	dir := t.TempDir()
+	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}); err != nil {
+		t.Fatal(err)
+	}
+	stdout := func(cmd func(string, []string) error, args ...string) (map[string]any, error) {
+		t.Helper()
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func(o *os.File) { os.Stdout = o }(os.Stdout)
+		os.Stdout = w
+		err = cmd(dir, args)
+		w.Close()
+		b, _ := io.ReadAll(r)
+		var v map[string]any
+		if len(b) > 0 {
+			if jerr := json.Unmarshal(b, &v); jerr != nil {
+				t.Fatalf("%v: not one JSON document: %v\n%s", args, jerr, b)
+			}
+		}
+		return v, err
+	}
+
+	v, err := stdout(cmdStats, "--json")
+	typ, _ := v["type"].(map[string]any)
+	if err != nil || typ["devTypeTitle"] != "ARCHITECT" || typ["agilityStat"] != 72.0 || v["saved"] != false ||
+		v["year"] != float64(time.Now().Year()) || typ["devTypeReason"] != nil || out != errOut { // people's text: on stderr
+		t.Errorf("stats --json: %v %v", v, err)
+	}
+	if v, err := stdout(cmdStats, "--json"); err != nil || v["saved"] != true {
+		t.Errorf("stats --json, saved: %v %v", v, err)
+	}
+	f.devType = nil // nothing to analyse yet: no type, and no failure either
+	dir = t.TempDir()
+	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}); err != nil {
+		t.Fatal(err)
+	}
+	if v, err := stdout(cmdStats, "--refresh", "--json"); err != nil || v == nil || v["type"] != nil {
+		t.Errorf("stats --json, nothing yet: %v %v", v, err)
+	}
+
+	v, err = stdout(cmdStack, "--json")
+	langs, _ := v["languages"].([]any)
+	if fw, ok := v["frameworks"].([]any); err != nil || len(langs) != 1 || langs[0].(map[string]any)["name"] != "Go" || !ok || len(fw) != 0 {
+		t.Errorf("stack --json: %v %v", v, err)
+	}
+	for _, args := range [][]string{{"--all"}, {"--json", "--all"}} {
+		if cmdStack(dir, args) == nil {
+			t.Errorf("stack %v was taken", args)
+		}
+	}
+	f.noStats = true
+	if v, err := stdout(cmdStack, "--json"); v != nil || errorCode(err) != "stackUnavailable" {
+		t.Errorf("stack --json, server without it: %v %v", v, err)
+	}
+
+	for err, want := range map[error]string{
+		failure("loginFirst"): "loginFirst",
+		fmt.Errorf("%w again", &apiError{Status: 401, Code: codeTokenInvalid}): "loginFirst",
+		&apiError{Status: 500, Code: "S001"}:                                   "failed",
+		errors.New("git: no such repository"):                                  "failed",
+	} {
+		if got := errorCode(err); got != want {
+			t.Errorf("errorCode(%v) = %q, want %q", err, got, want)
+		}
 	}
 }
