@@ -1,7 +1,7 @@
 #!/bin/sh
-# GitFolio installer for macOS and Linux — https://github.com/Alineteam-Inc/GitFolio
+# GitFolio installer for macOS and Linux — https://github.com/Alineteam-Inc/GitFolio-CLI
 #
-#   curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.sh | sh
 #
 # Downloads the release for this OS and CPU over HTTPS, verifies its SHA-256 checksum against the
 # release's checksums.txt and refuses to install on any mismatch.
@@ -13,7 +13,7 @@
 set -eu
 
 main() {
-	repo="Alineteam-Inc/GitFolio"
+	repo="Alineteam-Inc/GitFolio-CLI"
 
 	case "$(uname -s)" in
 	Darwin) os=darwin ;;

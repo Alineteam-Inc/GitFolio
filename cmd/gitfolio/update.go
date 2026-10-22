@@ -24,12 +24,12 @@ var bundled string
 func updatesItself() bool { return !sourceBuild() && bundled == "" }
 
 // latestURL redirects to the newest release's tag page (no API rate limit).
-var latestURL = "https://github.com/Alineteam-Inc/GitFolio/releases/latest"
+var latestURL = "https://github.com/Alineteam-Inc/GitFolio-CLI/releases/latest"
 
 const (
 	updateFile  = "update.json"
-	installSh   = "https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.sh"
-	installPs1  = "https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1"
+	installSh   = "https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.sh"
+	installPs1  = "https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.ps1"
 	updateEvery = 24 * time.Hour
 )
 

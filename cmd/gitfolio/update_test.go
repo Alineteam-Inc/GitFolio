@@ -33,7 +33,7 @@ func TestUpdateCheck(t *testing.T) {
 	}
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/Alineteam-Inc/GitFolio/releases/tag/v0.2.0", http.StatusFound)
+		http.Redirect(w, r, "/Alineteam-Inc/GitFolio-CLI/releases/tag/v0.2.0", http.StatusFound)
 	}))
 	defer srv.Close()
 	defer func(u string) { latestURL = u }(latestURL)
@@ -83,7 +83,7 @@ func TestUpdateNoticeOnPush(t *testing.T) {
 	looks := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		looks++
-		http.Redirect(w, r, "/Alineteam-Inc/GitFolio/releases/tag/v0.5.0", http.StatusFound)
+		http.Redirect(w, r, "/Alineteam-Inc/GitFolio-CLI/releases/tag/v0.5.0", http.StatusFound)
 	}))
 	defer srv.Close()
 	defer func(u string) { latestURL = u }(latestURL)
@@ -162,7 +162,7 @@ func TestBundledCopy(t *testing.T) {
 	looks := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		looks++
-		http.Redirect(w, r, "/Alineteam-Inc/GitFolio/releases/tag/v0.5.0", http.StatusFound)
+		http.Redirect(w, r, "/Alineteam-Inc/GitFolio-CLI/releases/tag/v0.5.0", http.StatusFound)
 	}))
 	defer srv.Close()
 	defer func(u, v, b string, f func() (io.WriteCloser, error)) {
@@ -200,7 +200,7 @@ func TestVersionLatest(t *testing.T) {
 	looks := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		looks++
-		http.Redirect(w, r, "/Alineteam-Inc/GitFolio/releases/tag/v0.5.0", http.StatusFound)
+		http.Redirect(w, r, "/Alineteam-Inc/GitFolio-CLI/releases/tag/v0.5.0", http.StatusFound)
 	}))
 	defer srv.Close()
 	defer func(u, v, b string) { latestURL, version, bundled = u, v, b }(latestURL, version, bundled)

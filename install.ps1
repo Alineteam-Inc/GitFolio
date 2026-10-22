@@ -1,6 +1,6 @@
-# GitFolio installer for Windows — https://github.com/Alineteam-Inc/GitFolio
+# GitFolio installer for Windows — https://github.com/Alineteam-Inc/GitFolio-CLI
 #
-#   irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/Alineteam-Inc/GitFolio-CLI/main/install.ps1 | iex
 #
 # Downloads the release for this CPU over HTTPS, verifies its SHA-256 checksum against the release's
 # checksums.txt and refuses to install on any mismatch. Installs to %LOCALAPPDATA%\Programs\GitFolio and
@@ -13,7 +13,7 @@
 
 function Install-GitFolio {
     $ErrorActionPreference = 'Stop'
-    $repo = 'Alineteam-Inc/GitFolio'
+    $repo = 'Alineteam-Inc/GitFolio-CLI'
     $cpu = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
     $arch = switch ($cpu) {
         'AMD64' { 'amd64' }
