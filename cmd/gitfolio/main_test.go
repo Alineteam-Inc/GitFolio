@@ -152,3 +152,16 @@ func TestUninstall(t *testing.T) {
 		t.Error("an unknown flag was taken")
 	}
 }
+
+// A failure before the command itself runs, such as the login a sync needs, comes as JSON too.
+func TestJSONBeforeCommand(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("AppData", filepath.Join(home, "AppData"))
+	defer func(o io.Writer, i func() bool) { out, jsonOut, interactive = o, false, i }(out, interactive)
+	interactive = func() bool { return false }
+	if err := run([]string{"sync", "--json"}); errorCode(err) != "loginFirst" || !jsonOut {
+		t.Errorf("sync --json logged out: %v, JSON %v", err, jsonOut)
+	}
+}

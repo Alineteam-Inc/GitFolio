@@ -165,6 +165,10 @@ func (s repoStatus) sentCount(r Repo, st syncState) string {
 // cmdStatus shows what GitFolio has collected, from this computer's data only (no request to aline.team):
 // per repository with no argument, in full for one repository (its name or path).
 func cmdStatus(dir string, args []string) error {
+	jsonMode(args)
+	if jsonOut && !slices.Equal(args, []string{"--json"}) {
+		return failure("usage", "gitfolio status --json")
+	}
 	lang := detectLang(os.Getenv)
 	repos, err := loadRepos(dir)
 	if err != nil {
@@ -185,6 +189,9 @@ func cmdStatus(dir string, args []string) error {
 	cfg, err := loadConfig(dir)
 	if err != nil {
 		return err
+	}
+	if jsonOut {
+		return statusJSON(dir, repos, commits, st, cfg)
 	}
 	if len(args) > 0 {
 		r, ok := findRepo(repos, args[0])
@@ -237,6 +244,48 @@ func cmdStatus(dir string, args []string) error {
 	waitingNotice(lang, st.Waiting)
 	notice(tr(lang, "statusMore"))
 	return nil
+}
+
+// statusJSON is gitfolio status --json: what GitFolio holds on this computer, for a program, without
+// asking aline.team. setUp is true once logged in with a repository registered (what init does).
+func statusJSON(dir string, repos []Repo, commits []Commit, st syncState, cfg Config) error {
+	c, err := newClient(dir)
+	if err != nil {
+		return err
+	}
+	type repo struct {
+		Name       string `json:"name"`
+		Path       string `json:"path"`
+		Namespace  string `json:"namespace"` // owner/name on the git service; "" without one: never sent
+		Commits    int    `json:"commits"`
+		Sent       int    `json:"sent"`    // how many of them aline.team has
+		Waiting    bool   `json:"waiting"` // aline.team takes them once an email is verified (gitfolio email)
+		Hooks      string `json:"hooks"`   // on, off, or manual: a hooks folder GitFolio does not write to
+		LastCommit string `json:"lastCommit,omitempty"`
+	}
+	list, unsent := []repo{}, 0
+	for _, r := range repos {
+		s := statusOf(r, commits, nil, st)
+		last := ""
+		if !s.last.IsZero() {
+			last = s.lastCommit()
+		}
+		list = append(list, repo{r.Name, r.Path, r.Namespace, s.commits, s.sent, st.Waiting[r.Provider+"/"+r.Namespace] != "",
+			hookStatus(r.Path), last})
+		if r.Namespace != "" {
+			unsent += s.commits - s.sent
+		}
+	}
+	var account any // null: not logged in
+	if c.loggedIn() {
+		account = c.creds.Email
+	}
+	mode := "automatic"
+	if cfg.AutoSyncOff {
+		mode = "local" // commits are never sent: unsent only counts in automatic mode
+	}
+	return printJSON(map[string]any{"account": account, "setUp": c.loggedIn() && len(repos) > 0, "syncMode": mode,
+		"lastSync": st.LastSync, "lastSyncError": st.LastError, "unsent": unsent, "repositories": list})
 }
 
 // lineCounts is a "+added -deleted" pair of changed-line counts.

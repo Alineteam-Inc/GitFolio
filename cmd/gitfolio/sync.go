@@ -615,8 +615,10 @@ func (c *client) upsert(author string, commits []Commit, modified []modifiedFile
 
 // cmdSync collects new commits in every registered repository and sends what aline.team does not have.
 func cmdSync(dir string, args []string) error {
+	jsonMode(args)
 	fs := flag.NewFlagSet("sync", flag.ContinueOnError)
 	dryRun := fs.Bool("dry-run", false, "print what would be sent, send nothing")
+	fs.Bool("json", false, "print the result as JSON")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -629,10 +631,12 @@ func cmdSync(dir string, args []string) error {
 	if err != nil {
 		return err
 	}
+	failed := []map[string]string{} // repositories that could not be read, for --json
 	for i := range repos {
 		progress(lang, "progressScan", i, len(repos))
 		if _, err := scanRepo(dir, &repos[i], false); err != nil {
 			warn(lang, "repoFailed", repos[i].Name, err)
+			failed = append(failed, map[string]string{"name": repos[i].Name, "error": err.Error()})
 			continue
 		}
 		if cfg.Deps && cfg.DepsAuto { // deps auto on: the daily sync runs this too
@@ -656,6 +660,15 @@ func cmdSync(dir string, args []string) error {
 	st, err := loadSync(dir)
 	if err != nil {
 		return err
+	}
+	if jsonOut {
+		waiting := []map[string]string{} // repositories aline.team takes once the email is verified
+		for _, key := range slices.Sorted(maps.Keys(st.Waiting)) {
+			_, namespace, _ := strings.Cut(key, "/")
+			waiting = append(waiting, map[string]string{"namespace": namespace, "email": st.Waiting[key]})
+		}
+		return printJSON(map[string]any{"commits": n.commits, "deleted": n.deletes, "moved": n.moves, "stats": n.stats,
+			"deps": n.deps, "depsCleared": n.depsCleared, "noRemote": n.noRemote, "waiting": waiting, "failed": failed})
 	}
 	switch {
 	case n.commits+n.deletes > 0:

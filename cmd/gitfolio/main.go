@@ -38,13 +38,17 @@ commands:
   scan [path] [--all] [--rebuild]
                         collect new commits (--all: every registered repository,
                         --rebuild: drop stored commits and collect again)
-  sync [--dry-run]      collect new commits in every repository and send what aline.team
-                        does not have yet (--dry-run: print it as JSON, send nothing).
+  sync [--dry-run] [--json]
+                        collect new commits in every repository and send what aline.team
+                        does not have yet (--dry-run: print it as JSON, send nothing;
+                        --json: what was sent and what waits, as JSON).
                         Pushes are sent right after git push unless autosync is off;
                         in local mode (autosync off) only the statistics are sent
   list                  show registered repositories
   status [name|path]    what GitFolio collected per repository: commits, how many aline.team has,
                         file changes, lines, AI use, languages, dependencies (this computer's data only)
+  status --json         the account, sync mode, last sync, commits not sent yet and each repository,
+                        as JSON for programs (this computer's data only)
   stats [--refresh] [--json]
                         your developer type and its five scores from aline.team, saved here after the
                         first time (--refresh: get it again; aline.team makes it if it has none yet,
@@ -124,10 +128,11 @@ func errorCode(err error) string {
 }
 
 var serverCodes = map[string]string{
-	codeTokenInvalid: "loginFirst", codeNotLoggedIn: "loginFirst", // the login is gone: log in again
-	codeWrongCode:   "codeWrong",   // try the code again
-	codeExpired:     "codeExpired", // ask for a new code
-	codeRateLimited: "rateLimited", // try again later
+	codeTokenInvalid: "loginFirst", // the login is gone: log in again
+	codeNotLoggedIn:  "loginFirst",
+	codeWrongCode:    "codeWrong",   // try the code again
+	codeExpired:      "codeExpired", // ask for a new code
+	codeRateLimited:  "rateLimited", // try again later
 }
 
 func run(args []string) error {
@@ -142,6 +147,8 @@ func run(args []string) error {
 		fmt.Print(header())
 		return nil
 	}
+	// --json first: a failure in the checks below comes as JSON too.
+	jsonMode(args[1:])
 	if args[0] != "hook" && !slices.Contains(commands, args[0]) { // before anything else runs for a typo
 		return unknownCommand(args[0])
 	}
