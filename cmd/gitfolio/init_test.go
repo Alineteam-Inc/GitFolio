@@ -434,8 +434,16 @@ func TestGitInstaller(t *testing.T) {
 		t.Errorf("asked %v on %s:\n%s", asked, runtime.GOOS, buf.String())
 	}
 	buf.Reset()
-	if err := run([]string{"init", "--policy", "--json"}); errorCode(err) != "noGit" || buf.Len() != 0 {
+	if err := run([]string{"status", "--json"}); errorCode(err) != "noGit" || buf.Len() != 0 {
 		t.Errorf("a program was asked: %v\n%s", err, buf.String())
+	}
+	// The data policy comes first, before git is there and without the data folder.
+	t.Setenv("HOME", filepath.Join(t.TempDir(), "none"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(os.Getenv("HOME"), ".config"))
+	t.Setenv("AppData", filepath.Join(os.Getenv("HOME"), "AppData"))
+	v, err := jsonStdout(t, func() error { return run([]string{"init", "--policy", "--json"}) })
+	if _, serr := os.Stat(os.Getenv("HOME")); err != nil || !strings.Contains(fmt.Sprint(v["policy"]), "Source code is never collected") || serr == nil {
+		t.Errorf("policy without git: %v %v (data folder made: %v)", v, err, serr == nil)
 	}
 }
 

@@ -177,6 +177,9 @@ func run(args []string) error {
 	if args[0] == "git" { // whether git is there, before needing it
 		return cmdGit(args[1:])
 	}
+	if args[0] == "init" && slices.Equal(withoutJSON(args[1:]), []string{"--policy"}) { // a fixed text: before git and the data folder
+		return cmdInit("", args[1:])
+	}
 	if !gitWorks() && args[0] != "uninstall" { // removing goes as far as it can
 		if args[0] != "init" || jsonOut || !interactive() || !installGit(detectLang(os.Getenv)) {
 			return failure("noGit")
