@@ -168,6 +168,8 @@ type techUsage struct {
 	CareerMonths *int   `json:"careerMonths"`
 	ProjectCount *int   `json:"projectCount"`
 	Hidden       bool   `json:"isHidden"` // hidden from the profile by the user
+	// ActivityMonths are the months it was used in ("2026-10"), ascending, from a server that gives them.
+	ActivityMonths []string `json:"activityMonths,omitempty"`
 }
 
 type techUsages struct {
@@ -187,7 +189,24 @@ func techUsagesNow(c *client) (u techUsages, err error) {
 			*l = []techUsage{}
 		}
 	}
-	return u, err
+	if err != nil {
+		return u, err
+	}
+	// The months each was used in, for a timeline with gaps; a server without them yet gives the periods alone.
+	var m techUsages
+	if err := c.call("GET", "/cli/tech-usages/activity-months", nil, &m); unsupported(err) {
+		return u, nil
+	} else if err != nil {
+		return u, err
+	}
+	for _, k := range [][2][]techUsage{{u.Languages, m.Languages}, {u.Frameworks, m.Frameworks}, {u.Libraries, m.Libraries}} {
+		for i := range k[0] {
+			if j := slices.IndexFunc(k[1], func(t techUsage) bool { return t.Name == k[0][i].Name }); j >= 0 {
+				k[0][i].ActivityMonths = k[1][j].ActivityMonths
+			}
+		}
+	}
+	return u, nil
 }
 
 // cmdStack shows the user's tech stack periods from aline.team, asked for each time.

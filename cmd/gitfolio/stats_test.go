@@ -314,3 +314,45 @@ func TestLocalModeJSON(t *testing.T) {
 		t.Error("the statistics were not sent first")
 	}
 }
+
+// stack --json adds the months each tech was used in, matched by kind and name, when aline.team gives
+// them; a server without them yet gives the periods alone.
+func TestStackActivityMonths(t *testing.T) {
+	f := &fakeAline{token: testToken, techUsages: map[string]any{
+		"languages":  []map[string]any{{"name": "Go"}, {"name": "Java"}},
+		"frameworks": []map[string]any{{"name": "Spring Boot", "framework": "SPRING_BOOT"}},
+	}}
+	ts := httptest.NewServer(f.handler())
+	defer ts.Close()
+	t.Setenv("GITFOLIO_API_URL", ts.URL)
+	t.Setenv("GITFOLIO_LANG", "en")
+	var buf bytes.Buffer
+	defer func(o, e io.Writer) { out, errOut, jsonOut = o, e, false }(out, errOut)
+	out, errOut = &buf, &buf
+	dir := t.TempDir()
+	if err := saveCredentials(dir, Credentials{Token: testToken, Email: "dev@example.com", Server: ts.URL}); err != nil {
+		t.Fatal(err)
+	}
+	stack := func() map[string]any {
+		t.Helper()
+		v, err := jsonStdout(t, func() error { return cmdStack(dir, []string{"--json"}) })
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
+	if langs := stack()["languages"].([]any); langs[0].(map[string]any)["activityMonths"] != nil {
+		t.Errorf("months from a server without them: %v", langs)
+	}
+	f.months = map[string]any{
+		"languages":  []map[string]any{{"name": "Java", "activityMonths": []string{"2024-01", "2024-03"}}},
+		"frameworks": []map[string]any{{"name": "Spring Boot", "activityMonths": []string{"2025-06"}}},
+		"libraries":  []map[string]any{{"name": "Go", "activityMonths": []string{"1999-01"}}}, // another kind: not Go the language
+	}
+	v := stack()
+	langs, fws := v["languages"].([]any), v["frameworks"].([]any)
+	if langs[0].(map[string]any)["activityMonths"] != nil || fmt.Sprint(langs[1].(map[string]any)["activityMonths"]) != "[2024-01 2024-03]" ||
+		fmt.Sprint(fws[0].(map[string]any)["activityMonths"]) != "[2025-06]" {
+		t.Errorf("activity months: %v", v)
+	}
+}
