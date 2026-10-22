@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -31,6 +32,26 @@ var manifestNames = map[string]string{
 	"build.gradle.kts":   "maven",
 	"libs.versions.toml": "maven",
 	"Cargo.toml":         "cargo",
+	"environment.yml":    "conda",
+	"composer.json":      "composer",
+	"Gemfile":            "rubygems",
+	"pubspec.yaml":       "pub",
+	"Package.swift":      "swift",
+	"Podfile":            "cocoapods",
+	"mix.exs":            "hex",
+	"deno.json":          "deno",
+	"build.sbt":          "sbt",
+}
+
+// manifestEcosystem is the ecosystem of a package manager file by its path, "" for none: by name, and
+// .NET project files by extension.
+func manifestEcosystem(file string) string {
+	base := path.Base(file)
+	switch path.Ext(base) {
+	case ".csproj", ".vbproj", ".fsproj":
+		return "nuget"
+	}
+	return manifestNames[base]
 }
 
 // skipDirs hold other people's code or samples; manifest files inside are not even offered.
@@ -49,7 +70,9 @@ type Dependency struct {
 	Version   string `json:"version,omitempty"`
 }
 
-type dep struct{ name, version string }
+// dep is one dependency a manifest declares; eco, when set, is its ecosystem instead of the manifest's
+// (environment.yml declares conda and pip packages).
+type dep struct{ name, version, eco string }
 
 func loadDeps(dir string) (deps []Dependency, err error) {
 	err = loadJSON(filepath.Join(dir, "deps.json"), &deps)
@@ -62,9 +85,10 @@ func manifestCandidates(repo string) []string {
 	if err != nil {
 		return nil // no commits yet
 	}
+	all := strings.Split(out, "\x00")
 	var files []string
-	for _, p := range strings.Split(out, "\x00") {
-		if _, ok := manifestNames[path.Base(p)]; !ok {
+	for _, p := range all {
+		if manifestEcosystem(p) == "" || path.Base(p) == "Podfile" && crossPlatformIOS(p, all) {
 			continue
 		}
 		if slices.ContainsFunc(strings.Split(path.Dir(p), "/"), func(d string) bool { return slices.Contains(skipDirs, d) }) {
@@ -142,7 +166,7 @@ func refreshDeps(dir string, r *Repo) (files, deps int, err error) {
 		}
 		files++
 		for _, x := range parseManifest(path.Base(p), content) {
-			found = append(found, Dependency{Repo: r.ID, Module: moduleID(manifestDir(p)), Ecosystem: manifestNames[path.Base(p)], Name: x.name, Version: x.version})
+			found = append(found, Dependency{Repo: r.ID, Module: moduleID(manifestDir(p)), Ecosystem: cmp.Or(x.eco, manifestEcosystem(p)), Name: x.name, Version: x.version})
 		}
 	}
 	all, err := loadDeps(dir)
@@ -189,12 +213,40 @@ func parseManifest(name, s string) []dep {
 		deps = parsePom(s)
 	case "build.gradle", "build.gradle.kts":
 		for _, g := range gradleDep.FindAllStringSubmatch(s, -1) {
-			deps = append(deps, dep{g[1] + ":" + g[2], g[3]})
+			deps = append(deps, dep{name: g[1] + ":" + g[2], version: g[3]})
 		}
 	case "libs.versions.toml":
 		deps = parseVersionCatalog(s)
 	case "Cargo.toml":
 		deps = parseCargo(s)
+	case "environment.yml":
+		deps = parseConda(s)
+	case "composer.json":
+		deps = parseComposer(s)
+	case "Gemfile":
+		deps = matchDeps(gemDecl, s)
+	case "pubspec.yaml":
+		deps = parsePubspec(s)
+	case "Package.swift":
+		for _, m := range swiftPackage.FindAllStringSubmatch(s, -1) {
+			if githubRepo.MatchString(m[1]) { // only GitHub ones name a tech: other hosts' addresses stay here
+				deps = append(deps, dep{name: m[1], version: m[2]})
+			}
+		}
+	case "Podfile":
+		deps = matchDeps(podDecl, s)
+	case "mix.exs":
+		deps = matchDeps(mixDep, s)
+	case "deno.json":
+		deps = parseDeno(s)
+	case "build.sbt":
+		for _, m := range sbtDecl.FindAllStringSubmatch(s, -1) {
+			deps = append(deps, dep{name: m[1] + ":" + m[2], version: m[3]})
+		}
+	default:
+		if manifestEcosystem(name) == "nuget" {
+			deps = parseMsProj(s)
+		}
 	}
 	slices.SortFunc(deps, func(a, b dep) int { return strings.Compare(a.name, b.name) })
 	return slices.CompactFunc(deps, func(a, b dep) bool { return a.name == b.name })
@@ -213,7 +265,7 @@ func parsePackageJSON(s string) []dep {
 	for _, m := range []map[string]string{pkg.Dependencies, pkg.DevDependencies, pkg.PeerDependencies} {
 		for n, v := range m {
 			if !npmLocal(v) {
-				deps = append(deps, dep{n, v})
+				deps = append(deps, dep{name: n, version: v})
 			}
 		}
 	}
@@ -248,7 +300,7 @@ func parseGoMod(s string) []dep {
 			continue
 		}
 		if f := strings.Fields(line); len(f) >= 2 && !strings.Contains(line, "// indirect") {
-			deps = append(deps, dep{f[0], f[1]})
+			deps = append(deps, dep{name: f[0], version: f[1]})
 		}
 	}
 	return deps
@@ -271,7 +323,7 @@ func pep508(s string) (dep, bool) {
 			version = strings.TrimPrefix(strings.TrimSpace(s[j:]), "==")
 		}
 	}
-	return dep{name, version}, name != ""
+	return dep{name: name, version: version}, name != ""
 }
 
 var quotedRe = regexp.MustCompile(`"([^"]*)"|'([^']*)'`)
@@ -305,13 +357,13 @@ func tomlDep(line string) (dep, bool) {
 		if tableKey(v, "path") != "" || tableKey(v, "git") != "" {
 			return dep{}, false
 		}
-		return dep{name, tableKey(v, "version")}, name != ""
+		return dep{name: name, version: tableKey(v, "version")}, name != ""
 	}
 	version := ""
 	if q := quoted(v); len(q) > 0 {
 		version = q[0]
 	}
-	return dep{name, version}, name != ""
+	return dep{name: name, version: version}, name != ""
 }
 
 func parsePyproject(s string) []dep {
@@ -405,7 +457,7 @@ func parsePom(s string) []dep {
 	}
 	var deps []dep
 	for _, d := range pom.Deps {
-		deps = append(deps, dep{d.Group + ":" + d.Artifact, d.Version})
+		deps = append(deps, dep{name: d.Group + ":" + d.Artifact, version: d.Version})
 	}
 	return deps
 }
@@ -456,7 +508,7 @@ func parseVersionCatalog(s string) []dep {
 			l.version = versions[l.ref]
 		}
 		if l.name != "" {
-			deps = append(deps, dep{l.name, l.version})
+			deps = append(deps, dep{name: l.name, version: l.version})
 		}
 	}
 	return deps
@@ -489,6 +541,200 @@ func prompt(q string) string {
 		answered()
 	}
 	return strings.TrimSpace(line)
+}
+
+// crossPlatformIOS reports whether a Podfile is in an ios/ folder that Flutter or React Native made:
+// one whose parent folder has a pubspec.yaml or package.json. aline.team does not take its pods as an
+// iOS app, so they are not offered.
+func crossPlatformIOS(file string, files []string) bool {
+	dirs := strings.Split(path.Dir(file), "/")
+	for i, d := range dirs {
+		if strings.EqualFold(d, "ios") {
+			parent := strings.Join(dirs[:i], "/")
+			if parent != "" {
+				parent += "/"
+			}
+			if slices.Contains(files, parent+"pubspec.yaml") || slices.Contains(files, parent+"package.json") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+var (
+	gemDecl      = regexp.MustCompile(`(?m)^\s*gem\s+['"]([^'"]+)['"](?:\s*,\s*['"]([^'"]+)['"])?([^\n]*)`)
+	podDecl      = regexp.MustCompile(`(?m)^\s*pod\s+['"]([^'"]+)['"](?:\s*,\s*['"]([^'"]+)['"])?([^\n]*)`)
+	mixDep       = regexp.MustCompile(`\{:([a-z_][a-z0-9_]*)\s*(?:,\s*"([^"]+)")?([^}]*)\}`)
+	swiftPackage = regexp.MustCompile(`\.package\s*\(\s*(?:name\s*:\s*"[^"]*"\s*,\s*)?url\s*:\s*"([^"]+)"(?:\s*,\s*(?:from|exact|branch|revision)\s*:\s*"([^"]*)")?`)
+	sbtDecl      = regexp.MustCompile(`"([^"\s]+)"\s*%{1,3}\s*"([^"\s]+)"\s*%\s*"([^"]*)"`)
+	localDep     = regexp.MustCompile(`\b(?:path|git|github|in_umbrella)\s*(?::|=>)`)
+)
+
+// matchDeps are the name, version and options a Gemfile, Podfile or mix.exs pattern finds; ones taken
+// from a local path or a git repository are left out, as for npm.
+func matchDeps(re *regexp.Regexp, s string) []dep {
+	var deps []dep
+	for _, m := range re.FindAllStringSubmatch(s, -1) {
+		if !localDep.MatchString(m[3]) {
+			deps = append(deps, dep{name: m[1], version: m[2]})
+		}
+	}
+	return deps
+}
+
+// parseConda reads an environment.yml's dependencies: conda packages (a channel prefix like
+// "conda-forge::" dropped), and the PyPI ones of its "- pip:" list.
+func parseConda(s string) []dep {
+	var deps []dep
+	in, pipIndent := false, -1
+	for _, line := range strings.Split(s, "\n") {
+		t := strings.TrimSpace(line)
+		indent := len(line) - len(strings.TrimLeft(line, " "))
+		switch {
+		case t == "" || strings.HasPrefix(t, "#"):
+			continue
+		case indent == 0 && !strings.HasPrefix(t, "-"):
+			in, pipIndent = t == "dependencies:", -1
+			continue
+		case !in || !strings.HasPrefix(t, "-"):
+			continue
+		}
+		item := strings.Trim(strings.TrimSpace(strings.TrimPrefix(t, "-")), `"'`)
+		if pipIndent >= 0 && indent > pipIndent {
+			if d, ok := pep508(item); ok {
+				d.eco = "pypi"
+				deps = append(deps, d)
+			}
+			continue
+		}
+		pipIndent = -1
+		if item == "pip:" {
+			pipIndent = indent
+			continue
+		}
+		if _, after, ok := strings.Cut(item, "::"); ok {
+			item = after
+		}
+		i := strings.IndexAny(item, "=<>!~ ")
+		if i < 0 {
+			i = len(item)
+		}
+		if name := item[:i]; name != "" && name != "python" && name != "pip" {
+			deps = append(deps, dep{name: name, version: strings.TrimLeft(item[i:], "=<>!~ ")})
+		}
+	}
+	return deps
+}
+
+// parseComposer reads a composer.json's require and require-dev ("vendor/package"); PHP itself and its
+// extensions are not packages.
+func parseComposer(s string) []dep {
+	var c struct {
+		Require    map[string]string `json:"require"`
+		RequireDev map[string]string `json:"require-dev"`
+	}
+	if json.Unmarshal([]byte(s), &c) != nil {
+		return nil
+	}
+	var deps []dep
+	for _, m := range []map[string]string{c.Require, c.RequireDev} {
+		for n, v := range m {
+			if strings.Contains(n, "/") {
+				deps = append(deps, dep{name: n, version: v})
+			}
+		}
+	}
+	return deps
+}
+
+// parsePubspec reads a pubspec.yaml's dependencies and dev_dependencies (Flutter's SDK ones too); ones
+// from a local path or git are left out.
+func parsePubspec(s string) []dep {
+	var deps []dep
+	section, cur, local := "", dep{}, false
+	flush := func() {
+		if cur.name != "" && !local {
+			deps = append(deps, cur)
+		}
+		cur, local = dep{}, false
+	}
+	for _, line := range strings.Split(s, "\n") {
+		t := strings.TrimSpace(line)
+		indent := len(line) - len(strings.TrimLeft(line, " "))
+		switch {
+		case t == "" || strings.HasPrefix(t, "#"):
+		case indent == 0:
+			flush()
+			section = strings.TrimSuffix(t, ":")
+		case section != "dependencies" && section != "dev_dependencies":
+		case indent == 2:
+			flush()
+			name, v, _ := strings.Cut(t, ":")
+			cur = dep{name: name, version: strings.Trim(strings.TrimSpace(v), `"'`)}
+		case strings.HasPrefix(t, "path:") || strings.HasPrefix(t, "git:"):
+			local = true
+		}
+	}
+	flush()
+	return deps
+}
+
+// parseDeno reads a deno.json's import map (and its scopes): every key, and the values that name a
+// module aline.team knows the id form of (deno.land/x/…, @scope/name); other addresses stay here.
+func parseDeno(s string) []dep {
+	var d struct {
+		Imports map[string]string            `json:"imports"`
+		Scopes  map[string]map[string]string `json:"scopes"`
+	}
+	if json.Unmarshal([]byte(s), &d) != nil {
+		return nil
+	}
+	var deps []dep
+	for _, m := range append([]map[string]string{d.Imports}, slices.Collect(maps.Values(d.Scopes))...) {
+		for k, v := range m {
+			deps = append(deps, dep{name: k})
+			if denoModule.MatchString(strings.ToLower(v)) {
+				deps = append(deps, dep{name: v})
+			}
+		}
+	}
+	return deps
+}
+
+// parseMsProj reads a .NET project file: its Sdk (as "sdk:Microsoft.NET.Sdk.Web"), and the Include of
+// each PackageReference and Reference (an assembly's version part dropped).
+func parseMsProj(s string) []dep {
+	var deps []dep
+	dec := xml.NewDecoder(strings.NewReader(s))
+	for {
+		tok, err := dec.Token()
+		if err != nil {
+			return deps
+		}
+		e, ok := tok.(xml.StartElement)
+		if !ok {
+			continue
+		}
+		attr := func(name string) string {
+			for _, a := range e.Attr {
+				if a.Name.Local == name {
+					return a.Value
+				}
+			}
+			return ""
+		}
+		switch e.Name.Local {
+		case "Project":
+			if sdk := attr("Sdk"); sdk != "" {
+				deps = append(deps, dep{name: "sdk:" + sdk})
+			}
+		case "PackageReference", "Reference":
+			if name, _, _ := strings.Cut(attr("Include"), ","); strings.TrimSpace(name) != "" {
+				deps = append(deps, dep{name: strings.TrimSpace(name), version: attr("Version")})
+			}
+		}
+	}
 }
 
 // parseSelection turns "all", "none" or "1,3,5-7" into sorted numbers between 1 and n.

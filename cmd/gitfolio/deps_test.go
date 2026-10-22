@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -242,5 +243,62 @@ func TestReviewManifestsTogether(t *testing.T) {
 	want := map[string]bool{"api/go.mod": true, "package.json": false, "web/package.json": false}
 	if !maps.Equal(rs[0].Manifests, want) || rs[1].Manifests != nil || !rs[2].Manifests["pom.xml"] {
 		t.Errorf("manifests = %v, %v, %v", rs[0].Manifests, rs[1].Manifests, rs[2].Manifests)
+	}
+}
+
+// The ten more package manager files aline.team takes: each gives the names in the form its ecosystem
+// sends, and those names give the techs (depTechs) aline.team finds for them.
+func TestMoreManifests(t *testing.T) {
+	for _, tc := range []struct{ file, content, names, techs string }{
+		{"composer.json", `{"require":{"php":"^8.2","ext-json":"*","laravel/framework":"^11.0"},"require-dev":{"phpunit/phpunit":"^10"}}`,
+			"composer:laravel/framework@^11.0 composer:phpunit/phpunit@^10", "LARAVEL"},
+		{"Gemfile", "source 'https://rubygems.org'\ngem 'rails', '~> 7.1'\ngem 'mine', path: '../mine'\n  gem \"puma\"\n",
+			"rubygems:puma@ rubygems:rails@~> 7.1", "RUBY_ON_RAILS"},
+		{"pubspec.yaml", "name: app\ndependencies:\n  flutter:\n    sdk: flutter\n  http: ^1.1.0\n  mine:\n    path: ../mine\ndev_dependencies:\n  flutter_test:\n    sdk: flutter\nflutter:\n  uses-material-design: true\n",
+			"pub:flutter@ pub:flutter_test@ pub:http@^1.1.0", "FLUTTER"},
+		{"Package.swift", `dependencies: [
+    .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
+    .package(url: "https://git.example.internal/team/kit.git", branch: "main"),
+]`, "swift:https://github.com/vapor/vapor.git@4.89.0", "VAPOR"},
+		{"Podfile", "platform :ios, '15.0'\ntarget 'App' do\n  pod 'Alamofire', '~> 5.8'\n  pod 'Local', :path => '../Local'\nend\n",
+			"cocoapods:Alamofire@~> 5.8", "IOS_NATIVE"},
+		{"mix.exs", "defp deps do\n  [\n    {:phoenix, \"~> 1.7\"},\n    {:jason, \">= 0.0.0\"},\n    {:mine, path: \"../mine\"}\n  ]\nend\n",
+			"hex:jason@>= 0.0.0 hex:phoenix@~> 1.7", "PHOENIX"},
+		{"App.csproj", `<Project Sdk="Microsoft.NET.Sdk.Web"><ItemGroup><PackageReference Include="Serilog" Version="3.1.1" />` +
+			`<Reference Include="System.Web, Version=4.0.0.0, Culture=neutral" /></ItemGroup></Project>`,
+			"nuget:Serilog@3.1.1 nuget:System.Web@ nuget:sdk:Microsoft.NET.Sdk.Web@", "ASP_NET_CORE"},
+		{"deno.json", `{"imports":{"$fresh/":"https://deno.land/x/fresh@1.6.0/","@std/assert":"jsr:@std/assert@^1","secret/":"https://git.example.internal/x/"}}`,
+			"deno:$fresh/@ deno:@std/assert@ deno:https://deno.land/x/fresh@1.6.0/@ deno:jsr:@std/assert@^1@ deno:secret/@", "FRESH"},
+		{"build.sbt", `libraryDependencies ++= Seq(
+  "com.typesafe.akka" %% "akka-actor-typed" % "2.8.5",
+  "org.scalatest" %% "scalatest" % "3.2.17" % Test
+)`, "sbt:com.typesafe.akka:akka-actor-typed@2.8.5 sbt:org.scalatest:scalatest@3.2.17", "AKKA"},
+		{"environment.yml", "name: ml\nchannels:\n  - conda-forge\ndependencies:\n  - python=3.11\n  - pytorch>=2.1\n  - conda-forge::numpy\n  - pip\n  - pip:\n    - django==4.2\n",
+			"pypi:django@4.2 conda:numpy@ conda:pytorch@2.1", "DJANGO NUMPY PYTORCH"}, // conda falls back to PyPI's names
+	} {
+		eco := manifestEcosystem(tc.file)
+		var names []string
+		byEco := map[string][]string{}
+		for _, d := range parseManifest(tc.file, tc.content) {
+			e := cmp.Or(d.eco, eco)
+			names = append(names, e+":"+d.name+"@"+d.version)
+			byEco[e] = append(byEco[e], d.name)
+		}
+		if s := strings.Join(names, " "); s != tc.names {
+			t.Errorf("%s:\n got  %s\n want %s", tc.file, s, tc.names)
+		}
+		techs := map[string]bool{}
+		for e, n := range byEco {
+			maps.Copy(techs, depTechs(e, n))
+		}
+		if s := strings.Join(slices.Sorted(maps.Keys(techs)), " "); s != tc.techs {
+			t.Errorf("%s techs: %s, want %s", tc.file, s, tc.techs)
+		}
+	}
+	files := []string{"app/pubspec.yaml", "app/ios/Podfile", "native/ios/Podfile", "web/package.json", "web/ios/App/Podfile"}
+	for p, want := range map[string]bool{"app/ios/Podfile": true, "native/ios/Podfile": false, "web/ios/App/Podfile": true} {
+		if crossPlatformIOS(p, files) != want {
+			t.Errorf("crossPlatformIOS(%s) = %v", p, !want)
+		}
 	}
 }
