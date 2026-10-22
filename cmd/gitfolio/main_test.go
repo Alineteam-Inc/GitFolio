@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"slices"
@@ -47,4 +48,25 @@ func TestPrintJSON(t *testing.T) {
 	if err != nil || string(got) != "{\n  \"author\": \"Dev <dev@example.com>\"\n}\n" {
 		t.Errorf("printJSON wrote %q (%v)", got, err)
 	}
+}
+
+// jsonStdout runs fn and returns the one JSON document it printed on stdout (nil for none).
+func jsonStdout(t *testing.T, fn func() error) (map[string]any, error) {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func(o *os.File) { os.Stdout = o }(os.Stdout)
+	os.Stdout = w
+	err = fn()
+	w.Close()
+	b, _ := io.ReadAll(r)
+	var v map[string]any
+	if len(b) > 0 {
+		if jerr := json.Unmarshal(b, &v); jerr != nil {
+			t.Fatalf("not one JSON document: %v\n%s", jerr, b)
+		}
+	}
+	return v, err
 }

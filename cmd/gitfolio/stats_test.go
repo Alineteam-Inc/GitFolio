@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -220,22 +219,7 @@ func TestStatsJSON(t *testing.T) {
 	}
 	stdout := func(cmd func(string, []string) error, args ...string) (map[string]any, error) {
 		t.Helper()
-		r, w, err := os.Pipe()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer func(o *os.File) { os.Stdout = o }(os.Stdout)
-		os.Stdout = w
-		err = cmd(dir, args)
-		w.Close()
-		b, _ := io.ReadAll(r)
-		var v map[string]any
-		if len(b) > 0 {
-			if jerr := json.Unmarshal(b, &v); jerr != nil {
-				t.Fatalf("%v: not one JSON document: %v\n%s", args, jerr, b)
-			}
-		}
-		return v, err
+		return jsonStdout(t, func() error { return cmd(dir, args) })
 	}
 
 	v, err := stdout(cmdStats, "--json")

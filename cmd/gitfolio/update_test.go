@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestUpdateCheck(t *testing.T) {
@@ -151,5 +153,42 @@ func TestInstallEnv(t *testing.T) {
 		if strings.HasPrefix(kv, "GITFOLIO_INSTALL_DIR=") {
 			t.Errorf("unknown copy got %s", kv)
 		}
+	}
+}
+
+// A copy an app ships never looks up, tells about or installs a newer release: the app updates it.
+// version --json says which kind it is.
+func TestBundledCopy(t *testing.T) {
+	looks := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		looks++
+		http.Redirect(w, r, "/Alineteam-Inc/GitFolio/releases/tag/v0.5.0", http.StatusFound)
+	}))
+	defer srv.Close()
+	defer func(u, v, b string, f func() (io.WriteCloser, error)) {
+		latestURL, version, bundled, ttyOut = u, v, b, f
+	}(latestURL, version, bundled, ttyOut)
+	latestURL, version = srv.URL, "0.4.1"
+	t.Setenv("GITFOLIO_LANG", "en")
+	tty := &ttyBuffer{}
+	ttyOut = func() (io.WriteCloser, error) { return tty, nil }
+	var buf bytes.Buffer
+	defer func(o io.Writer) { out = o }(out)
+	out = &buf
+	dir := t.TempDir()
+	if err := saveJSON(filepath.Join(dir, updateFile), updateState{CheckedAt: time.Now(), Latest: "v0.5.0"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if v, err := jsonStdout(t, func() error { return run([]string{"version", "--json"}) }); err != nil || v["version"] != "0.4.1" || v["bundled"] != false {
+		t.Errorf("version --json: %v %v", v, err)
+	}
+	bundled = "yes"
+	noticeUpdate(dir)
+	if err := cmdUpdate(dir); err != nil || looks != 0 || tty.Len() != 0 || !strings.Contains(buf.String(), "came with an app") {
+		t.Errorf("bundled: %d look-ups, told %q, update says %q (%v)", looks, tty.String(), buf.String(), err)
+	}
+	if v, err := jsonStdout(t, func() error { return run([]string{"version", "--json"}) }); err != nil || v["bundled"] != true {
+		t.Errorf("version --json, bundled: %v %v", v, err)
 	}
 }

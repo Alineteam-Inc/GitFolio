@@ -15,6 +15,14 @@ import (
 	"time"
 )
 
+// bundled is set by -ldflags "-X main.bundled=yes" in a copy an app ships and updates with itself:
+// such a copy never updates itself or offers to (updatesItself), as that would change the app.
+var bundled string
+
+// updatesItself reports whether this copy looks for, offers and installs newer releases: not a build
+// from source, and not one an app ships.
+func updatesItself() bool { return version != "dev" && bundled == "" }
+
 // latestURL redirects to the newest release's tag page (no API rate limit).
 var latestURL = "https://github.com/Alineteam-Inc/GitFolio/releases/latest"
 
@@ -55,7 +63,7 @@ func lookUpLatest(dir string) updateState {
 // runs the command again with the new binary. Builds from source never check, and nothing is asked
 // unless a person is at the terminal (not hooks, scheduled runs or redirected output).
 func checkUpdate(dir string) bool {
-	if version == "dev" || !interactive() || !terminal(os.Stdout) {
+	if !updatesItself() || !interactive() || !terminal(os.Stdout) {
 		return false
 	}
 	st := lookUpLatest(dir)
@@ -86,7 +94,7 @@ var ttyOut = func() (io.WriteCloser, error) { return openTTY() }
 func noticeUpdate(dir string) {
 	p := filepath.Join(dir, updateFile)
 	var st updateState
-	if version == "dev" || loadJSON(p, &st) != nil || !newer(st.Latest, version) || time.Since(st.NoticedAt) < updateEvery {
+	if !updatesItself() || loadJSON(p, &st) != nil || !newer(st.Latest, version) || time.Since(st.NoticedAt) < updateEvery {
 		return
 	}
 	w, err := ttyOut()
@@ -120,6 +128,10 @@ func cmdUpdate(dir string) error {
 	lang := detectLang(os.Getenv)
 	if version == "dev" {
 		say(lang, "updateFromSource")
+		return nil
+	}
+	if bundled != "" {
+		say(lang, "updateFromApp")
 		return nil
 	}
 	latest, err := latestRelease()

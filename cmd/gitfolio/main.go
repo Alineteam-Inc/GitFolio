@@ -77,7 +77,7 @@ commands:
                         optional daily sync at a local time, for pushes the hooks missed
                         (launchd on macOS, systemd or cron on Linux); no argument: show it
   update                install the newest release now (otherwise GitFolio offers it once a day)
-  version               print version`
+  version [--json]      print version (--json: also whether an app ships this copy and updates it)`
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -120,6 +120,9 @@ func run(args []string) error {
 		return nil
 	}
 	if args[0] == "version" {
+		if slices.Contains(args[1:], "--json") {
+			return printJSON(map[string]any{"version": version, "bundled": bundled != ""})
+		}
 		fmt.Print(header())
 		return nil
 	}
@@ -134,7 +137,7 @@ func run(args []string) error {
 		return err
 	}
 	startHistory(dir, args)
-	if args[0] != "hook" && args[0] != "update" && checkUpdate(dir) {
+	if !slices.Contains([]string{"hook", "update"}, args[0]) && checkUpdate(dir) {
 		return nil // updated: the user runs the command again with the new binary
 	}
 	if !slices.Contains([]string{"hook", "init", "login", "logout", "email"}, args[0]) {

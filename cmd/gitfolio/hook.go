@@ -223,7 +223,7 @@ func cmdHook(dir string, args []string) error {
 		if err != nil {
 			return err
 		}
-		if version != "dev" { // what the next push tells about a newer release (noticeUpdate), outside the lock
+		if updatesItself() { // what the next push tells about a newer release (noticeUpdate), outside the lock
 			defer lookUpLatest(dir)
 		}
 		// Only commits on remote-tracking refs are sent (pending), so a rejected push adds nothing.
