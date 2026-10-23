@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -22,6 +23,8 @@ type Repo struct {
 	LastScan  string `json:"last_scan,omitempty"`
 	// Format is the version of this repository's stored commits; older ones are collected again (repoFormat).
 	Format int `json:"format,omitempty"`
+	// Seen fingerprints what the last scan read (scanPrint); the same again means nothing new to read.
+	Seen string `json:"seen,omitempty"`
 	// Changed maps each file the user created to when someone else first changed it (modifiedFiles).
 	Changed map[string]string `json:"changed,omitempty"`
 	// Churn and AsOf are what the last scan counted of everyone's history for the snapshot (churnOf).
@@ -250,7 +253,8 @@ func readAgentTags(dir string) (map[string][]string, error) {
 
 // scanRepo stores the user's commits in r that are not stored yet and returns how many were added.
 // With rebuild, r's stored commits are dropped first and collected again. Callers hold the data lock.
-// ponytail: reads every pushed commit and dedupes by hash on each scan; pass push ranges if big repos get slow.
+// ponytail: a repository whose refs moved is read whole again and deduped by hash; read only the new
+// commits (and keep what churnOf and firstChanges count between scans) if big repositories get slow.
 func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	cfg, err := loadConfig(dir)
 	if err != nil {
@@ -281,6 +285,12 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	rng, err := logRange(r.Path)
 	if err != nil || rng == nil {
 		return 0, err
+	}
+	// Reading the whole history is the slow part of a scan: skipped when nothing it depends on changed.
+	seen := scanPrint(r.Path, rng, mine)
+	if !rebuild && r.Format == repoFormat && seen == r.Seen {
+		r.LastScan = time.Now().Format(time.RFC3339)
+		return 0, nil
 	}
 	out, err := gitLog(r.Path, rng)
 	if err != nil {
@@ -346,6 +356,16 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	if err := appendCommits(dir, fresh); err != nil {
 		return 0, err
 	}
-	r.LastScan, r.Format = time.Now().Format(time.RFC3339), repoFormat
+	r.LastScan, r.Format, r.Seen = time.Now().Format(time.RFC3339), repoFormat, seen
 	return len(fresh), nil
+}
+
+// scanPrint fingerprints what a scan of repo reads and counts with: the commits rng names (the remote
+// branches, else HEAD), the user's emails and this build, whose rules may count differently.
+func scanPrint(repo string, rng []string, mine map[string]bool) string {
+	tips := remoteRefs(repo)
+	if rng[0] == "HEAD" {
+		tips, _ = git(repo, "rev-parse", "HEAD")
+	}
+	return fingerprint([]any{tips, slices.Sorted(maps.Keys(mine)), version})
 }
