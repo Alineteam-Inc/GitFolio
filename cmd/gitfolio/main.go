@@ -276,6 +276,10 @@ func run(args []string) error {
 		return cmdStack(dir, args[1:]) // the same
 	case "portfolio":
 		return cmdPortfolio(dir, args[1:]) // the same; reads this computer's data under the lock
+	case "email":
+		if len(withoutJSON(args[1:])) == 0 {
+			return cmdEmail(dir, args[1:]) // the list only reads, like whoami, and may wait on aline.team
+		}
 	}
 	return withLock(dir, func() error {
 		switch args[0] {

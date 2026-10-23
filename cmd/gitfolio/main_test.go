@@ -203,6 +203,28 @@ func TestJSONBeforeCommand(t *testing.T) {
 	}
 }
 
+// The email list waits on aline.team for fresh ✔ marks, so like whoami it runs outside the lock
+// and never holds up status or schedule.
+func TestEmailListOutsideLock(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("AppData", filepath.Join(home, "AppData"))
+	defer func(i func() bool) { jsonOut, interactive = false, i }(interactive)
+	interactive = func() bool { return false }
+	dir, err := dataDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "lock"), nil, 0o600); err != nil { // another command at work
+		t.Fatal(err)
+	}
+	v, err := jsonStdout(t, func() error { return run([]string{"email", "--json"}) })
+	if err != nil || v["emails"] == nil {
+		t.Errorf("email --json while locked: %v, %v", v, err)
+	}
+}
+
 // scan, status <name>, history, remove and export answer --json too; a long scan tells its progress as
 // JSON lines on stderr.
 func TestRepoCommandsJSON(t *testing.T) {
