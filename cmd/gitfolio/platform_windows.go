@@ -71,16 +71,30 @@ func waitExit(pid int, max time.Duration) {
 	}
 }
 
-// alive reports whether process pid is running; one of another user's counts too.
-func alive(pid int) bool {
-	const queryLimitedInformation, stillActive = 0x1000, 259
-	h, err := syscall.OpenProcess(queryLimitedInformation, false, uint32(pid))
+// lockFile takes the system's lock on file p (LockFileEx), errLocked while another open file holds it.
+// Closing the file, or the process ending, lets go of it. Opened so that others may delete it, as
+// uninstall --purge-local does with the whole data folder.
+func lockFile(p string) (*os.File, error) {
+	name, err := syscall.UTF16PtrFromString(p)
 	if err != nil {
-		return err == syscall.ERROR_ACCESS_DENIED
+		return nil, err
 	}
-	defer syscall.CloseHandle(h)
-	var code uint32
-	return syscall.GetExitCodeProcess(h, &code) == nil && code == stillActive
+	h, err := syscall.CreateFile(name, syscall.GENERIC_READ|syscall.GENERIC_WRITE,
+		syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE|syscall.FILE_SHARE_DELETE, nil, syscall.OPEN_ALWAYS, syscall.FILE_ATTRIBUTE_NORMAL, 0)
+	if err != nil {
+		return nil, err
+	}
+	const exclusive, failImmediately, lockViolation = 2, 1, syscall.Errno(33)
+	var ol syscall.Overlapped
+	r, _, err := syscall.NewLazyDLL("kernel32.dll").NewProc("LockFileEx").Call(uintptr(h), exclusive|failImmediately, 0, 1, 0, uintptr(unsafe.Pointer(&ol)))
+	if r == 0 {
+		syscall.CloseHandle(h)
+		if err == lockViolation {
+			return nil, errLocked
+		}
+		return nil, err
+	}
+	return os.NewFile(uintptr(h), p), nil
 }
 
 // enableColor turns on ANSI color handling in the Windows console (Windows 10 and later); false where

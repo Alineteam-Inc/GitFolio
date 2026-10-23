@@ -210,36 +210,20 @@ func TestLoginGate(t *testing.T) {
 	}
 }
 
-// A lock left behind is taken over: at once when its process is gone or is this one (Windows refused
-// to remove it), after 10 minutes when a release before PIDs left it empty, after an hour whoever holds
-// it. A lock of another running process is waited for.
+// A file lock left behind is taken while holding lock.os: at once when a run of this release left it,
+// after 10 minutes when an older release did (0.6.3 writes its process ID, earlier ones nothing).
+// One that an older release may still hold is waited for.
 func TestLockLeftBehind(t *testing.T) {
-	if os.Getenv("GITFOLIO_LOCK_SLEEP") != "" { // the other running process
-		time.Sleep(time.Minute)
-		return
-	}
-	gone := exec.Command(os.Args[0], "-test.run=^$")
-	if err := gone.Run(); err != nil {
-		t.Fatal(err)
-	}
-	running := exec.Command(os.Args[0], "-test.run=^TestLockLeftBehind$")
-	running.Env = append(os.Environ(), "GITFOLIO_LOCK_SLEEP=1")
-	if err := running.Start(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() { running.Process.Kill(); running.Wait() }()
-	other := strconv.Itoa(running.Process.Pid)
 	for _, c := range []struct {
 		name, content string
 		age           time.Duration
 		taken         bool
 	}{
-		{"process gone", strconv.Itoa(gone.ProcessState.Pid()), 0, true},
-		{"this process", strconv.Itoa(os.Getpid()), 0, true},
-		{"process running", other, 0, false},
-		{"process running an hour", other, 61 * time.Minute, true},
-		{"empty", "", 0, false},
-		{"empty 10 minutes", "", 11 * time.Minute, true},
+		{"this release", lockMark, 0, true},
+		{"0.6.3", "12345", 0, false},
+		{"0.6.3, 10 minutes", "12345", 11 * time.Minute, true},
+		{"0.6.2", "", 0, false},
+		{"0.6.2, 10 minutes", "", 11 * time.Minute, true},
 	} {
 		dir := t.TempDir()
 		p := filepath.Join(dir, "lock")
@@ -253,25 +237,67 @@ func TestLockLeftBehind(t *testing.T) {
 		select {
 		case err := <-ran:
 			if !c.taken || err != nil {
-				t.Errorf("%s: taken over (%v)", c.name, err)
+				t.Errorf("%s: taken (%v)", c.name, err)
 			}
 		case <-time.After(500 * time.Millisecond):
 			if c.taken {
 				t.Errorf("%s: still waiting", c.name)
 			}
-			os.Remove(p) // its run ends
+			os.Remove(p) // the older release is done
 			if err := <-ran; err != nil {
 				t.Errorf("%s: after the lock went: %v", c.name, err)
 			}
 		}
-		if left, _ := filepath.Glob(filepath.Join(dir, "lock*")); len(left) > 0 {
-			t.Errorf("%s: left %v", c.name, left)
+		if _, err := os.Stat(p); err == nil {
+			t.Errorf("%s: lock left", c.name)
 		}
 	}
 }
 
-// Runs that start together over a lock left behind take turns, two at a time in each process too: each
-// adds to a count under the lock, and none of the additions is lost.
+// The lock goes with its process: while a run holds it the next one waits, and once that run is killed
+// the next one goes on at once, past the file lock it left.
+func TestLockGoesWithProcess(t *testing.T) {
+	if dir := os.Getenv("GITFOLIO_LOCK_HOLD"); dir != "" { // the run that holds the lock until killed
+		withLock(dir, func() error {
+			os.WriteFile(filepath.Join(dir, "holding"), nil, 0o600)
+			time.Sleep(time.Minute)
+			return nil
+		})
+		return
+	}
+	dir := t.TempDir()
+	holder := exec.Command(os.Args[0], "-test.run=^TestLockGoesWithProcess$")
+	holder.Env = append(os.Environ(), "GITFOLIO_LOCK_HOLD="+dir)
+	if err := holder.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer holder.Wait()
+	for deadline := time.Now().Add(10 * time.Second); !isFile(filepath.Join(dir, "holding")); time.Sleep(10 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			holder.Process.Kill()
+			t.Fatal("the holding run did not start")
+		}
+	}
+	ran := make(chan error)
+	go func() { ran <- withLock(dir, func() error { return nil }) }()
+	select {
+	case err := <-ran:
+		t.Fatalf("got the lock while another run held it (%v)", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+	holder.Process.Kill()
+	select {
+	case err := <-ran:
+		if err != nil {
+			t.Error(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("still waiting after the holding run was killed")
+	}
+}
+
+// Runs that start together take turns, two at a time in each process too, starting over a file lock a
+// crashed run left: each adds to a count under the lock, and none of the additions is lost.
 func TestLockTakesTurns(t *testing.T) {
 	if dir := os.Getenv("GITFOLIO_LOCK_TEST"); dir != "" { // one of the runs
 		var wg sync.WaitGroup
@@ -292,34 +318,28 @@ func TestLockTakesTurns(t *testing.T) {
 		wg.Wait()
 		return
 	}
-	gone := exec.Command(os.Args[0], "-test.run=^$")
-	if err := gone.Run(); err != nil {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "lock"), []byte(lockMark), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	for round := range 5 { // a rare failure, such as one on Windows only, shows more often
-		dir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(dir, "lock"), []byte(strconv.Itoa(gone.ProcessState.Pid())), 0o600); err != nil {
+	var runs []*exec.Cmd
+	for range 6 {
+		cmd := exec.Command(os.Args[0], "-test.run=^TestLockTakesTurns$")
+		cmd.Env = append(os.Environ(), "GITFOLIO_LOCK_TEST="+dir)
+		cmd.Stdout = new(strings.Builder) // what a run that fails says
+		cmd.Stderr = cmd.Stdout
+		if err := cmd.Start(); err != nil {
 			t.Fatal(err)
 		}
-		var runs []*exec.Cmd
-		for range 6 {
-			cmd := exec.Command(os.Args[0], "-test.run=^TestLockTakesTurns$")
-			cmd.Env = append(os.Environ(), "GITFOLIO_LOCK_TEST="+dir)
-			cmd.Stdout = new(strings.Builder) // what a run that fails says
-			cmd.Stderr = cmd.Stdout
-			if err := cmd.Start(); err != nil {
-				t.Fatal(err)
-			}
-			runs = append(runs, cmd)
+		runs = append(runs, cmd)
+	}
+	for _, cmd := range runs {
+		if err := cmd.Wait(); err != nil {
+			t.Errorf("%v\n%s", err, cmd.Stdout)
 		}
-		for _, cmd := range runs {
-			if err := cmd.Wait(); err != nil {
-				t.Errorf("round %d: %v\n%s", round, err, cmd.Stdout)
-			}
-		}
-		if b, _ := os.ReadFile(filepath.Join(dir, "count")); string(b) != "240" {
-			t.Errorf("round %d: count %s, want 240", round, b)
-		}
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, "count")); string(b) != "240" {
+		t.Errorf("count %s, want 240", b)
 	}
 }
 
