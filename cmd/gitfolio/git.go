@@ -20,13 +20,16 @@ import (
 // logFormat separates commits with \x1e and fields with \x1f; numstat lines follow the last \x1f.
 const logFormat = "--format=%x1e%H%x1f%aI%x1f%aN%x1f%aE%x1f%B%x1f"
 
+// gitPath is the git that git() runs: the one on the PATH, or the Command Line Tools' own (gitWorks).
+var gitPath = "git"
+
 // git runs git inside dir. GIT_DIR and friends are dropped so that running
 // from inside a git hook does not redirect the command to the hook's repository.
 func git(dir string, args ...string) (string, error) { return gitStdin(dir, "", args...) }
 
 // gitStdin is git with in on its standard input.
 func gitStdin(dir, in string, args ...string) (string, error) {
-	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	cmd := exec.Command(gitPath, append([]string{"-C", dir}, args...)...)
 	if in != "" {
 		cmd.Stdin = strings.NewReader(in)
 	}
@@ -48,22 +51,36 @@ func gitStdin(dir, in string, args ...string) (string, error) {
 // gitWorks reports whether git can run, and puts it on this run's PATH when it is installed outside
 // it (gitDirs). On macOS /usr/bin/git is there without git too: it stands in for the Command Line Tools,
 // and only counts once they are installed. Asking xcode-select, not running it, so Apple's install
-// window does not open by itself.
+// window does not open by itself. The tools' git then runs directly: /usr/bin/git looks it up on every
+// run, which doubles the time of each git command.
 func gitWorks() bool {
-	if p, err := exec.LookPath("git"); err == nil &&
-		(runtime.GOOS != "darwin" || p != "/usr/bin/git" || exec.Command("xcode-select", "-p").Run() == nil) {
+	p, err := exec.LookPath("git")
+	if err == nil && (runtime.GOOS != "darwin" || p != "/usr/bin/git") {
 		return true
+	}
+	if err == nil {
+		if out, err := exec.Command("xcode-select", "-p").Output(); err == nil {
+			if real := filepath.Join(strings.TrimSpace(string(out)), "usr", "bin", "git"); isFile(real) {
+				gitPath = real
+			}
+			return true
+		}
 	}
 	name := "git"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
 	for _, d := range gitDirs() {
-		if st, err := os.Stat(filepath.Join(d, name)); err == nil && !st.IsDir() {
+		if isFile(filepath.Join(d, name)) {
 			return os.Setenv("PATH", d+string(os.PathListSeparator)+os.Getenv("PATH")) == nil
 		}
 	}
 	return false
+}
+
+func isFile(p string) bool {
+	st, err := os.Stat(p)
+	return err == nil && !st.IsDir()
 }
 
 // gitDirs are where git is installed but may be off the PATH: an app started from Finder gets only
