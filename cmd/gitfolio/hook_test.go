@@ -210,6 +210,97 @@ func TestLoginGate(t *testing.T) {
 	}
 }
 
+// A lock left behind is taken over: at once when its process is gone, after 10 minutes when a release
+// before PIDs left it empty, after an hour whoever holds it. A lock of a running process is waited for.
+func TestLockLeftBehind(t *testing.T) {
+	gone := exec.Command(os.Args[0], "-test.run=^$")
+	if err := gone.Run(); err != nil {
+		t.Fatal(err)
+	}
+	me := strconv.Itoa(os.Getpid())
+	for _, c := range []struct {
+		name, content string
+		age           time.Duration
+		taken         bool
+	}{
+		{"process gone", strconv.Itoa(gone.ProcessState.Pid()), 0, true},
+		{"process running", me, 0, false},
+		{"process running an hour", me, 61 * time.Minute, true},
+		{"empty", "", 0, false},
+		{"empty 10 minutes", "", 11 * time.Minute, true},
+	} {
+		dir := t.TempDir()
+		p := filepath.Join(dir, "lock")
+		if err := os.WriteFile(p, []byte(c.content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		at := time.Now().Add(-c.age)
+		os.Chtimes(p, at, at)
+		ran := make(chan error)
+		go func() { ran <- withLock(dir, func() error { return nil }) }()
+		select {
+		case err := <-ran:
+			if !c.taken || err != nil {
+				t.Errorf("%s: taken over (%v)", c.name, err)
+			}
+		case <-time.After(500 * time.Millisecond):
+			if c.taken {
+				t.Errorf("%s: still waiting", c.name)
+			}
+			os.Remove(p) // its run ends
+			if err := <-ran; err != nil {
+				t.Errorf("%s: after the lock went: %v", c.name, err)
+			}
+		}
+		if left, _ := filepath.Glob(filepath.Join(dir, "lock*")); len(left) > 0 {
+			t.Errorf("%s: left %v", c.name, left)
+		}
+	}
+}
+
+// Runs that start together over a lock left behind take turns: each adds to a count under the lock,
+// and none of the additions is lost.
+func TestLockTakesTurns(t *testing.T) {
+	if dir := os.Getenv("GITFOLIO_LOCK_TEST"); dir != "" { // one of the runs
+		for range 20 {
+			if err := withLock(dir, func() error {
+				b, _ := os.ReadFile(filepath.Join(dir, "count"))
+				n, _ := strconv.Atoi(string(b))
+				time.Sleep(time.Millisecond)
+				return os.WriteFile(filepath.Join(dir, "count"), []byte(strconv.Itoa(n+1)), 0o600)
+			}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return
+	}
+	gone := exec.Command(os.Args[0], "-test.run=^$")
+	if err := gone.Run(); err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "lock"), []byte(strconv.Itoa(gone.ProcessState.Pid())), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var runs []*exec.Cmd
+	for range 6 {
+		cmd := exec.Command(os.Args[0], "-test.run=^TestLockTakesTurns$")
+		cmd.Env = append(os.Environ(), "GITFOLIO_LOCK_TEST="+dir)
+		if err := cmd.Start(); err != nil {
+			t.Fatal(err)
+		}
+		runs = append(runs, cmd)
+	}
+	for _, cmd := range runs {
+		if err := cmd.Wait(); err != nil {
+			t.Error(err)
+		}
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, "count")); string(b) != "120" {
+		t.Errorf("count %s, want 120", b)
+	}
+}
+
 // Commands that write the same file outside the lock, such as two saving a login, each write a temporary
 // file of their own: none fails on Unix, and the file is always one of theirs whole.
 func TestWriteFileTogether(t *testing.T) {

@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"runtime"
@@ -32,12 +33,19 @@ func pushPID(arg string) int {
 
 // waitExit waits until process pid (the git push that ran the hook) is gone, at most max.
 func waitExit(pid int, max time.Duration) {
-	for deadline := time.Now().Add(max); time.Now().Before(deadline); time.Sleep(200 * time.Millisecond) {
-		p, err := os.FindProcess(pid)
-		if err != nil || p.Signal(syscall.Signal(0)) != nil {
-			return
-		}
+	for deadline := time.Now().Add(max); time.Now().Before(deadline) && alive(pid); {
+		time.Sleep(200 * time.Millisecond)
 	}
+}
+
+// alive reports whether process pid is running; one of another user's counts too.
+func alive(pid int) bool {
+	p, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	err = p.Signal(syscall.Signal(0))
+	return err == nil || errors.Is(err, syscall.EPERM)
 }
 
 // enableColor reports whether the terminal shows ANSI colors; Unix terminals do.

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"cmp"
 	"crypto/sha256"
 	"errors"
@@ -274,26 +275,73 @@ func waitRefs(before string, max time.Duration) {
 }
 
 // withLock runs fn while holding gitfolio's data lock, so hooks and commands never write at the same time.
-// ponytail: lock file instead of OS file locks (none portable in the standard library); a lock older
-// than 10 minutes is treated as left behind by a crashed run.
+// ponytail: a lock file instead of OS file locks (none portable in the standard library). It holds the
+// process ID of its run, so a lock left behind by a run that crashed is taken over at once, while a run
+// that is slow or was asleep with the computer keeps it for up to an hour.
 func withLock(dir string, fn func() error) error {
 	p := filepath.Join(dir, "lock")
-	for deadline := time.Now().Add(30 * time.Second); ; time.Sleep(100 * time.Millisecond) {
+	me := []byte(strconv.Itoa(os.Getpid()))
+	for deadline := time.Now().Add(30 * time.Second); ; time.Sleep(20 * time.Millisecond) {
 		f, err := os.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 		if err == nil {
-			f.Close()
-			defer os.Remove(p)
+			_, err = f.Write(me)
+			if cerr := f.Close(); err == nil {
+				err = cerr
+			}
+			if err != nil {
+				os.Remove(p)
+				return err
+			}
+			defer func() {
+				if b, _ := os.ReadFile(p); bytes.Equal(b, me) { // still ours, not taken over after an hour
+					os.Remove(p)
+				}
+			}()
 			return fn()
 		}
 		if !errors.Is(err, os.ErrExist) {
 			return err
 		}
-		if st, err := os.Stat(p); err == nil && time.Since(st.ModTime()) > 10*time.Minute {
-			os.Remove(p)
+		b, err := os.ReadFile(p)
+		st, serr := os.Stat(p)
+		if err == nil && serr == nil && leftBehind(b, time.Since(st.ModTime())) {
+			takeOver(p, b, st.ModTime())
 			continue
 		}
 		if time.Now().After(deadline) {
 			return failure("busy")
 		}
+	}
+}
+
+// leftBehind reports whether a lock with content b and of this age outlived its run: the process it
+// names is gone, or it is an hour old (the ID reused by another program). Releases before this one
+// leave it empty, as a run does for a moment while writing it; theirs count after 10 minutes, as there.
+func leftBehind(b []byte, age time.Duration) bool {
+	pid, err := strconv.Atoi(string(b))
+	if err != nil || pid <= 0 {
+		return age > 10*time.Minute
+	}
+	return age > time.Hour || !alive(pid)
+}
+
+// takeOver removes the lock left behind as seen (content and time), unless it changed in the meantime.
+// One waiter at a time does it, holding lock.takeover: two that saw the same lock left behind would
+// otherwise both remove it, the second one the new lock the first had just made.
+func takeOver(p string, seen []byte, at time.Time) {
+	t := p + ".takeover"
+	f, err := os.OpenFile(t, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		if st, err := os.Stat(t); err == nil && time.Since(st.ModTime()) > time.Minute {
+			os.Remove(t) // its waiter stopped halfway: a takeover takes microseconds
+		}
+		return
+	}
+	f.Close()
+	defer os.Remove(t)
+	b, err := os.ReadFile(p)
+	st, serr := os.Stat(p)
+	if err == nil && serr == nil && bytes.Equal(b, seen) && st.ModTime().Equal(at) {
+		os.Remove(p)
 	}
 }
