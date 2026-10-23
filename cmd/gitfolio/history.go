@@ -67,10 +67,7 @@ func trimHistory(p string, max int64) {
 	if i := bytes.Index(b, []byte("\n"+historyHeader)); i >= 0 {
 		b = b[i+1:] // start at a run's header
 	}
-	tmp := p + ".tmp"
-	if os.WriteFile(tmp, b, 0o600) != nil || os.Rename(tmp, p) != nil {
-		os.Remove(tmp) // Windows refuses while a git command has the file open; trimmed next time
-	}
+	writeFile(p, b) // Windows refuses while a git command has the file open; trimmed next time
 }
 
 type historyRun struct {
