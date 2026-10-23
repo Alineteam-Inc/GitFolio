@@ -229,6 +229,7 @@ func TestRemoteBranches(t *testing.T) {
 	if err := writeCommits(dir, commits); err != nil {
 		t.Fatal(err)
 	}
+	r.Seen = "" // an older version kept no fingerprint of its scans
 	check()
 }
 
