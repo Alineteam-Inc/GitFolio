@@ -3,10 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -155,6 +157,55 @@ func TestInstallEnv(t *testing.T) {
 		if strings.HasPrefix(kv, "GITFOLIO_INSTALL_DIR=") {
 			t.Errorf("unknown copy got %s", kv)
 		}
+	}
+}
+
+// A cask brings only GitFolio's tap up to date, not all of Homebrew; brew update runs only when that fails.
+func TestBrewUpdatesItsTap(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("no Homebrew on Windows")
+	}
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("HOMEBREW_NO_AUTO_UPDATE", "")
+	dir := t.TempDir()
+	git := func(args ...string) string {
+		out, err := exec.Command("git", append([]string{"-c", "user.name=t", "-c", "user.email=t@example.com"}, args...)...).CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %q: %v\n%s", args, err, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	up, tap := filepath.Join(dir, "up"), filepath.Join(dir, "tap")
+	git("init", "-q", "-b", "main", up)
+	git("-C", up, "commit", "-q", "--allow-empty", "-m", "0.6.0")
+	git("clone", "-q", up, tap)
+	git("-C", up, "commit", "-q", "--allow-empty", "-m", "0.6.1")
+
+	cask := filepath.Join(dir, "brew", "Caskroom", "gitfolio", "0.6.0", "gitfolio")
+	brew := filepath.Join(dir, "brew", "bin", "brew")
+	for p, s := range map[string]string{cask: "", brew: "#!/bin/sh\n[ \"$1\" = --repository ] && echo \"$TAP\" && exit\necho \"$HOMEBREW_NO_AUTO_UPDATE $*\" >> \"$LOG\"\n"} {
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(s), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	upgrade := "1 upgrade --cask alineteam-inc/tap/gitfolio\n"
+	for i, c := range []struct{ tap, want string }{{tap, upgrade}, {filepath.Join(dir, "none"), " update\n" + upgrade}} {
+		log := filepath.Join(dir, fmt.Sprint("log", i))
+		t.Setenv("TAP", c.tap)
+		t.Setenv("LOG", log)
+		cmd, _ := updateCommand("v0.6.1", cask)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("tap %s: %v\n%s", c.tap, err, out)
+		}
+		if got, _ := os.ReadFile(log); string(got) != c.want {
+			t.Errorf("tap %s: brew ran\n%s\nwant\n%s", c.tap, got, c.want)
+		}
+	}
+	if got := git("-C", tap, "log", "-1", "--format=%s"); got != "0.6.1" {
+		t.Errorf("tap at %s, want 0.6.1", got)
 	}
 }
 
