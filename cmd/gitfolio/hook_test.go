@@ -304,6 +304,8 @@ func TestLockTakesTurns(t *testing.T) {
 	for range 6 {
 		cmd := exec.Command(os.Args[0], "-test.run=^TestLockTakesTurns$")
 		cmd.Env = append(os.Environ(), "GITFOLIO_LOCK_TEST="+dir)
+		cmd.Stdout = new(strings.Builder) // what a run that fails says
+		cmd.Stderr = cmd.Stdout
 		if err := cmd.Start(); err != nil {
 			t.Fatal(err)
 		}
@@ -311,7 +313,7 @@ func TestLockTakesTurns(t *testing.T) {
 	}
 	for _, cmd := range runs {
 		if err := cmd.Wait(); err != nil {
-			t.Error(err)
+			t.Errorf("%v\n%s", err, cmd.Stdout)
 		}
 	}
 	if b, _ := os.ReadFile(filepath.Join(dir, "count")); string(b) != "240" {
