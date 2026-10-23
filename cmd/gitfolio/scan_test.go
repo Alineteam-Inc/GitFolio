@@ -28,10 +28,10 @@ func TestFilePaths(t *testing.T) {
 		return strings.TrimSpace(string(out))
 	}
 	names := []string{`q"uote.txt`, "ta\tb.txt", `back\slash.txt`, "we => ird.txt", "{br}.txt", "src/a {b}.go", "docs/한글.md", "sp ace.txt", "src/x.go"}
-	if runtime.GOOS != "windows" { // these characters are not allowed in Windows file names
+	if runtime.GOOS != "windows" {
 		names = append(names, "new\nline.txt")
-	} else {
-		names = slices.DeleteFunc(names, func(n string) bool { return strings.ContainsAny(n, `"\`+"\t") })
+	} else { // characters Windows does not allow in file names
+		names = slices.DeleteFunc(names, func(n string) bool { return strings.ContainsAny(n, `<>:"\|?*`+"\t") })
 	}
 	write := func(name, body string) {
 		p := filepath.Join(repo, filepath.FromSlash(name))
