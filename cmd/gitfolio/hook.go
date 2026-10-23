@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -281,7 +282,15 @@ func waitRefs(before string, max time.Duration) {
 func withLock(dir string, fn func() error) error {
 	p := filepath.Join(dir, "lock")
 	me := []byte(strconv.Itoa(os.Getpid()))
-	for deadline := time.Now().Add(30 * time.Second); ; time.Sleep(20 * time.Millisecond) {
+	deadline := time.Now().Add(30 * time.Second)
+	for !lockTurn.TryLock() {
+		if time.Now().After(deadline) {
+			return failure("busy")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	defer lockTurn.Unlock()
+	for ; ; time.Sleep(20 * time.Millisecond) {
 		f, err := os.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 		if err == nil {
 			_, err = f.Write(me)
@@ -292,11 +301,7 @@ func withLock(dir string, fn func() error) error {
 				os.Remove(p)
 				return err
 			}
-			defer func() {
-				if b, _ := os.ReadFile(p); bytes.Equal(b, me) { // still ours, not taken over after an hour
-					os.Remove(p)
-				}
-			}()
+			defer release(p, me)
 			return fn()
 		}
 		if !errors.Is(err, os.ErrExist) {
@@ -314,15 +319,32 @@ func withLock(dir string, fn func() error) error {
 	}
 }
 
+// lockTurn lets one withLock of this process at a time go for the lock file, so a lock file with this
+// process's ID that it meets is one this process could not remove.
+var lockTurn sync.Mutex
+
+// release removes the lock while it is still this run's, not taken over after an hour. Windows refuses
+// while a waiting run reads the file: it tries again for a second, and a lock still there is taken over
+// by this process's next run, or by any once this process has ended.
+func release(p string, me []byte) {
+	for range 50 {
+		if b, err := os.ReadFile(p); err != nil || !bytes.Equal(b, me) || os.Remove(p) == nil {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
 // leftBehind reports whether a lock with content b and of this age outlived its run: the process it
-// names is gone, or it is an hour old (the ID reused by another program). Releases before this one
-// leave it empty, as a run does for a moment while writing it; theirs count after 10 minutes, as there.
+// names is this one (see lockTurn) or gone, or it is an hour old (the ID reused by another program).
+// Releases before this one leave it empty, as a run does for a moment while writing it; theirs count
+// after 10 minutes, as there.
 func leftBehind(b []byte, age time.Duration) bool {
 	pid, err := strconv.Atoi(string(b))
 	if err != nil || pid <= 0 {
 		return age > 10*time.Minute
 	}
-	return age > time.Hour || !alive(pid)
+	return pid == os.Getpid() || age > time.Hour || !alive(pid)
 }
 
 // takeOver removes the lock left behind as seen (content and time), unless it changed in the meantime.

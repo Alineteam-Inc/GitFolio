@@ -210,22 +210,34 @@ func TestLoginGate(t *testing.T) {
 	}
 }
 
-// A lock left behind is taken over: at once when its process is gone, after 10 minutes when a release
-// before PIDs left it empty, after an hour whoever holds it. A lock of a running process is waited for.
+// A lock left behind is taken over: at once when its process is gone or is this one (Windows refused
+// to remove it), after 10 minutes when a release before PIDs left it empty, after an hour whoever holds
+// it. A lock of another running process is waited for.
 func TestLockLeftBehind(t *testing.T) {
+	if os.Getenv("GITFOLIO_LOCK_SLEEP") != "" { // the other running process
+		time.Sleep(time.Minute)
+		return
+	}
 	gone := exec.Command(os.Args[0], "-test.run=^$")
 	if err := gone.Run(); err != nil {
 		t.Fatal(err)
 	}
-	me := strconv.Itoa(os.Getpid())
+	running := exec.Command(os.Args[0], "-test.run=^TestLockLeftBehind$")
+	running.Env = append(os.Environ(), "GITFOLIO_LOCK_SLEEP=1")
+	if err := running.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { running.Process.Kill(); running.Wait() }()
+	other := strconv.Itoa(running.Process.Pid)
 	for _, c := range []struct {
 		name, content string
 		age           time.Duration
 		taken         bool
 	}{
 		{"process gone", strconv.Itoa(gone.ProcessState.Pid()), 0, true},
-		{"process running", me, 0, false},
-		{"process running an hour", me, 61 * time.Minute, true},
+		{"this process", strconv.Itoa(os.Getpid()), 0, true},
+		{"process running", other, 0, false},
+		{"process running an hour", other, 61 * time.Minute, true},
 		{"empty", "", 0, false},
 		{"empty 10 minutes", "", 11 * time.Minute, true},
 	} {
@@ -258,20 +270,26 @@ func TestLockLeftBehind(t *testing.T) {
 	}
 }
 
-// Runs that start together over a lock left behind take turns: each adds to a count under the lock,
-// and none of the additions is lost.
+// Runs that start together over a lock left behind take turns, two at a time in each process too: each
+// adds to a count under the lock, and none of the additions is lost.
 func TestLockTakesTurns(t *testing.T) {
 	if dir := os.Getenv("GITFOLIO_LOCK_TEST"); dir != "" { // one of the runs
-		for range 20 {
-			if err := withLock(dir, func() error {
-				b, _ := os.ReadFile(filepath.Join(dir, "count"))
-				n, _ := strconv.Atoi(string(b))
-				time.Sleep(time.Millisecond)
-				return os.WriteFile(filepath.Join(dir, "count"), []byte(strconv.Itoa(n+1)), 0o600)
-			}); err != nil {
-				t.Fatal(err)
-			}
+		var wg sync.WaitGroup
+		for range 2 {
+			wg.Go(func() {
+				for range 20 {
+					if err := withLock(dir, func() error {
+						b, _ := os.ReadFile(filepath.Join(dir, "count"))
+						n, _ := strconv.Atoi(string(b))
+						time.Sleep(time.Millisecond)
+						return os.WriteFile(filepath.Join(dir, "count"), []byte(strconv.Itoa(n+1)), 0o600)
+					}); err != nil {
+						t.Error(err)
+					}
+				}
+			})
 		}
+		wg.Wait()
 		return
 	}
 	gone := exec.Command(os.Args[0], "-test.run=^$")
@@ -296,8 +314,8 @@ func TestLockTakesTurns(t *testing.T) {
 			t.Error(err)
 		}
 	}
-	if b, _ := os.ReadFile(filepath.Join(dir, "count")); string(b) != "120" {
-		t.Errorf("count %s, want 120", b)
+	if b, _ := os.ReadFile(filepath.Join(dir, "count")); string(b) != "240" {
+		t.Errorf("count %s, want 240", b)
 	}
 }
 
