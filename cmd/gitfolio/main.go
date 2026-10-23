@@ -640,21 +640,26 @@ func cmdScan(dir string, args []string) error {
 		Error   string `json:"error,omitempty"`
 	}
 	results := []result{}
+	var rs []*Repo
 	for i := range repos {
-		r := &repos[i]
-		if !*all && r.Path != top {
-			continue
+		if *all || repos[i].Path == top {
+			rs = append(rs, &repos[i])
 		}
+	}
+	matched = len(rs) > 0
+	if *all {
+		progress(lang, "progressScan", 0, len(rs))
+	}
+	err = scanRepos(dir, rs, *rebuild, func(i, n int, err error) {
+		r := rs[i]
 		if *all {
-			progress(lang, "progressScan", i, len(repos))
+			defer progress(lang, "progressScan", i+1, len(rs))
 		}
-		matched = true
-		n, err := scanRepo(dir, r, *rebuild)
 		if err != nil {
 			warn(lang, "repoFailed", r.Name, err)
 			failed = true
 			results = append(results, result{Name: r.Name, Path: r.Path, Error: err.Error()})
-			continue
+			return
 		}
 		results = append(results, result{Name: r.Name, Path: r.Path, Commits: n})
 		msg := fmt.Sprintf(tr(lang, "scanned"), r.Name, n)
@@ -672,8 +677,11 @@ func cmdScan(dir string, args []string) error {
 			}
 		}
 		show(out, msg)
-	}
+	})
 	progressDone()
+	if err != nil {
+		return err
+	}
 	if !*all && !matched {
 		return failure("notRegisteredAdd", tildePath(top))
 	}
@@ -708,7 +716,13 @@ func cmdList(dir string) error {
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "NAME\tCOMMITS\tHOOKS\tDEPS\tLAST SCAN\tPATH")
-	for _, r := range repos {
+	hooks, pending := make([]string, len(repos)), make([]int, len(repos))
+	sideBySide(len(repos), func(i int) {
+		if hooks[i] = hookStatus(repos[i].Path); cfg.Deps {
+			pending[i] = pendingManifests(repos[i])
+		}
+	})
+	for i, r := range repos {
 		deps := "off"
 		if cfg.Deps {
 			allowed := 0
@@ -718,11 +732,11 @@ func cmdList(dir string) error {
 				}
 			}
 			deps = fmt.Sprintf("%d files", allowed)
-			if n := pendingManifests(r); n > 0 {
+			if n := pending[i]; n > 0 {
 				deps += fmt.Sprintf(" (%d to review)", n)
 			}
 		}
-		fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\t%s\n", r.Name, count[r.ID], hookStatus(r.Path), deps, r.LastScan, r.Path)
+		fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\t%s\n", r.Name, count[r.ID], hooks[i], deps, r.LastScan, r.Path)
 	}
 	if err := w.Flush(); err != nil {
 		return err

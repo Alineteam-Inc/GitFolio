@@ -233,6 +233,46 @@ func TestRemoteBranches(t *testing.T) {
 	check()
 }
 
+// Repositories are read side by side and stored in order: commits in two of them (a clone) are stored
+// once, for the first.
+func TestScanReposSideBySide(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	dir, a, b, c := t.TempDir(), t.TempDir(), filepath.Join(t.TempDir(), "b"), t.TempDir()
+	git := func(args ...string) {
+		t.Helper()
+		if out, err := exec.Command("git", append([]string{"-c", "user.name=me", "-c", "user.email=me@example.com"}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	for repo, n := range map[string]int{a: 2, c: 1} {
+		git("init", "-q", "-b", "main", repo)
+		for i := range n {
+			git("-C", repo, "commit", "-q", "--allow-empty", "-m", "feat "+repo+string(rune('a'+i))) // no two alike
+		}
+		git("-C", repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+	}
+	git("clone", "-q", a, b)
+	var rs []*Repo
+	for _, p := range []string{a, b, c} {
+		git("-C", p, "config", "user.email", "me@example.com")
+		r := newRepo(p)
+		rs = append(rs, &r)
+	}
+	var got []int
+	if err := scanRepos(dir, rs, false, func(_, n int, err error) {
+		if err != nil {
+			t.Error(err)
+		}
+		got = append(got, n)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(got, []int{2, 0, 1}) {
+		t.Errorf("collected %v, want [2 0 1]", got)
+	}
+}
+
 // A repository aline.team takes only after an email is verified (A013) waits, and only it: the other
 // repositories are sent, its commits are not marked sent, and they go once the email is verified.
 func TestSyncWaitsForVerifiedEmail(t *testing.T) {

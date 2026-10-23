@@ -801,8 +801,8 @@ func reviewManifests(rs []Repo) []int {
 	files := make([][]string, len(rs))
 	var none []string
 	n := 0
+	sideBySide(len(rs), func(i int) { files[i] = manifestCandidates(rs[i].Path) })
 	for i, r := range rs {
-		files[i] = manifestCandidates(r.Path)
 		if len(files[i]) == 0 {
 			none = append(none, r.Name)
 		}
@@ -889,10 +889,11 @@ func depsJSON(cfg Config, repos []Repo) error {
 		Path  string `json:"path"`
 		Files []file `json:"files"`
 	}
-	list := []repo{}
-	for _, r := range repos {
+	list, candidates := []repo{}, make([][]string, len(repos))
+	sideBySide(len(repos), func(i int) { candidates[i] = manifestCandidates(repos[i].Path) })
+	for i, r := range repos {
 		files := []file{}
-		for _, f := range manifestCandidates(r.Path) {
+		for _, f := range candidates[i] {
 			state := "new"
 			if ok, decided := r.Manifests[f]; decided {
 				state = map[bool]string{true: "allowed", false: "declined"}[ok]
