@@ -358,6 +358,9 @@ func TestSetupJSON(t *testing.T) {
 	if deps, _ := loadDeps(dir); len(deps) != 1 {
 		t.Errorf("dependencies read: %v", deps)
 	}
+	if commits, _ := readCommits(dir); len(commits) != 1 || commits[0].Files[0].Module != moduleID("") {
+		t.Errorf("stored commits not put in the approved module: %v", commits)
+	}
 	if _, err := run(cmdDeps, "review", app, "--allow", "nope.json"); errorCode(err) != "manifestUnknown" {
 		t.Errorf("unknown file: %v", err)
 	}

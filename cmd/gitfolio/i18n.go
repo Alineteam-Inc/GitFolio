@@ -1525,8 +1525,8 @@ var messages = map[string]map[string]string{
 		"ja": "%s (失敗: %s)",
 	},
 	"depsUpdated": {
-		"en": "%s: dependencies updated, %d commit(s) collected again.\n",
-		"ko": "%s: 의존성을 갱신하고 커밋 %d개를 다시 수집했습니다.\n",
-		"ja": "%s: 依存関係を更新し、コミット %d 件を再収集しました。\n",
+		"en": "%s: dependencies updated, %d commit(s) matched to them again.\n",
+		"ko": "%s: 의존성을 갱신하고 커밋 %d개에 다시 연결했습니다.\n",
+		"ja": "%s: 依存関係を更新し、コミット %d 件に紐づけ直しました。\n",
 	},
 }

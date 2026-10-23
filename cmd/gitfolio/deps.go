@@ -1072,8 +1072,8 @@ func changeDeps(dir string, args []string) error {
 	return wrongWord("deps", args[0], []string{"on", "off", "review", "scan", "auto"}, usage)
 }
 
-// reviewAndRescan asks about the manifest files of rs in one list and collects again the repositories
-// whose decisions changed, so dependencies and module IDs match the new approvals.
+// reviewAndRescan asks about the manifest files of rs in one list and updates the repositories whose
+// decisions changed, so dependencies and module IDs match the new approvals.
 func reviewAndRescan(dir string, rs []Repo) error {
 	for _, i := range reviewManifests(rs) {
 		if err := rescanDeps(dir, &rs[i]); err != nil {
@@ -1083,10 +1083,24 @@ func reviewAndRescan(dir string, rs []Repo) error {
 	return nil
 }
 
-// rescanDeps collects r again after the decisions on its files changed, and reads the approved ones.
+// rescanDeps puts r's stored commits in the modules of its new decisions and reads the approved files.
+// The module of a file depends only on its path, which is stored as is: git history is not read again.
 func rescanDeps(dir string, r *Repo) error {
-	n, err := scanRepo(dir, r, true) // module IDs of the new approvals
+	commits, err := readCommits(dir)
 	if err != nil {
+		return err
+	}
+	modules, n := manifestModules(*r), 0
+	for _, c := range commits {
+		if c.Repo != r.ID {
+			continue
+		}
+		n++
+		for i := range c.Files {
+			c.Files[i].Module = moduleOf(c.Files[i].Name, modules)
+		}
+	}
+	if err := writeCommits(dir, commits); err != nil {
 		return err
 	}
 	if _, _, err := refreshDeps(dir, r); err != nil { // the files were just approved for this
