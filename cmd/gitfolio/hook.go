@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"cmp"
 	"crypto/sha256"
 	"errors"
@@ -10,11 +9,9 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -277,97 +274,58 @@ func waitRefs(before string, max time.Duration) {
 }
 
 // withLock runs fn while holding gitfolio's data lock, so hooks and commands never write at the same time.
-// ponytail: a lock file instead of OS file locks (none portable in the standard library). It holds the
-// process ID of its run, so a lock left behind by a run that crashed is taken over at once, while a run
-// that is slow or was asleep with the computer keeps it for up to an hour.
+// The lock is the system's own lock on lock.os (flock, LockFileEx), which goes with its process: a run
+// that crashed or slept with the computer leaves nothing to clean up, and no run opens a file that
+// another removes. Releases before 0.6.4 lock by creating the file lock instead, so a run makes that
+// one too while it holds lock.os.
 func withLock(dir string, fn func() error) error {
-	p := filepath.Join(dir, "lock")
-	me := []byte(strconv.Itoa(os.Getpid()))
 	deadline := time.Now().Add(30 * time.Second)
-	for !lockTurn.TryLock() {
-		if time.Now().After(deadline) {
-			return failure("busy")
-		}
+	held, err := lockFile(filepath.Join(dir, "lock.os"))
+	for errors.Is(err, errLocked) && time.Now().Before(deadline) {
 		time.Sleep(20 * time.Millisecond)
+		held, err = lockFile(filepath.Join(dir, "lock.os"))
 	}
-	defer lockTurn.Unlock()
-	for ; ; time.Sleep(20 * time.Millisecond) {
+	if errors.Is(err, errLocked) {
+		return failure("busy")
+	}
+	if err != nil {
+		return err
+	}
+	defer held.Close()
+	p := filepath.Join(dir, "lock")
+	for {
 		f, err := os.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 		if err == nil {
-			_, err = f.Write(me)
+			_, err = f.WriteString(lockMark)
 			if cerr := f.Close(); err == nil {
 				err = cerr
 			}
+			defer os.Remove(p)
 			if err != nil {
-				os.Remove(p)
 				return err
 			}
-			defer release(p, me)
 			return fn()
-		}
-		if errors.Is(err, os.ErrPermission) && runtime.GOOS == "windows" && time.Now().Before(deadline) {
-			continue // a lock removed while another program (a virus scanner) had it open is still being deleted
 		}
 		if !errors.Is(err, os.ErrExist) {
 			return err
 		}
-		b, err := os.ReadFile(p)
-		st, serr := os.Stat(p)
-		if err == nil && serr == nil && leftBehind(b, time.Since(st.ModTime())) {
-			takeOver(p, b, st.ModTime())
+		// Looked at, never opened: an older release may be removing it. While this run holds lock.os, a
+		// lock with lockMark is one a run of this release left behind; any other is an older release's,
+		// left behind after 10 minutes as there.
+		if st, err := os.Stat(p); err == nil && (st.Size() == int64(len(lockMark)) || time.Since(st.ModTime()) > 10*time.Minute) {
+			os.Remove(p)
 			continue
 		}
 		if time.Now().After(deadline) {
 			return failure("busy")
 		}
-	}
-}
-
-// lockTurn lets one withLock of this process at a time go for the lock file, so a lock file with this
-// process's ID that it meets is one this process could not remove.
-var lockTurn sync.Mutex
-
-// release removes the lock while it is still this run's, not taken over after an hour. Windows refuses
-// while a waiting run reads the file: it tries again for a second, and a lock still there is taken over
-// by this process's next run, or by any once this process has ended.
-func release(p string, me []byte) {
-	for range 50 {
-		if b, err := os.ReadFile(p); err != nil || !bytes.Equal(b, me) || os.Remove(p) == nil {
-			return
-		}
 		time.Sleep(20 * time.Millisecond)
 	}
 }
 
-// leftBehind reports whether a lock with content b and of this age outlived its run: the process it
-// names is this one (see lockTurn) or gone, or it is an hour old (the ID reused by another program).
-// Releases before this one leave it empty, as a run does for a moment while writing it; theirs count
-// after 10 minutes, as there.
-func leftBehind(b []byte, age time.Duration) bool {
-	pid, err := strconv.Atoi(string(b))
-	if err != nil || pid <= 0 {
-		return age > 10*time.Minute
-	}
-	return pid == os.Getpid() || age > time.Hour || !alive(pid)
-}
+// lockMark is what a run that also holds lock.os writes into the file lock: no older release writes
+// one this long (0.6.3 writes its process ID).
+const lockMark = "held with lock.os by gitfolio\n"
 
-// takeOver removes the lock left behind as seen (content and time), unless it changed in the meantime.
-// One waiter at a time does it, holding lock.takeover: two that saw the same lock left behind would
-// otherwise both remove it, the second one the new lock the first had just made.
-func takeOver(p string, seen []byte, at time.Time) {
-	t := p + ".takeover"
-	f, err := os.OpenFile(t, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-	if err != nil {
-		if st, err := os.Stat(t); err == nil && time.Since(st.ModTime()) > time.Minute {
-			os.Remove(t) // its waiter stopped halfway: a takeover takes microseconds
-		}
-		return
-	}
-	f.Close()
-	defer os.Remove(t)
-	b, err := os.ReadFile(p)
-	st, serr := os.Stat(p)
-	if err == nil && serr == nil && bytes.Equal(b, seen) && st.ModTime().Equal(at) {
-		os.Remove(p)
-	}
-}
+// errLocked is lockFile's answer while another run holds the lock.
+var errLocked = errors.New("locked by another run")

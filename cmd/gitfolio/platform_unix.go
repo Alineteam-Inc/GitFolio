@@ -33,19 +33,29 @@ func pushPID(arg string) int {
 
 // waitExit waits until process pid (the git push that ran the hook) is gone, at most max.
 func waitExit(pid int, max time.Duration) {
-	for deadline := time.Now().Add(max); time.Now().Before(deadline) && alive(pid); {
-		time.Sleep(200 * time.Millisecond)
+	for deadline := time.Now().Add(max); time.Now().Before(deadline); time.Sleep(200 * time.Millisecond) {
+		p, err := os.FindProcess(pid)
+		if err != nil || p.Signal(syscall.Signal(0)) != nil {
+			return
+		}
 	}
 }
 
-// alive reports whether process pid is running; one of another user's counts too.
-func alive(pid int) bool {
-	p, err := os.FindProcess(pid)
+// lockFile takes the system's lock on file p (flock), errLocked while another open file holds it. Closing
+// the file, or the process ending, lets go of it.
+func lockFile(p string) (*os.File, error) {
+	f, err := os.OpenFile(p, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
-		return false
+		return nil, err
 	}
-	err = p.Signal(syscall.Signal(0))
-	return err == nil || errors.Is(err, syscall.EPERM)
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		f.Close()
+		if errors.Is(err, syscall.EWOULDBLOCK) {
+			return nil, errLocked
+		}
+		return nil, err
+	}
+	return f, nil
 }
 
 // enableColor reports whether the terminal shows ANSI colors; Unix terminals do.
