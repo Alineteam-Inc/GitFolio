@@ -293,28 +293,30 @@ func TestLockTakesTurns(t *testing.T) {
 	if err := gone.Run(); err != nil {
 		t.Fatal(err)
 	}
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "lock"), []byte(strconv.Itoa(gone.ProcessState.Pid())), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	var runs []*exec.Cmd
-	for range 6 {
-		cmd := exec.Command(os.Args[0], "-test.run=^TestLockTakesTurns$")
-		cmd.Env = append(os.Environ(), "GITFOLIO_LOCK_TEST="+dir)
-		cmd.Stdout = new(strings.Builder) // what a run that fails says
-		cmd.Stderr = cmd.Stdout
-		if err := cmd.Start(); err != nil {
+	for round := range 5 { // a rare failure, such as one on Windows only, shows more often
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "lock"), []byte(strconv.Itoa(gone.ProcessState.Pid())), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		runs = append(runs, cmd)
-	}
-	for _, cmd := range runs {
-		if err := cmd.Wait(); err != nil {
-			t.Errorf("%v\n%s", err, cmd.Stdout)
+		var runs []*exec.Cmd
+		for range 6 {
+			cmd := exec.Command(os.Args[0], "-test.run=^TestLockTakesTurns$")
+			cmd.Env = append(os.Environ(), "GITFOLIO_LOCK_TEST="+dir)
+			cmd.Stdout = new(strings.Builder) // what a run that fails says
+			cmd.Stderr = cmd.Stdout
+			if err := cmd.Start(); err != nil {
+				t.Fatal(err)
+			}
+			runs = append(runs, cmd)
 		}
-	}
-	if b, _ := os.ReadFile(filepath.Join(dir, "count")); string(b) != "240" {
-		t.Errorf("count %s, want 240", b)
+		for _, cmd := range runs {
+			if err := cmd.Wait(); err != nil {
+				t.Errorf("round %d: %v\n%s", round, err, cmd.Stdout)
+			}
+		}
+		if b, _ := os.ReadFile(filepath.Join(dir, "count")); string(b) != "240" {
+			t.Errorf("round %d: count %s, want 240", round, b)
+		}
 	}
 }
 
