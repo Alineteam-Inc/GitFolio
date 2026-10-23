@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -351,5 +352,21 @@ func TestScanQueuesMove(t *testing.T) {
 	}
 	if st, _ := loadSync(dir); len(st.Moves) != 1 {
 		t.Errorf("moves after a second scan: %v", st.Moves)
+	}
+}
+
+// An app started from Finder finds only /usr/bin/git, which looks up the Command Line Tools' git on every
+// run: gitfolio runs that git directly.
+func TestGitSkipsTheStandIn(t *testing.T) {
+	if runtime.GOOS != "darwin" || exec.Command("xcode-select", "-p").Run() != nil {
+		t.Skip("macOS with the Command Line Tools only")
+	}
+	defer func(p string) { gitPath = p }(gitPath)
+	t.Setenv("PATH", "/usr/bin:/bin")
+	if !gitWorks() || gitPath == "git" || !isFile(gitPath) {
+		t.Errorf("git = %q", gitPath)
+	}
+	if out, err := git(".", "--version"); err != nil || !strings.HasPrefix(out, "git version") {
+		t.Errorf("%s: %q %v", gitPath, out, err)
 	}
 }
