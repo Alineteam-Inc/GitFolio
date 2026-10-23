@@ -292,9 +292,11 @@ func updateCommand(tag, exe string) (*exec.Cmd, string) {
 	sep := string(filepath.Separator)
 	switch {
 	case strings.Contains(exe, sep+"Caskroom"+sep): // Homebrew cask, macOS or Linux
-		// The brew of that Homebrew: an app's PATH has none
+		// The brew of that Homebrew: an app's PATH has none. Only GitFolio's tap is brought up to date
+		// (brew update fetches every tap and Homebrew itself, which takes minutes); brew update if it fails.
 		brew := filepath.Join(exe[:strings.Index(exe, sep+"Caskroom"+sep)], "bin", "brew")
-		return exec.Command("sh", "-c", `"$0" update && "$0" upgrade --cask gitfolio`, brew), "brew update && brew upgrade --cask gitfolio"
+		s := `{ GIT_TERMINAL_PROMPT=0 git -C "$("$0" --repository alineteam-inc/tap)" pull -q --ff-only || "$0" update; } && HOMEBREW_NO_AUTO_UPDATE=1 "$0" upgrade --cask alineteam-inc/tap/gitfolio`
+		return exec.Command("sh", "-c", s, brew), "brew update && brew upgrade --cask gitfolio"
 	case runtime.GOOS == "windows":
 		s := "irm " + installPs1 + " | iex"
 		c := exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", s)
