@@ -431,6 +431,51 @@ func TestAppMessages(t *testing.T) {
 	}
 }
 
+// git update goes the way git was installed: brew for Homebrew's, winget on Windows, Software Update
+// for Apple's Command Line Tools and the App Store for Xcode's; anything else is updated by hand.
+func TestGitUpdater(t *testing.T) {
+	has := func(names ...string) func(string) bool {
+		return func(n string) bool { return slices.Contains(names, n) }
+	}
+	for _, c := range []struct {
+		goos, path, tools string
+		has               func(string) bool
+		want, how         string
+	}{
+		{"darwin", "/usr/bin/git", "/Library/Developer/CommandLineTools/usr/bin/git", has(),
+			"open x-apple.systempreferences:com.apple.Software-Update-Settings.extension", "softwareUpdate"},
+		{"darwin", "/usr/bin/git", "/Applications/Xcode.app/Contents/Developer/usr/bin/git", has(),
+			"open macappstore://showUpdatesPage", "appStore"},
+		{"windows", `C:\Program Files\Git\cmd\git.exe`, "git", has("winget"),
+			"winget upgrade --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements", "winget"},
+		{"windows", `C:\Program Files\Git\cmd\git.exe`, "git", has(), "", "manual"},
+		{"linux", "/usr/bin/git", "git", has("apt-get", "sudo"), "", "manual"},
+	} {
+		args, how := gitUpdater(c.goos, c.path, c.tools, c.has)
+		if got := strings.Join(args, " "); got != c.want || how != c.how {
+			t.Errorf("%s %s: %q %s, want %q %s", c.goos, c.tools, got, how, c.want, c.how)
+		}
+	}
+	if runtime.GOOS == "windows" {
+		return // a symlink there takes administrator rights
+	}
+	prefix := t.TempDir()
+	real := filepath.Join(prefix, "Cellar", "git", "2.55.0", "bin", "git")
+	if err := os.MkdirAll(filepath.Dir(real), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(real, nil, 0o755)
+	os.MkdirAll(filepath.Join(prefix, "bin"), 0o755)
+	if err := os.Symlink(real, filepath.Join(prefix, "bin", "git")); err != nil {
+		t.Fatal(err)
+	}
+	resolved, _ := filepath.EvalSymlinks(prefix) // macOS: /var is /private/var
+	args, how := gitUpdater("darwin", filepath.Join(prefix, "bin", "git"), "git", has())
+	if want := filepath.Join(resolved, "bin", "brew") + " upgrade git"; strings.Join(args, " ") != want || how != "brew" {
+		t.Errorf("Homebrew's git: %q %s, want %q brew", strings.Join(args, " "), how, want)
+	}
+}
+
 // Without git, init offers the system's own installer: the Command Line Tools on macOS, winget on
 // Windows, the package manager on Linux through sudo unless root; nothing when there is none to use.
 func TestGitInstaller(t *testing.T) {

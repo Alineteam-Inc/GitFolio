@@ -158,8 +158,78 @@ func cmdGit(args []string) error {
 			return failure("noGit")
 		}
 		return nil
+	case len(args) == 1 && args[0] == "update":
+		if !gitWorks() {
+			return failure("noGit")
+		}
+		path, _ := exec.LookPath("git")
+		return gitUpdate(lang, path)
 	}
-	return failure("usage", "gitfolio git [install] [--json]")
+	return failure("usage", "gitfolio git [install | update] [--json]")
+}
+
+// gitUpdate updates git as gitUpdater says. A program (--json) has asked its user: brew and winget run
+// and are waited for, a window opens and it returns at once. At the terminal it asks first; elsewhere,
+// and where it cannot update, it says how.
+func gitUpdate(lang, path string) error {
+	args, how := gitUpdater(runtime.GOOS, path, gitPath, func(n string) bool { _, err := exec.LookPath(n); return err == nil })
+	if args == nil || !jsonOut && !interactive() {
+		if jsonOut {
+			return printJSON(map[string]any{"started": false, "how": how, "message": gitUpdateHint(lang, path), "url": gitDownload()})
+		}
+		notice(gitUpdateHint(lang, path))
+		return nil
+	}
+	if !jsonOut && args[0] != "open" && (!askYesNo(lang, "gitUpdateAsk", true, strings.Join(args, " ")) || stdinClosed) {
+		return nil
+	}
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdout, cmd.Stderr = errOut, errOut // stdout carries the result alone
+	if !jsonOut {
+		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	}
+	if err := cmd.Run(); err != nil {
+		var exit *exec.ExitError
+		if how == "winget" && errors.As(err, &exit) && exit.ExitCode() == 0x8A15002B { // no newer Git for Windows yet
+			if jsonOut {
+				return printJSON(map[string]any{"started": false, "how": how, "message": strings.TrimSpace(tr(lang, "gitUpdateNone"))})
+			}
+			say(lang, "gitUpdateNone")
+			return nil
+		}
+		return failure("gitUpdateFailed", err)
+	}
+	switch {
+	case jsonOut:
+		return printJSON(map[string]any{"started": true, "how": how})
+	case args[0] == "open":
+		say(lang, "gitUpdateOpened")
+		return nil
+	}
+	return cmdGit(nil) // the version now
+}
+
+// gitUpdater is the command that updates the git at path the way it was installed, and how: brew for
+// Homebrew's (on Linux too), winget for Git for Windows, and for Apple's the window its updates come in,
+// Software Update for the Command Line Tools or the App Store for Xcode's (tools: the git gitWorks runs).
+// nil and "manual" where it takes a terminal (sudo for a Linux distribution's) or is not known.
+func gitUpdater(goos, path, tools string, has func(string) bool) ([]string, string) {
+	sep := string(filepath.Separator)
+	if real, err := filepath.EvalSymlinks(path); err == nil {
+		if i := strings.Index(real, sep+"Cellar"+sep+"git"+sep); i >= 0 {
+			return []string{filepath.Join(real[:i], "bin", "brew"), "upgrade", "git"}, "brew"
+		}
+	}
+	switch {
+	case goos == "darwin" && path == "/usr/bin/git" && strings.Contains(tools, ".app/"):
+		return []string{"open", "macappstore://showUpdatesPage"}, "appStore"
+	case goos == "darwin" && path == "/usr/bin/git":
+		return []string{"open", "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"}, "softwareUpdate"
+	case goos == "windows" && has("winget"):
+		return []string{"winget", "upgrade", "--id", "Git.Git", "-e", "--source", "winget",
+			"--accept-package-agreements", "--accept-source-agreements"}, "winget"
+	}
+	return nil, "manual"
 }
 
 // gitUpstream is git's newest release ("v2.55.0"), from git's own repository. A vendor's git (Apple's,

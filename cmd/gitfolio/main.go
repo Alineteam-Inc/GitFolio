@@ -120,9 +120,10 @@ commands:
                         before removing GitFolio: unregister every repository and put back its earlier
                         hooks, remove the daily sync and log out (--purge-local: also delete the data on
                         this computer). Nothing on aline.team is deleted
-  git [install] [--json]
+  git [install | update] [--json]
                         whether git is installed (path, version), or install it with the system's
-                        installer (at the terminal after asking, as init does)
+                        installer (at the terminal after asking, as init does), or update it the way
+                        it was installed (Homebrew, winget; Apple's: opens Software Update)
   version [--json]      print version (--json: also the release number, whether it is a build from source
                         or a copy an app ships and updates, and the language of GitFolio's texts)
 

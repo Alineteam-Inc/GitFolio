@@ -838,6 +838,26 @@ var messages = map[string]map[string]string{
 		"ko": "시스템의 패키지 관리자로 git을 업데이트하세요. 배포판은 보안 수정을 적용한 이전 버전을 유지하기도 합니다.\n",
 		"ja": "システムのパッケージマネージャーで git を更新してください。ディストリビューションは、セキュリティ修正を適用した古いバージョンを使い続けることがあります。\n",
 	},
+	"gitUpdateAsk": {
+		"en": "Update git now? (%s)",
+		"ko": "지금 git을 업데이트할까요? (%s)",
+		"ja": "今 git を更新しますか? (%s)",
+	},
+	"gitUpdateOpened": {
+		"en": "Install git's update in the window that opened: the Command Line Tools in Software Update, Xcode in the App Store.\n",
+		"ko": "열린 창에서 git 업데이트를 설치하세요. Command Line Tools는 소프트웨어 업데이트에서, Xcode는 App Store에서 업데이트합니다.\n",
+		"ja": "開いたウィンドウで git のアップデートをインストールしてください。Command Line Tools はソフトウェアアップデート、Xcode は App Store で更新します。\n",
+	},
+	"gitUpdateNone": {
+		"en": "There is no newer Git for Windows to install yet.\n",
+		"ko": "아직 설치할 새 Git for Windows가 없습니다.\n",
+		"ja": "インストールできる新しい Git for Windows はまだありません。\n",
+	},
+	"gitUpdateFailed": {
+		"en": "Updating git failed: %v\n",
+		"ko": "git 업데이트에 실패했습니다: %v\n",
+		"ja": "git の更新に失敗しました: %v\n",
+	},
 	"gitInstalled": {
 		"en": "git is installed.\n",
 		"ko": "git을 설치했습니다.\n",
