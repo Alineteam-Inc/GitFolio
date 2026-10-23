@@ -22,8 +22,14 @@ const logFormat = "--format=%x1e%H%x1f%aI%x1f%aN%x1f%aE%x1f%B%x1f"
 
 // git runs git inside dir. GIT_DIR and friends are dropped so that running
 // from inside a git hook does not redirect the command to the hook's repository.
-func git(dir string, args ...string) (string, error) {
+func git(dir string, args ...string) (string, error) { return gitStdin(dir, "", args...) }
+
+// gitStdin is git with in on its standard input.
+func gitStdin(dir, in string, args ...string) (string, error) {
 	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	if in != "" {
+		cmd.Stdin = strings.NewReader(in)
+	}
 	for _, kv := range os.Environ() {
 		if !strings.HasPrefix(kv, "GIT_DIR=") && !strings.HasPrefix(kv, "GIT_WORK_TREE=") && !strings.HasPrefix(kv, "GIT_INDEX_FILE=") {
 			cmd.Env = append(cmd.Env, kv)
@@ -465,9 +471,34 @@ func remoteBranches(repo string) (map[string]string, error) {
 	return branch, nil
 }
 
+// gitLog reads rng's commits with the files each changed, by name only: counting the changed lines of
+// everyone's whole history takes most of the time, and only the commits stored need them (fileStats).
 func gitLog(repo string, rng []string) (string, error) {
-	args := []string{"-c", "core.quotePath=false", "log", "--no-merges", "--no-color", "--no-show-signature", "-M", "--numstat", "--summary", logFormat}
+	args := []string{"-c", "core.quotePath=false", "log", "--no-merges", "--no-color", "--no-show-signature", "-M", "--name-status", logFormat}
 	return git(repo, append(args, rng...)...)
+}
+
+// fileStats reads the files of the commits hashes with their changed lines, by commit hash.
+func fileStats(repo string, hashes []string) (map[string][]FileStat, error) {
+	stats := map[string][]FileStat{}
+	if len(hashes) == 0 {
+		return stats, nil
+	}
+	// The hashes go on stdin: a command line has a length limit (Windows: 32767 characters).
+	args := []string{"-c", "core.quotePath=false", "log", "--no-walk=unsorted", "--stdin", "--no-color", "--no-show-signature", "-M", "--numstat", "--summary", logFormat}
+	out, err := gitStdin(repo, strings.Join(hashes, "\n")+"\n", args...)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range parseLog(out) {
+		stats[c.Hash] = c.Files
+	}
+	for _, h := range hashes {
+		if _, ok := stats[h]; !ok {
+			return nil, fmt.Errorf("git log: no changes read for %s", h)
+		}
+	}
+	return stats, nil
 }
 
 func parseLog(out string) []Commit {
@@ -489,6 +520,14 @@ func parseLog(out string) []Commit {
 				continue
 			}
 			p := strings.SplitN(line, "\t", 3)
+			if len(p) >= 2 && p[0] != "" && p[0][0] >= 'A' && p[0][0] <= 'Z' { // --name-status: "M\tpath", "R087\told\tnew"
+				name := newPath(p[len(p)-1])
+				if p[0] == "A" {
+					created[name] = true
+				}
+				c.Files = append(c.Files, FileStat{Name: name})
+				continue
+			}
 			if len(p) < 3 {
 				continue
 			}
