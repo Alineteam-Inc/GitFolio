@@ -71,6 +71,18 @@ func waitExit(pid int, max time.Duration) {
 	}
 }
 
+// alive reports whether process pid is running; one of another user's counts too.
+func alive(pid int) bool {
+	const queryLimitedInformation, stillActive = 0x1000, 259
+	h, err := syscall.OpenProcess(queryLimitedInformation, false, uint32(pid))
+	if err != nil {
+		return err == syscall.ERROR_ACCESS_DENIED
+	}
+	defer syscall.CloseHandle(h)
+	var code uint32
+	return syscall.GetExitCodeProcess(h, &code) == nil && code == stillActive
+}
+
 // enableColor turns on ANSI color handling in the Windows console (Windows 10 and later); false where
 // the console cannot, so plain text is printed instead.
 func enableColor() bool {
