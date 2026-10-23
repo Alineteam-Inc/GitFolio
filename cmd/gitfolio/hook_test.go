@@ -6,7 +6,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -202,5 +204,29 @@ func TestLoginGate(t *testing.T) {
 		if err := run(args); err != nil {
 			t.Errorf("%v before login: %v", args, err)
 		}
+	}
+}
+
+// Commands that write the same file outside the lock, such as two saving a login, each write a temporary
+// file of their own: none fails on Unix, and the file is always one of theirs whole.
+func TestWriteFileTogether(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "credentials.json")
+	var wg sync.WaitGroup
+	for i := range 8 {
+		wg.Go(func() {
+			for range 50 {
+				err := writeFile(p, []byte(strings.Repeat(strconv.Itoa(i), 4096)))
+				if err != nil && runtime.GOOS != "windows" { // Windows may refuse a replace while another runs
+					t.Error(err)
+				}
+			}
+		})
+	}
+	wg.Wait()
+	if b, _ := os.ReadFile(p); len(b) != 4096 || strings.Count(string(b), string(b[:1])) != 4096 {
+		t.Errorf("not one whole write: %d bytes", len(b))
+	}
+	if left, _ := filepath.Glob(p + ".*"); len(left) > 0 {
+		t.Errorf("left %v", left)
 	}
 }

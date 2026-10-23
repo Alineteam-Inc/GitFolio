@@ -143,10 +143,28 @@ func saveJSON(p string, v any) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(p+".tmp", b, 0o600); err != nil {
+	return writeFile(p, b)
+}
+
+// writeFile replaces p in one step, so a reader sees the old file or the new one, never part of it. The
+// temporary file has a name of its own: commands that write outside the lock (whoami saving a login, a
+// history trim) never write into each other's.
+func writeFile(p string, b []byte) error {
+	f, err := os.CreateTemp(filepath.Dir(p), filepath.Base(p)+".*.tmp")
+	if err != nil {
 		return err
 	}
-	return os.Rename(p+".tmp", p)
+	_, err = f.Write(b)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Rename(f.Name(), p)
+	}
+	if err != nil {
+		os.Remove(f.Name())
+	}
+	return err
 }
 
 func readCommits(dir string) ([]Commit, error) {
