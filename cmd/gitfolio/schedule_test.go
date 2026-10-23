@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -137,5 +139,44 @@ func TestScheduleNamesFromSource(t *testing.T) {
 	version = "0.6.0"
 	if fromSource(".dev") != "" {
 		t.Error("a release takes the source build's names")
+	}
+}
+
+// The scheduled run is this gitfolio, on this one's data: never another gitfolio found on PATH, and it
+// gets the home and config folders this one has (a test HOME too).
+func TestScheduleRunsThisCopy(t *testing.T) {
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := "gitfolio"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	other, same := t.TempDir(), t.TempDir()
+	if err := os.WriteFile(filepath.Join(other, name), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(exe, filepath.Join(same, name)); err != nil {
+		t.Skip("no hard link here:", err)
+	}
+	for dir, want := range map[string]string{other: exe, same: filepath.Join(same, name)} {
+		t.Setenv("PATH", dir)
+		if got, err := gitfolioPath(); err != nil || got != want {
+			t.Errorf("PATH %s: %s %v, want %s", dir, got, err, want)
+		}
+	}
+
+	t.Setenv("HOME", filepath.Join(other, "home"))
+	t.Setenv("XDG_CONFIG_HOME", "")
+	env := map[string]string{}
+	for _, kv := range scheduleEnv() {
+		env[kv[0]] = kv[1]
+	}
+	if env["HOME"] != filepath.Join(other, "home") || env["PATH"] != os.Getenv("PATH") {
+		t.Errorf("env = %v", env)
+	}
+	if _, ok := env["XDG_CONFIG_HOME"]; ok {
+		t.Errorf("an empty XDG_CONFIG_HOME was passed on: %v", env)
 	}
 }

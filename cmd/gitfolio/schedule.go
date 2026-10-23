@@ -142,21 +142,33 @@ func parseHHMM(s string) (h, m int, ok bool) {
 	return t.Hour(), t.Minute(), err == nil
 }
 
-// gitfolioPath is the command the scheduler runs: the one on PATH (a Homebrew link keeps working across
-// upgrades), else this executable.
+// gitfolioPath is the command the scheduler runs: this executable, by its name on PATH when that is the
+// same file (a Homebrew link keeps working across upgrades). Another gitfolio on PATH, such as a
+// separate install next to an app's own copy, is never the one scheduled.
 func gitfolioPath() (string, error) {
-	if p, err := exec.LookPath("gitfolio"); err == nil {
-		return filepath.Abs(p)
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
 	}
-	return os.Executable()
+	if p, err := exec.LookPath("gitfolio"); err == nil {
+		if a, err := os.Stat(p); err == nil {
+			if b, err := os.Stat(exe); err == nil && os.SameFile(a, b) {
+				return filepath.Abs(p)
+			}
+		}
+	}
+	return exe, nil
 }
 
 // scheduleEnv is what the scheduled run inherits from this shell: PATH, so git resolves as in a
-// terminal, and GITFOLIO_LANG when set, so the log is in the same language.
+// terminal; the home and config folders, so it works on the data this one works on; and GITFOLIO_LANG
+// when set, so the log is in the same language.
 func scheduleEnv() [][2]string {
 	env := [][2]string{{"PATH", os.Getenv("PATH")}}
-	if v := os.Getenv("GITFOLIO_LANG"); v != "" {
-		env = append(env, [2]string{"GITFOLIO_LANG", v})
+	for _, k := range []string{"HOME", "XDG_CONFIG_HOME", "AppData", "GITFOLIO_LANG"} {
+		if v := os.Getenv(k); v != "" {
+			env = append(env, [2]string{k, v})
+		}
 	}
 	return env
 }
