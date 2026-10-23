@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -303,6 +304,9 @@ func withLock(dir string, fn func() error) error {
 			}
 			defer release(p, me)
 			return fn()
+		}
+		if errors.Is(err, os.ErrPermission) && runtime.GOOS == "windows" && time.Now().Before(deadline) {
+			continue // a lock removed while another program (a virus scanner) had it open is still being deleted
 		}
 		if !errors.Is(err, os.ErrExist) {
 			return err
