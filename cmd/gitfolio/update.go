@@ -295,7 +295,10 @@ func updateCommand(tag, exe string) (*exec.Cmd, string) {
 		// The brew of that Homebrew: an app's PATH has none. Only GitFolio's tap is brought up to date
 		// (brew update fetches every tap and Homebrew itself, which takes minutes); brew update if it fails.
 		brew := filepath.Join(exe[:strings.Index(exe, sep+"Caskroom"+sep)], "bin", "brew")
-		s := `{ GIT_TERMINAL_PROMPT=0 git -C "$("$0" --repository alineteam-inc/tap)" pull -q --ff-only || "$0" update; } && HOMEBREW_NO_AUTO_UPDATE=1 "$0" upgrade --cask alineteam-inc/tap/gitfolio`
+		// As brew update runs git on a tap: no hooks, no prompt; fetch and merge, whatever pull.rebase says.
+		s := `{ t=$("$0" --repository alineteam-inc/tap) && export GIT_TERMINAL_PROMPT=0 &&
+git -C "$t" -c core.hooksPath=/dev/null fetch -q && git -C "$t" -c core.hooksPath=/dev/null merge -q --ff-only '@{u}' ||
+"$0" update; } && HOMEBREW_NO_AUTO_UPDATE=1 "$0" upgrade --cask alineteam-inc/tap/gitfolio`
 		return exec.Command("sh", "-c", s, brew), "brew update && brew upgrade --cask gitfolio"
 	case runtime.GOOS == "windows":
 		s := "irm " + installPs1 + " | iex"
