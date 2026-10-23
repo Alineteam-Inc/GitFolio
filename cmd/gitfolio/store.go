@@ -233,8 +233,8 @@ func readAgentTags(dir string) (map[string][]string, error) {
 
 // scanRepo stores the user's commits in r that are not stored yet and returns how many were added.
 // With rebuild, r's stored commits are dropped first and collected again. Callers hold the data lock.
-// ponytail: a repository whose refs moved is read whole again and deduped by hash; read only the new
-// commits (and keep what churnOf and firstChanges count between scans) if big repositories get slow.
+// ponytail: a repository whose refs moved has its whole history read again (file names only) and deduped
+// by hash; read only the new commits (keeping what churnOf and firstChanges count) if that gets slow.
 func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	var n int
 	var scanErr error
@@ -374,18 +374,26 @@ func storeScan(dir string, cfg Config, r *Repo, g repoRead, rebuild bool) (int, 
 		known[c.Hash] = true
 	}
 	var fresh []Commit
+	var hashes []string
 	for _, c := range all {
 		if known[c.Hash] {
 			continue
 		}
 		if c.CreationType = creationType(c, mine); c.CreationType != "" {
 			c.Repo = r.ID
-			for i := range c.Files {
-				c.Files[i].Module = moduleOf(c.Files[i].Name, modules)
-			}
 			m.commit(&c) // after AI detection in parseLog, before anything is written
-			fresh = append(fresh, c)
+			fresh, hashes = append(fresh, c), append(hashes, c.Hash)
 			known[c.Hash] = true
+		}
+	}
+	stats, err := fileStats(r.Path, hashes)
+	if err != nil {
+		return 0, err
+	}
+	for i := range fresh {
+		fresh[i].Files = stats[fresh[i].Hash]
+		for j := range fresh[i].Files {
+			fresh[i].Files[j].Module = moduleOf(fresh[i].Files[j].Name, modules)
 		}
 	}
 	if len(fresh) > 0 && rng[0] == "--remotes" {
