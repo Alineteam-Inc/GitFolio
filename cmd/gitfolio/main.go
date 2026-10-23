@@ -258,6 +258,10 @@ func run(args []string) error {
 		return cmdStats(dir, args[1:]) // outside the lock: it may wait on aline.team
 	case "stack":
 		return cmdStack(dir, args[1:]) // the same
+	case "email":
+		if len(withoutJSON(args[1:])) == 0 {
+			return cmdEmail(dir, args[1:]) // the list only reads, like whoami, and may wait on aline.team
+		}
 	}
 	return withLock(dir, func() error {
 		switch args[0] {
