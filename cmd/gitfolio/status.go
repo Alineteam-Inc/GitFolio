@@ -271,15 +271,16 @@ func statusJSON(dir string, repos []Repo, commits []Commit, st syncState, cfg Co
 		Hooks      string `json:"hooks"`   // on, off, or manual: a hooks folder GitFolio does not write to
 		LastCommit string `json:"lastCommit,omitempty"`
 	}
-	list, unsent := []repo{}, 0
-	for _, r := range repos {
+	list, unsent, hooks := []repo{}, 0, make([]string, len(repos))
+	sideBySide(len(repos), func(i int) { hooks[i] = hookStatus(repos[i].Path) })
+	for i, r := range repos {
 		s := statusOf(r, commits, nil, st)
 		last := ""
 		if !s.last.IsZero() {
 			last = s.lastCommit()
 		}
 		list = append(list, repo{r.Name, r.Path, r.Namespace, s.commits, s.sent, st.Waiting[r.Provider+"/"+r.Namespace] != "",
-			hookStatus(r.Path), last})
+			hooks[i], last})
 		if r.Namespace != "" {
 			unsent += s.commits - s.sent
 		}

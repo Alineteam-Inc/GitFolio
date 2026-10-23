@@ -643,20 +643,28 @@ func syncNow(dir, lang string, dryRun bool) (n syncCounts, failed []map[string]s
 		return n, nil, err
 	}
 	failed = []map[string]string{}
+	rs := make([]*Repo, len(repos))
 	for i := range repos {
-		progress(lang, "progressScan", i, len(repos))
-		if _, err := scanRepo(dir, &repos[i], false); err != nil {
-			warn(lang, "repoFailed", repos[i].Name, err)
-			failed = append(failed, map[string]string{"name": repos[i].Name, "error": err.Error()})
-			continue
+		rs[i] = &repos[i]
+	}
+	progress(lang, "progressScan", 0, len(rs))
+	err = scanRepos(dir, rs, false, func(i, _ int, err error) {
+		defer progress(lang, "progressScan", i+1, len(rs))
+		if err != nil {
+			warn(lang, "repoFailed", rs[i].Name, err)
+			failed = append(failed, map[string]string{"name": rs[i].Name, "error": err.Error()})
+			return
 		}
 		if cfg.Deps && cfg.DepsAuto { // deps auto on: the daily sync runs this too
-			if _, _, err := refreshDeps(dir, &repos[i]); err != nil {
-				warn(lang, "repoFailed", repos[i].Name, err)
+			if _, _, err := refreshDeps(dir, rs[i]); err != nil {
+				warn(lang, "repoFailed", rs[i].Name, err)
 			}
 		}
-	}
+	})
 	progressDone() // before --dry-run prints its requests
+	if err != nil {
+		return n, failed, err
+	}
 	if err := saveRepos(dir, repos); err != nil {
 		return n, failed, err
 	}

@@ -10,7 +10,9 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
+	"sync"
 	"time"
 )
 
@@ -256,15 +258,67 @@ func readAgentTags(dir string) (map[string][]string, error) {
 // ponytail: a repository whose refs moved is read whole again and deduped by hash; read only the new
 // commits (and keep what churnOf and firstChanges count between scans) if big repositories get slow.
 func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
+	var n int
+	var scanErr error
+	if err := scanRepos(dir, []*Repo{r}, rebuild, func(_, added int, err error) { n, scanErr = added, err }); err != nil {
+		return 0, err
+	}
+	return n, scanErr
+}
+
+// scanRepos scans rs like scanRepo. Their git is read side by side, the slow part, and what it finds is
+// stored in order; each gets every repository's result before the next is stored. Callers hold the data lock.
+func scanRepos(dir string, rs []*Repo, rebuild bool, each func(i, added int, err error)) error {
 	cfg, err := loadConfig(dir)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	mine, err := myEmails(r.Path, cfg.Emails)
+	tags, err := readAgentTags(dir)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	m := newMasker(cfg.Mask)
+	reads := make([]chan repoRead, len(rs))
+	for i := range reads {
+		reads[i] = make(chan repoRead, 1)
+	}
+	go sideBySide(len(rs), func(i int) { reads[i] <- readRepo(cfg, tags, rs[i], rebuild) })
+	for i, r := range rs {
+		n, err := storeScan(dir, cfg, r, <-reads[i], rebuild)
+		each(i, n, err)
+	}
+	return nil
+}
+
+// sideBySide runs f(0) to f(n-1) at the same time, as many at once as there are CPUs: for git commands
+// on different repositories, each its own process.
+func sideBySide(n int, f func(i int)) {
+	var wg sync.WaitGroup
+	slots := make(chan struct{}, runtime.NumCPU())
+	for i := range n {
+		wg.Go(func() {
+			slots <- struct{}{}
+			defer func() { <-slots }()
+			f(i)
+		})
+	}
+	wg.Wait()
+}
+
+// repoRead is what a scan reads of a repository's git, which needs none of GitFolio's stored data.
+type repoRead struct {
+	err  error
+	mine map[string]bool
+	move *repoMove // a new address of the repository, for aline.team to rename what it has
+	rng  []string  // nil: no commits yet
+	seen string    // scanPrint
+	all  []Commit  // everyone's commits; nil when nothing changed since the last scan
+}
+
+// readRepo reads r's git for a scan and sets what it counts of the whole history on r.
+func readRepo(cfg Config, tags map[string][]string, r *Repo, rebuild bool) (g repoRead) {
+	if g.mine, g.err = myEmails(r.Path, cfg.Emails); g.err != nil {
+		return g
+	}
 	if hooks, husky, err := hooksDir(r.Path); err == nil && husky && !r.NoHooks {
 		_ = huskyHooks(hooks, true) // husky rewrites its hook files on npm install; put gitfolio's lines back
 	}
@@ -274,27 +328,54 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	// A new address of the same repository (git remote set-url, or its push URL now counts): aline.team
 	// renames what it has rather than get the commits again under the new name.
 	if now := (deletion{r.Provider, r.Namespace}); was.Namespace != "" && now.Namespace != "" && now != was {
-		if err := queueMove(dir, repoMove{was, now}); err != nil {
+		g.move = &repoMove{was, now}
+	}
+	if g.rng, g.err = logRange(r.Path); g.err != nil || g.rng == nil {
+		return g
+	}
+	// Reading the whole history is the slow part of a scan: skipped when nothing it depends on changed.
+	if g.seen = scanPrint(r.Path, g.rng, g.mine); !rebuild && r.Format == repoFormat && g.seen == r.Seen {
+		return g
+	}
+	out, err := gitLog(r.Path, g.rng)
+	if err != nil {
+		g.err = err
+		return g
+	}
+	if g.all = parseLog(out); g.all == nil {
+		g.all = []Commit{} // read: no commits of anyone's to count
+	}
+	for i, c := range g.all {
+		if extra := tags[c.Hash]; len(extra) > 0 {
+			g.all[i].AIAgents = slices.Compact(slices.Sorted(slices.Values(append(c.AIAgents, extra...))))
+		}
+	}
+	r.Changed = firstChanges(g.all, g.mine)
+	r.Churn, r.AsOf = nil, ""
+	if g.rng[0] == "--remotes" { // the snapshot is of pushed history only
+		r.Churn, r.AsOf = churnOf(g.all, g.mine)
+	}
+	return g
+}
+
+// storeScan stores the user's commits that readRepo found and are not stored yet.
+func storeScan(dir string, cfg Config, r *Repo, g repoRead, rebuild bool) (int, error) {
+	if g.move != nil {
+		if err := queueMove(dir, *g.move); err != nil {
 			return 0, err
 		}
 	}
-	var modules map[string]string
-	if cfg.Deps { // module IDs only: package manager files are read by `deps scan`, not here
-		modules = manifestModules(*r)
+	if g.err != nil || g.rng == nil {
+		return 0, g.err
 	}
-	rng, err := logRange(r.Path)
-	if err != nil || rng == nil {
-		return 0, err
-	}
-	// Reading the whole history is the slow part of a scan: skipped when nothing it depends on changed.
-	seen := scanPrint(r.Path, rng, mine)
-	if !rebuild && r.Format == repoFormat && seen == r.Seen {
+	if g.all == nil {
 		r.LastScan = time.Now().Format(time.RFC3339)
 		return 0, nil
 	}
-	out, err := gitLog(r.Path, rng)
-	if err != nil {
-		return 0, err
+	mine, rng, all, m := g.mine, g.rng, g.all, newMasker(cfg.Mask)
+	var modules map[string]string
+	if cfg.Deps { // module IDs only: package manager files are read by `deps scan`, not here
+		modules = manifestModules(*r)
 	}
 	stored, err := readCommits(dir)
 	if err != nil {
@@ -310,26 +391,11 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 			return 0, err
 		}
 	}
-	tags, err := readAgentTags(dir)
-	if err != nil {
-		return 0, err
-	}
 	known := map[string]bool{}
 	for _, c := range stored {
 		known[c.Hash] = true
 	}
 	var fresh []Commit
-	all := parseLog(out)
-	for i, c := range all {
-		if extra := tags[c.Hash]; len(extra) > 0 {
-			all[i].AIAgents = slices.Compact(slices.Sorted(slices.Values(append(c.AIAgents, extra...))))
-		}
-	}
-	r.Changed = firstChanges(all, mine)
-	r.Churn, r.AsOf = nil, ""
-	if rng[0] == "--remotes" { // the snapshot is of pushed history only
-		r.Churn, r.AsOf = churnOf(all, mine)
-	}
 	for _, c := range all {
 		if known[c.Hash] {
 			continue
@@ -356,7 +422,7 @@ func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	if err := appendCommits(dir, fresh); err != nil {
 		return 0, err
 	}
-	r.LastScan, r.Format, r.Seen = time.Now().Format(time.RFC3339), repoFormat, seen
+	r.LastScan, r.Format, r.Seen = time.Now().Format(time.RFC3339), repoFormat, g.seen
 	return len(fresh), nil
 }
 
