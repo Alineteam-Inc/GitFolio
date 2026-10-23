@@ -161,6 +161,7 @@ func TestInstallEnv(t *testing.T) {
 }
 
 // A cask brings only GitFolio's tap up to date, not all of Homebrew; brew update runs only when that fails.
+// The cask goes by its full name, also in the command shown to run by hand.
 func TestBrewUpdatesItsTap(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("no Homebrew on Windows")
@@ -196,7 +197,10 @@ func TestBrewUpdatesItsTap(t *testing.T) {
 		log := filepath.Join(dir, fmt.Sprint("log", i))
 		t.Setenv("TAP", c.tap)
 		t.Setenv("LOG", log)
-		cmd, _ := updateCommand("v0.6.1", cask)
+		cmd, manual := updateCommand("v0.6.1", cask)
+		if !strings.HasSuffix(manual, " upgrade --cask alineteam-inc/tap/gitfolio") {
+			t.Errorf("by hand: %s, want the cask's full name", manual)
+		}
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("tap %s: %v\n%s", c.tap, err, out)
 		}
