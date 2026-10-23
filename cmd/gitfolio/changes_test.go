@@ -109,28 +109,33 @@ func TestFirstChanges(t *testing.T) {
 		t.Errorf("churn = %v as of %s, want %v as of 2026-09-06T01:00:00Z", r.Churn, r.AsOf, wantChurn)
 	}
 
-	// The same refs, emails and build: the history is not read again (the cleared commits stay cleared),
-	// and what the last read counted stays. A push or another work email reads it again.
-	rescan := func(what string, want int) {
+	// A scan finds what a full read of the history would, whether or not it reads the files again: nothing
+	// new, commits lost from the stored data, a push, the same history under another work email.
+	scan := func(what string, want int) {
 		t.Helper()
-		if err := writeCommits(data, nil); err != nil {
-			t.Fatal(err)
-		}
 		if n, err := scanRepo(data, &r, false); err != nil || n != want {
 			t.Errorf("%s: %d commit(s) collected, %v; want %d", what, n, err, want)
 		}
 	}
-	rescan("unchanged", 0)
-	if !maps.Equal(r.Churn, wantChurn) || !maps.Equal(r.Changed, want) {
+	seen := r.Seen
+	scan("unchanged", 0)
+	if r.Seen != seen || !maps.Equal(r.Churn, wantChurn) || !maps.Equal(r.Changed, want) {
 		t.Errorf("after a scan with nothing new: churn %v, changed %v", r.Churn, r.Changed)
 	}
+	if err := writeCommits(data, nil); err != nil { // as if they were lost
+		t.Fatal(err)
+	}
+	scan("lost", 1)
 	commit(me, "2026-09-07T10:00:00+09:00", "feat: more", map[string]string{"e.go": "e\n"})
 	if out, err := exec.Command("git", "-C", repo, "update-ref", "refs/remotes/origin/main", "HEAD").CombinedOutput(); err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
-	rescan("pushed", 2)
+	scan("pushed", 1)
 	if err := saveConfig(data, Config{Emails: []string{"work@example.com"}}); err != nil {
 		t.Fatal(err)
 	}
-	rescan("new work email", 2)
+	seen = r.Seen
+	if scan("new work email", 0); r.Seen == seen {
+		t.Error("another work email did not count the history again")
+	}
 }

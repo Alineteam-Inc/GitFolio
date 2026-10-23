@@ -255,8 +255,9 @@ func readAgentTags(dir string) (map[string][]string, error) {
 
 // scanRepo stores the user's commits in r that are not stored yet and returns how many were added.
 // With rebuild, r's stored commits are dropped first and collected again. Callers hold the data lock.
-// ponytail: a repository whose refs moved has its whole history read again (file names only) and deduped
-// by hash; read only the new commits (keeping what churnOf and firstChanges count) if that gets slow.
+// ponytail: each scan lists every commit in range (no files) to find what is new; a repository whose
+// commits changed has its files read again by name for churnOf and firstChanges. Keep what they count
+// between scans and read only the new commits if big repositories get slow.
 func scanRepo(dir string, r *Repo, rebuild bool) (int, error) {
 	var n int
 	var scanErr error
@@ -277,11 +278,22 @@ func scanRepos(dir string, rs []*Repo, rebuild bool, each func(i, added int, err
 	if err != nil {
 		return err
 	}
+	stored, err := readCommits(dir) // for readRepo to tell whether a repository has anything to store
+	if err != nil {
+		return err
+	}
+	had := storedNow{known: map[string]bool{}, noBranch: map[string]bool{}}
+	for _, c := range stored {
+		had.known[c.Hash] = true
+		if c.Branch == "" {
+			had.noBranch[c.Repo] = true
+		}
+	}
 	reads := make([]chan repoRead, len(rs))
 	for i := range reads {
 		reads[i] = make(chan repoRead, 1)
 	}
-	go sideBySide(len(rs), func(i int) { reads[i] <- readRepo(cfg, tags, rs[i], rebuild) })
+	go sideBySide(len(rs), func(i int) { reads[i] <- readRepo(cfg, tags, had, rs[i], rebuild) })
 	for i, r := range rs {
 		n, err := storeScan(dir, cfg, r, <-reads[i], rebuild)
 		each(i, n, err)
@@ -304,18 +316,23 @@ func sideBySide(n int, f func(i int)) {
 	wg.Wait()
 }
 
-// repoRead is what a scan reads of a repository's git, which needs none of GitFolio's stored data.
+// storedNow is what was stored when a scan started: the commit hashes, and the repositories with commits
+// stored before branches were recorded.
+type storedNow struct{ known, noBranch map[string]bool }
+
+// repoRead is what a scan reads of a repository's git, which writes none of GitFolio's stored data.
 type repoRead struct {
 	err  error
 	mine map[string]bool
 	move *repoMove // a new address of the repository, for aline.team to rename what it has
 	rng  []string  // nil: no commits yet
-	seen string    // scanPrint
-	all  []Commit  // everyone's commits; nil when nothing changed since the last scan
+	seen string    // fingerprints what the history counts with (Repo.Seen)
+	all  []Commit  // everyone's commits in rng, without their files
+	need bool      // some of the user's commits are not stored, or are stored in an older format
 }
 
 // readRepo reads r's git for a scan and sets what it counts of the whole history on r.
-func readRepo(cfg Config, tags map[string][]string, r *Repo, rebuild bool) (g repoRead) {
+func readRepo(cfg Config, tags map[string][]string, had storedNow, r *Repo, rebuild bool) (g repoRead) {
 	if g.mine, g.err = myEmails(r.Path, cfg.Emails); g.err != nil {
 		return g
 	}
@@ -333,29 +350,47 @@ func readRepo(cfg Config, tags map[string][]string, r *Repo, rebuild bool) (g re
 	if g.rng, g.err = logRange(r.Path); g.err != nil || g.rng == nil {
 		return g
 	}
-	// Reading the whole history is the slow part of a scan: skipped when nothing it depends on changed.
-	if g.seen = scanPrint(r.Path, g.rng, g.mine); !rebuild && r.Format == repoFormat && g.seen == r.Seen {
+	// Every commit in range, without its files: what is new, and whether the history counts the same.
+	if g.all, g.err = readCommitsOf(r.Path, g.rng, false, tags); g.err != nil {
 		return g
 	}
-	out, err := gitLog(r.Path, g.rng)
-	if err != nil {
-		g.err = err
-		return g
+	key := []any{g.rng, slices.Sorted(maps.Keys(g.mine)), version}
+	for _, c := range g.all {
+		key = append(key, c.Hash, c.AIAgents) // the agents also come from agent tags
+		g.need = g.need || !had.known[c.Hash] && creationType(c, g.mine) != ""
 	}
-	if g.all = parseLog(out); g.all == nil {
-		g.all = []Commit{} // read: no commits of anyone's to count
-	}
-	for i, c := range g.all {
-		if extra := tags[c.Hash]; len(extra) > 0 {
-			g.all[i].AIAgents = slices.Compact(slices.Sorted(slices.Values(append(c.AIAgents, extra...))))
+	g.seen = fingerprint(key)
+	old := rebuild || r.Format < repoFormat
+	g.need = g.need || old || g.rng[0] == "--remotes" && had.noBranch[r.ID]
+	// The files of everyone's commits, the slow part, only when the commits or the rules changed.
+	if old || g.seen != r.Seen {
+		all, err := readCommitsOf(r.Path, g.rng, true, tags)
+		if err != nil {
+			g.err = err
+			return g
+		}
+		r.Changed = firstChanges(all, g.mine)
+		r.Churn, r.AsOf = nil, ""
+		if g.rng[0] == "--remotes" { // the snapshot is of pushed history only
+			r.Churn, r.AsOf = churnOf(all, g.mine)
 		}
 	}
-	r.Changed = firstChanges(g.all, g.mine)
-	r.Churn, r.AsOf = nil, ""
-	if g.rng[0] == "--remotes" { // the snapshot is of pushed history only
-		r.Churn, r.AsOf = churnOf(g.all, g.mine)
-	}
 	return g
+}
+
+// readCommitsOf parses gitLog of rng, the agents of agent tags added.
+func readCommitsOf(repo string, rng []string, files bool, tags map[string][]string) ([]Commit, error) {
+	out, err := gitLog(repo, rng, files)
+	if err != nil {
+		return nil, err
+	}
+	all := parseLog(out)
+	for i, c := range all {
+		if extra := tags[c.Hash]; len(extra) > 0 {
+			all[i].AIAgents = slices.Compact(slices.Sorted(slices.Values(append(c.AIAgents, extra...))))
+		}
+	}
+	return all, nil
 }
 
 // storeScan stores the user's commits that readRepo found and are not stored yet.
@@ -368,8 +403,8 @@ func storeScan(dir string, cfg Config, r *Repo, g repoRead, rebuild bool) (int, 
 	if g.err != nil || g.rng == nil {
 		return 0, g.err
 	}
-	if g.all == nil {
-		r.LastScan = time.Now().Format(time.RFC3339)
+	if !g.need {
+		r.LastScan, r.Seen = time.Now().Format(time.RFC3339), g.seen
 		return 0, nil
 	}
 	mine, rng, all, m := g.mine, g.rng, g.all, newMasker(cfg.Mask)
@@ -432,14 +467,4 @@ func storeScan(dir string, cfg Config, r *Repo, g repoRead, rebuild bool) (int, 
 	}
 	r.LastScan, r.Format, r.Seen = time.Now().Format(time.RFC3339), repoFormat, g.seen
 	return len(fresh), nil
-}
-
-// scanPrint fingerprints what a scan of repo reads and counts with: the commits rng names (the remote
-// branches, else HEAD), the user's emails and this build, whose rules may count differently.
-func scanPrint(repo string, rng []string, mine map[string]bool) string {
-	tips := remoteRefs(repo)
-	if rng[0] == "HEAD" {
-		tips, _ = git(repo, "rev-parse", "HEAD")
-	}
-	return fingerprint([]any{tips, slices.Sorted(maps.Keys(mine)), version})
 }

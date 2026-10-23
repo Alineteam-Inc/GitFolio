@@ -488,10 +488,14 @@ func remoteBranches(repo string) (map[string]string, error) {
 	return branch, nil
 }
 
-// gitLog reads rng's commits with the files each changed, by name only: counting the changed lines of
-// everyone's whole history takes most of the time, and only the commits stored need them (fileStats).
-func gitLog(repo string, rng []string) (string, error) {
-	args := []string{"-c", "core.quotePath=false", "log", "--no-merges", "--no-color", "--no-show-signature", "-M", "--name-status", logFormat}
+// gitLog reads rng's commits; with files, also the files each changed, by name only: counting the
+// changed lines of everyone's whole history takes most of the time, and only the commits stored need
+// them (fileStats).
+func gitLog(repo string, rng []string, files bool) (string, error) {
+	args := []string{"-c", "core.quotePath=false", "log", "--no-merges", "--no-color", "--no-show-signature", logFormat}
+	if files {
+		args = append(args, "-M", "--name-status")
+	}
 	return git(repo, append(args, rng...)...)
 }
 
