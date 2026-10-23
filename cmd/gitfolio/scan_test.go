@@ -4,27 +4,98 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 )
 
-// Files are sent as git diff and log show them: the path in the repository, the new side of a rename.
-func TestNewPath(t *testing.T) {
-	for in, want := range map[string]string{
-		"src/a.go":           "src/a.go",
-		"src/{a.go => b.go}": "src/b.go",
-		"{src => lib}/x.go":  "lib/x.go",
-		"{ => sub}/x.go":     "sub/x.go",
-		"{src => }/x.go":     "x.go",
-		"a/{b => }/c/x.go":   "a/c/x.go",
-		"old.go => new.go":   "new.go",
-		`"dir/tab\there.go"`: "dir/tab\there.go",
-		"docs/한글.md":         "docs/한글.md",
-	} {
-		if got := newPath(in); got != want {
-			t.Errorf("newPath(%q) = %q, want %q", in, got, want)
+// Files are sent by their path in the repository, the new one of a rename, whatever characters it has
+// (git quotes some, and a name may hold " => " or braces), from both the file names of everyone's history
+// (gitLog) and the changed lines of the commits stored (fileStats).
+func TestFilePaths(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	repo := t.TempDir()
+	git := func(args ...string) string {
+		t.Helper()
+		out, err := exec.Command("git", append([]string{"-C", repo, "-c", "user.name=me", "-c", "user.email=me@example.com"}, args...)...).CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	names := []string{`q"uote.txt`, "ta\tb.txt", `back\slash.txt`, "we => ird.txt", "{br}.txt", "src/a {b}.go", "docs/한글.md", "sp ace.txt", "src/x.go"}
+	if runtime.GOOS != "windows" { // these characters are not allowed in Windows file names
+		names = append(names, "new\nline.txt")
+	} else {
+		names = slices.DeleteFunc(names, func(n string) bool { return strings.ContainsAny(n, `"\`+"\t") })
+	}
+	write := func(name, body string) {
+		p := filepath.Join(repo, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	git("init", "-q", "-b", "main")
+	for _, n := range names {
+		write(n, n+"\n") // no two alike, so each rename is found as itself
+	}
+	git("add", "-A")
+	git("commit", "-q", "-m", "feat: add")
+	want := map[string]FileStat{}
+	for _, n := range names {
+		dir, base := path.Split(n)
+		to := dir + "2" + base
+		if n == "src/x.go" {
+			to = "lib {x}/x.go" // a folder renamed: git shows "{src => lib {x}}/x.go"
+		}
+		if dir != "" && to != n {
+			if err := os.MkdirAll(filepath.Join(repo, filepath.FromSlash(path.Dir(to))), 0o755); err != nil {
+				t.Fatal(err)
+			}
+		}
+		git("mv", n, to)
+		write(to, n+"\nmore\n")
+		want[to] = FileStat{Name: to, Add: 1}
+	}
+	git("add", "-A")
+	git("commit", "-q", "-m", "refactor: rename")
+	rng := []string{"HEAD"}
+	out, err := gitLog(repo, rng, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := parseLog(out)
+	stats, err := fileStats(repo, []string{all[0].Hash, all[1].Hash})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, files := range [][]FileStat{all[0].Files, stats[all[0].Hash]} {
+		if len(files) != len(want) {
+			t.Fatalf("files %+v", files)
+		}
+		for _, f := range files {
+			w := want[f.Name]
+			if f.Name != w.Name || (f.Add != 0 && f.Add != w.Add) || f.Created {
+				t.Errorf("renamed: %+v, want %+v", f, w)
+			}
+		}
+	}
+	for _, files := range [][]FileStat{all[1].Files, stats[all[1].Hash]} { // the first commit created them
+		got := map[string]bool{}
+		for _, f := range files {
+			got[f.Name] = f.Created
+		}
+		for _, n := range names {
+			if !got[n] {
+				t.Errorf("created %q: %v", n, got)
+			}
 		}
 	}
 }

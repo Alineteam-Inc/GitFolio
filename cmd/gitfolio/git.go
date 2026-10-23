@@ -494,7 +494,7 @@ func remoteBranches(repo string) (map[string]string, error) {
 func gitLog(repo string, rng []string, files bool) (string, error) {
 	args := []string{"-c", "core.quotePath=false", "log", "--no-merges", "--no-color", "--no-show-signature", logFormat}
 	if files {
-		args = append(args, "-M", "--name-status")
+		args = append(args, "-z", "-M", "--name-status")
 	}
 	return git(repo, append(args, rng...)...)
 }
@@ -506,7 +506,7 @@ func fileStats(repo string, hashes []string) (map[string][]FileStat, error) {
 		return stats, nil
 	}
 	// The hashes go on stdin: a command line has a length limit (Windows: 32767 characters).
-	args := []string{"-c", "core.quotePath=false", "log", "--no-walk=unsorted", "--stdin", "--no-color", "--no-show-signature", "-M", "--numstat", "--summary", logFormat}
+	args := []string{"-c", "core.quotePath=false", "log", "--no-walk=unsorted", "--stdin", "--no-color", "--no-show-signature", "-z", "-M", "--numstat", "--summary", logFormat}
 	out, err := gitStdin(repo, strings.Join(hashes, "\n")+"\n", args...)
 	if err != nil {
 		return nil, err
@@ -533,28 +533,48 @@ func parseLog(out string) []Commit {
 		c.AIAgents = detectAgents(f[2], c.AuthorEmail, c.Message)
 		c.coAuthors = coAuthorEmails(c.Message)
 		created := map[string]bool{}
-		for _, line := range strings.Split(f[5], "\n") {
-			if rest, ok := strings.CutPrefix(line, " create mode "); ok { // --summary: " create mode 100644 <path>"
-				if _, p, ok := strings.Cut(rest, " "); ok {
-					created[newPath(p)] = true
+		// -z: a file is "<added>\t<deleted>\t<path>" (--numstat) or "<status>", "<path>" (--name-status), the
+		// fields ending in NUL and the paths as they are; a rename has its old and new path in two fields of
+		// their own. The --summary lines follow, quoted where needed.
+		fields := strings.Split(strings.TrimPrefix(f[5], "\x00\n"), "\x00")
+		for i := 0; i < len(fields); i++ {
+			v := fields[i]
+			if n := strings.SplitN(v, "\t", 3); len(n) == 3 && isCount(n[0]) && isCount(n[1]) {
+				add, _ := strconv.Atoi(n[0]) // binary files report "-", counted as 0
+				del, _ := strconv.Atoi(n[1])
+				name := n[2]
+				if name == "" && i+2 < len(fields) { // a rename: the new path
+					name, i = fields[i+2], i+2
 				}
+				c.Files = append(c.Files, FileStat{Name: name, Add: add, Del: del})
 				continue
 			}
-			p := strings.SplitN(line, "\t", 3)
-			if len(p) >= 2 && p[0] != "" && p[0][0] >= 'A' && p[0][0] <= 'Z' { // --name-status: "M\tpath", "R087\told\tnew"
-				name := newPath(p[len(p)-1])
-				if p[0] == "A" {
+			if isStatus(v) {
+				skip := 1
+				if v[0] == 'R' || v[0] == 'C' { // renamed or copied: old path, new path
+					skip = 2
+				}
+				if i+skip >= len(fields) {
+					break
+				}
+				name := fields[i+skip]
+				if v == "A" {
 					created[name] = true
 				}
 				c.Files = append(c.Files, FileStat{Name: name})
+				i += skip
 				continue
 			}
-			if len(p) < 3 {
-				continue
+			for _, line := range strings.Split(v, "\n") {
+				if rest, ok := strings.CutPrefix(line, " create mode "); ok { // " create mode 100644 <path>"
+					if _, p, ok := strings.Cut(rest, " "); ok {
+						if u, err := strconv.Unquote(p); err == nil && strings.HasPrefix(p, `"`) {
+							p = u
+						}
+						created[p] = true
+					}
+				}
 			}
-			add, _ := strconv.Atoi(p[0]) // binary files report "-", counted as 0
-			del, _ := strconv.Atoi(p[1])
-			c.Files = append(c.Files, FileStat{Name: newPath(p[2]), Add: add, Del: del})
 		}
 		for i := range c.Files { // --summary lines follow the numstat lines
 			c.Files[i].Created = created[c.Files[i].Name]
@@ -564,21 +584,10 @@ func parseLog(out string) []Commit {
 	return commits
 }
 
-// newPath returns the repository-relative path of a numstat entry as git shows it, taking the new side of
-// a rename ("dir/{old => new}/f.go", "{src => }/f.go" or "old.go => new.go").
-func newPath(p string) string {
-	if strings.HasPrefix(p, `"`) {
-		if u, err := strconv.Unquote(p); err == nil {
-			p = u
-		}
-	}
-	if i := strings.Index(p, " => "); i >= 0 {
-		l, r := strings.LastIndex(p[:i], "{"), strings.Index(p[i:], "}")
-		if l >= 0 && r >= 0 {
-			p = strings.TrimPrefix(strings.ReplaceAll(p[:l]+p[i+4:i+r]+p[i+r+1:], "//", "/"), "/")
-		} else {
-			p = p[i+4:]
-		}
-	}
-	return p
+// isCount reports whether s is a --numstat line count: digits, or "-" for a binary file.
+func isCount(s string) bool { return s == "-" || s != "" && strings.Trim(s, "0123456789") == "" }
+
+// isStatus reports whether s is a --name-status status: a letter, with a score after R and C ("R087").
+func isStatus(s string) bool {
+	return s != "" && s[0] >= 'A' && s[0] <= 'Z' && strings.Trim(s[1:], "0123456789") == ""
 }
