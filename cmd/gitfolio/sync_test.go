@@ -229,7 +229,6 @@ func TestRemoteBranches(t *testing.T) {
 	if err := writeCommits(dir, commits); err != nil {
 		t.Fatal(err)
 	}
-	r.Seen = "" // an older version kept no fingerprint of its scans
 	check()
 }
 
@@ -655,5 +654,34 @@ func TestSyncSnapshots(t *testing.T) {
 	f.newerFormat = false
 	if n, err := syncData(dir, false); err != nil || n.stats != 1 || f.stats["GITHUB/me/app"].Days["2026-10-09"] == nil || before.Days["2026-10-09"] != nil {
 		t.Errorf("after the update the snapshot was not sent: %+v, %v", n, err)
+	}
+}
+
+// A shallow clone made whole (fetch --unshallow) has more commits under the same branch tips: the scan
+// after it collects them.
+func TestScanAfterUnshallow(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	base, data := t.TempDir(), t.TempDir()
+	up, clone := filepath.Join(base, "up"), filepath.Join(base, "clone")
+	git := func(args ...string) {
+		t.Helper()
+		if out, err := exec.Command("git", append([]string{"-c", "user.name=me", "-c", "user.email=me@example.com", "-c", "protocol.file.allow=always"}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	git("init", "-q", "-b", "main", up)
+	for _, m := range []string{"one", "two", "three"} {
+		git("-C", up, "commit", "-q", "--allow-empty", "-m", "feat: "+m)
+	}
+	git("clone", "-q", "--depth", "1", "file://"+up, clone)
+	git("-C", clone, "config", "user.email", "me@example.com")
+	r := newRepo(clone)
+	if n, err := scanRepo(data, &r, false); err != nil || n != 1 {
+		t.Fatalf("shallow: %d %v", n, err)
+	}
+	git("-C", clone, "fetch", "-q", "--unshallow")
+	if n, err := scanRepo(data, &r, false); err != nil || n != 2 {
+		t.Errorf("after --unshallow: %d %v, want 2", n, err)
 	}
 }
