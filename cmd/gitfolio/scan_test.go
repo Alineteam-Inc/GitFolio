@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -439,5 +440,38 @@ func TestGitSkipsTheStandIn(t *testing.T) {
 	}
 	if out, err := git(".", "--version"); err != nil || !strings.HasPrefix(out, "git version") {
 		t.Errorf("%s: %q %v", gitPath, out, err)
+	}
+}
+
+// Two settings per repository, no git hooks and what AI tools may see, stay as they are when saved, and a
+// scan puts no hooks back into a husky repository that has none. 0.6.4 and later keep them too.
+func TestLaterSettingsKept(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	dir, repo := t.TempDir(), t.TempDir()
+	if out, err := exec.Command("git", "-C", repo, "init", "-q").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	exec.Command("git", "-C", repo, "config", "core.hooksPath", ".husky/_").Run()
+	husky := filepath.Join(repo, ".husky", "_")
+	os.MkdirAll(husky, 0o755)
+	os.WriteFile(filepath.Join(husky, "h"), nil, 0o755)
+	stored := `[{"id":"a","path":` + strconv.Quote(repo) + `,"name":"app","noHooks":true,"ai":{"name":"-","hidden":true}}]`
+	if err := os.WriteFile(filepath.Join(dir, "repos.json"), []byte(stored), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	repos, err := loadRepos(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	readRepo(Config{Emails: []string{"dev@example.com"}}, nil, storedNow{}, &repos[0], false)
+	if b, _ := os.ReadFile(filepath.Join(husky, "pre-push")); strings.Contains(string(b), hookMarker) {
+		t.Error("a scan put the hooks back into a repository with none")
+	}
+	if err := saveRepos(dir, repos); err != nil {
+		t.Fatal(err)
+	}
+	again, _ := loadRepos(dir)
+	if !again[0].NoHooks || again[0].AI != (aiExposure{Name: anonymousName, Hidden: true}) {
+		t.Errorf("saved: noHooks %v, ai %+v", again[0].NoHooks, again[0].AI)
 	}
 }
