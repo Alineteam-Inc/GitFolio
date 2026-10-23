@@ -299,7 +299,9 @@ func updateCommand(tag, exe string) (*exec.Cmd, string) {
 		s := `{ t=$("$0" --repository alineteam-inc/tap) && export GIT_TERMINAL_PROMPT=0 &&
 git -C "$t" -c core.hooksPath=/dev/null fetch -q && git -C "$t" -c core.hooksPath=/dev/null merge -q --ff-only '@{u}' ||
 "$0" update; } && HOMEBREW_NO_AUTO_UPDATE=1 "$0" upgrade --cask alineteam-inc/tap/gitfolio`
-		return exec.Command("sh", "-c", s, brew), "brew update && brew upgrade --cask gitfolio"
+		// The full name, here and by hand: Homebrew 7 loads a cask of a tap not trusted (brew trust) only
+		// when named so.
+		return exec.Command("sh", "-c", s, brew), "brew update && brew upgrade --cask alineteam-inc/tap/gitfolio"
 	case runtime.GOOS == "windows":
 		s := "irm " + installPs1 + " | iex"
 		c := exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", s)
